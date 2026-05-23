@@ -1,0 +1,56 @@
+I want to build a professional Flutter application for managing electrical generators that connects owners with consumers. Please act as a Senior Flutter Developer and help me structure and code this application.
+
+1. Architecture & Tech Stack:
+
+Architecture: Strictly follow the MVC (Model-View-Controller) design pattern.
+
+State Management: Use Riverpod for robust state management.
+
+Navigation: Use go_router for handling deep linking and routing.
+
+Responsiveness: Ensure the UI is fully responsive (using LayoutBuilder or ResponsiveFramework) for mobile and tablet devices.
+
+Language & UI: The app must be fully in Arabic (RTL support). Implement a Dynamic Theme (Light/Dark mode) with persistent storage (shared_preferences) to save user preferences.
+
+UI/UX & Animations: The design must be modern and clean. Please incorporate subtle, high-quality animations (using flutter_animate or Lottie) for smooth screen transitions, button feedback, and status updates (e.g., when the generator status toggles).
+
+2. Core Features & Data Strategy:
+
+Backend: Use Firebase Firestore only. No external APIs or Firebase Storage.
+
+Authentication: Firebase Phone Auth with session persistence. After login, check the role ('admin' or 'consumer') in Firestore to redirect accordingly.
+
+User Flow:
+
+New users: Profile setup (Name, Address) with a 'Skip' option.
+
+Existing users: Auto-login to the dashboard.
+
+Admin Features: Manage subscriptions, real-time toggle of generator status, approve receipts, and manage complaints.
+
+Consumer Features: View real-time generator status, track consumption, view/pay invoices, and file complaints.
+
+3. Optimized Data Handling (Base64 Strategy):
+
+Important: I do not want to use Firebase Storage.
+
+Image Handling: When a consumer uploads a payment receipt, the app must:
+
+Compress the image (to keep size minimal).
+
+Convert the image to a Base64 String.
+
+Save the Base64 string directly into a Firestore document field.
+
+Display: When the admin views the receipt, the app should decode the Base64 string back into an Image widget for display.
+
+4. Project Structure & Deliverables:
+
+Folder Structure: Propose a clean MVC directory structure.
+
+Implementation: Provide the code for the Authentication (Model/Controller/View), the Dashboard, and the Base64 image upload/display logic.
+
+Security: Include Firestore Rules to ensure users only access their own data, while the admin has full access.
+
+Instructions:
+I will upload my UI design sketches. Please use them as the primary visual reference. Focus on clean code, modularity, and a polished user experience.

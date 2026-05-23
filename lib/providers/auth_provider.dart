@@ -143,6 +143,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     state = state.copyWith(phoneNumber: normalized, error: null);
 
+    // Try to look up the user's role in Firestore first.
+    // If this fails (e.g. permissions), we still attempt to send the OTP.
     try {
       final query = await _db
           .collection('users')
@@ -151,7 +153,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           .get();
 
       if (query.docs.isEmpty) {
-        state = state.copyWith(error: 'رقم الهاتف غير موجود');
+        state = state.copyWith(error: 'رقم الهاتف غير مسجل في النظام');
         return false;
       }
 
@@ -159,13 +161,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final role =
           userMap['role'] == 'admin' ? UserRole.admin : UserRole.consumer;
       state = state.copyWith(selectedRole: role);
+    } catch (_) {
+      // Firestore lookup failed (rules/network) — continue anyway.
+      // Role will be determined after successful sign-in via _ensureProfile.
+    }
 
-      final full = '+972${normalized.replaceFirst('0', '')}';
-      final completer = Completer<bool>();
+    final full = '+972${normalized.replaceFirst('0', '')}';
+    final completer = Completer<bool>();
 
+    try {
       await _auth.verifyPhoneNumber(
         phoneNumber: full,
         verificationCompleted: (cred) async {
+          // Auto-verified (Android only). Sign in immediately.
           try {
             final r = await _auth.signInWithCredential(cred);
             if (r.user != null) await _ensureProfile(r.user!.uid);
@@ -176,16 +184,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
           }
         },
         verificationFailed: (e) {
-          state = state.copyWith(error: e.message);
+          state = state.copyWith(error: e.message ?? 'فشل إرسال رمز التحقق');
           if (!completer.isCompleted) completer.complete(false);
         },
         codeSent: (vid, _) {
           state = state.copyWith(verificationId: vid);
           if (!completer.isCompleted) completer.complete(true);
         },
-        codeAutoRetrievalTimeout: (vid) {
-          if (!completer.isCompleted) completer.complete(false);
-        },
+        // codeAutoRetrievalTimeout is Android-only; on web it may fire
+        // immediately — do NOT complete with false here, the completer
+        // is already resolved by codeSent or verificationFailed.
+        codeAutoRetrievalTimeout: (_) {},
       );
 
       return completer.future;

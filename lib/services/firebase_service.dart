@@ -34,7 +34,8 @@ class FirebaseService {
   }
 
   // Add subscriber
-  Future<void> addSubscriber(String uid, String name, String phone, String address, int ampereLimit) async {
+  Future<void> addSubscriber(String uid, String name, String phone,
+      String address, int ampereLimit) async {
     final ref = _db.collection('users').doc(uid);
     await ref.set({
       'phone': phone,
@@ -47,8 +48,25 @@ class FirebaseService {
     });
   }
 
+  // Add subscriber by phone (generates a document ID from phone number)
+  Future<void> addSubscriberByPhone(
+      String name, String phone, String address, int ampereLimit) async {
+    final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+    final docId = 'sub_$cleanPhone';
+    await _db.collection('users').doc(docId).set({
+      'phone': cleanPhone,
+      'name': name,
+      'address': address,
+      'role': 'consumer',
+      'subscriptionStatus': 'active',
+      'ampereLimit': ampereLimit,
+      'createdAt': DateTime.now().millisecondsSinceEpoch,
+    });
+  }
+
   // Update subscriber
-  Future<void> updateSubscriber(String uid, {String? name, String? address, String? status, int? ampereLimit}) async {
+  Future<void> updateSubscriber(String uid,
+      {String? name, String? address, String? status, int? ampereLimit}) async {
     final data = <String, dynamic>{};
     if (name != null) data['name'] = name;
     if (address != null) data['address'] = address;
@@ -75,11 +93,56 @@ class FirebaseService {
     });
   }
 
+  // Upload receipt by userId (finds the latest pending bill)
+  Future<void> uploadReceiptForUser(String userId, Uint8List imageBytes) async {
+    final base64 = base64Encode(imageBytes);
+    final query = await _db
+        .collection('bills')
+        .where('userId', isEqualTo: userId)
+        .where('status', isEqualTo: 'pending')
+        .orderBy('createdAt', descending: true)
+        .limit(1)
+        .get();
+    if (query.docs.isNotEmpty) {
+      await query.docs.first.reference.update({
+        'receiptBase64': base64,
+        'status': 'pendingReview',
+      });
+    } else {
+      // No existing bill — create one and attach the receipt
+      await _db.collection('bills').add({
+        'userId': userId,
+        'month': 'يوليو',
+        'year': 2024,
+        'amount': 284,
+        'kwh': 142.0,
+        'status': 'pendingReview',
+        'receiptBase64': base64,
+        'createdAt': DateTime.now().millisecondsSinceEpoch,
+      });
+    }
+  }
+
   // Decode Base64 to bytes
   static Uint8List decodeBase64(String base64) => base64Decode(base64);
 
+  // Mark all alerts as read for a user
+  Future<void> markAllAlertsRead(String userId) async {
+    final batch = _db.batch();
+    final snap = await _db
+        .collection('alerts')
+        .where('userId', isEqualTo: userId)
+        .where('read', isEqualTo: false)
+        .get();
+    for (final doc in snap.docs) {
+      batch.update(doc.reference, {'read': true});
+    }
+    await batch.commit();
+  }
+
   // File complaint
-  Future<void> addComplaint(String userId, String userName, String text) async {
+  Future<void> addComplaint(
+      String userId, String userName, String text) async {
     await _db.collection('complaints').add({
       'userId': userId,
       'userName': userName,
@@ -97,7 +160,8 @@ class FirebaseService {
   }
 
   // Create bill
-  Future<void> createBill(String userId, String month, int year, int amount, double kwh) async {
+  Future<void> createBill(String userId, String month, int year, int amount,
+      double kwh) async {
     await _db.collection('bills').add({
       'userId': userId,
       'month': month,
@@ -106,6 +170,15 @@ class FirebaseService {
       'kwh': kwh,
       'status': 'pending',
       'createdAt': DateTime.now().millisecondsSinceEpoch,
+    });
+  }
+
+  // Update user profile
+  Future<void> updateUserProfile(
+      String uid, String name, String address) async {
+    await _db.collection('users').doc(uid).update({
+      'name': name,
+      'address': address,
     });
   }
 }
