@@ -184,7 +184,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
           }
         },
         verificationFailed: (e) {
-          state = state.copyWith(error: e.message ?? 'فشل إرسال رمز التحقق');
+          final msg = _friendlyAuthError(e.code);
+          state = state.copyWith(error: msg);
           if (!completer.isCompleted) completer.complete(false);
         },
         codeSent: (vid, _) {
@@ -199,21 +200,55 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       return completer.future;
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      final msg = e is FirebaseAuthException
+          ? _friendlyAuthError(e.code)
+          : 'تعذّر الاتصال بالخادم. تحقق من اتصالك بالإنترنت.';
+      state = state.copyWith(error: msg);
       return false;
+    }
+  }
+
+  /// Maps Firebase error codes to user-friendly Arabic messages.
+  static String _friendlyAuthError(String? code) {
+    switch (code) {
+      case 'operation-not-allowed':
+        return 'خدمة التحقق برقم الهاتف غير مفعّلة. يرجى التواصل مع المشرف.';
+      case 'unauthorized-domain':
+        return 'النطاق الحالي غير مصرح له. يرجى التواصل مع المشرف.';
+      case 'invalid-phone-number':
+        return 'رقم الهاتف غير صالح. تأكد من الصيغة (مثال: 0591234567).';
+      case 'too-many-requests':
+        return 'عدد كبير من المحاولات. يرجى الانتظار دقائق والمحاولة مجدداً.';
+      case 'quota-exceeded':
+        return 'تم تجاوز الحد المسموح من الرسائل. حاول لاحقاً.';
+      case 'missing-phone-number':
+        return 'الرجاء إدخال رقم الهاتف.';
+      case 'captcha-check-failed':
+      case 'missing-client-identifier':
+        return 'فشل التحقق الأمني (reCAPTCHA). أعد تحميل الصفحة وحاول مرة أخرى.';
+      case 'network-request-failed':
+        return 'تعذّر الاتصال بالإنترنت. تحقق من اتصالك وحاول مجدداً.';
+      default:
+        return 'حدث خطأ أثناء إرسال رمز التحقق (${code ?? 'unknown'}).';
     }
   }
 
   Future<void> verifyOtp(String code) async {
     final vid = state.verificationId;
-    if (vid == null) return;
+    if (vid == null) {
+      state = state.copyWith(error: 'انتهت صلاحية الجلسة. ارجع وأدخل رقمك من جديد.');
+      return;
+    }
     try {
       final cred =
           PhoneAuthProvider.credential(verificationId: vid, smsCode: code);
       final r = await _auth.signInWithCredential(cred);
       if (r.user != null) await _ensureProfile(r.user!.uid);
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      final msg = e is FirebaseAuthException
+          ? _friendlyAuthError(e.code)
+          : 'رمز التحقق خاطئ أو منتهي الصلاحية.';
+      state = state.copyWith(error: msg);
     }
   }
 

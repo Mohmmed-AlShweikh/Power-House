@@ -17,6 +17,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _phoneCtrl = TextEditingController();
   bool _loading = false;
   UserRole _role = UserRole.consumer;
+  String? _errorMsg;
 
   @override
   void initState() {
@@ -42,22 +43,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
-    setState(() => _loading = true);
+    setState(() { _loading = true; _errorMsg = null; });
     final sent = await ref.read(authProvider.notifier).sendOtp(digits, context);
-    setState(() => _loading = false);
-
     if (!mounted) return;
-    final error = ref.read(authProvider).error;
-    if (!sent || error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('خطأ: ${error ?? 'فشل إرسال الرمز'}',
-                textAlign: TextAlign.right)),
-      );
-      return;
-    }
 
-    context.push('/otp');
+    final error = ref.read(authProvider).error;
+    setState(() { _loading = false; _errorMsg = error; });
+
+    if (sent && error == null) context.push('/otp');
   }
 
   @override
@@ -187,6 +180,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                         color: AppColors.success,
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        if (_errorMsg != null) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.error.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                  color: AppColors.error.withOpacity(0.3)),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(Icons.error_outline,
+                                    size: 18, color: AppColors.error),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _errorMsg!,
+                                    style: const TextStyle(
+                                        color: AppColors.error,
+                                        fontSize: 13,
+                                        height: 1.4),
                                   ),
                                 ),
                               ],
