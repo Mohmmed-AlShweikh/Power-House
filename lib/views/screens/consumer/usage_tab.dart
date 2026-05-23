@@ -21,23 +21,7 @@ class UsageTab extends ConsumerWidget {
             backgroundColor: AppColors.primaryDark,
             automaticallyImplyLeading: false,
             title: Text('الاستهلاك', style: theme.textTheme.titleLarge?.copyWith(color: Colors.white)),
-            actions: [
-              Container(
-                margin: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.calendar_today, size: 14, color: Colors.white70),
-                    SizedBox(width: 4),
-                    Text('2024', style: TextStyle(color: Colors.white, fontSize: 13)),
-                  ],
-                ),
-              ),
-            ],
+          
           ),
           SliverPadding(
             padding: const EdgeInsets.all(16),
@@ -73,7 +57,7 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Expanded(
     child: Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(16),
@@ -121,7 +105,7 @@ class _ChartCard extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 20),
           SizedBox(
-            height: 150,
+            height: 160,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: data.map((d) {
@@ -149,7 +133,7 @@ class _ChartCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 6),
-                        Text(d.month.substring(0, 3), style: const TextStyle(fontSize: 9, color: AppColors.lightMuted)),
+                        Text(d.month, style: const TextStyle(fontSize: 9, color: AppColors.lightMuted)),
                       ],
                     ),
                   ),
