@@ -1,9 +1,12 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../models/bill_model.dart';
 import '../../../providers/data_provider.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../services/firebase_service.dart';
 import '../../../config/colors.dart';
 
 class BillsTab extends ConsumerWidget {
@@ -23,27 +26,28 @@ class BillsTab extends ConsumerWidget {
             backgroundColor: AppColors.primaryDark,
             automaticallyImplyLeading: false,
             title: Text('الفواتير',
-                style:
-                    theme.textTheme.titleLarge?.copyWith(color: Colors.white)),
+                style: theme.textTheme.titleLarge
+                    ?.copyWith(color: Colors.white)),
           ),
           SliverPadding(
             padding: const EdgeInsets.all(16),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                // Pending bill banner
-                _PendingBanner(),
+                const _PendingBanner(),
                 const SizedBox(height: 16),
                 Text('سجل الفواتير', style: theme.textTheme.titleLarge),
                 const SizedBox(height: 12),
                 billsAsync.when(
-                  data: (bills) => Column(
-                    children: bills
-                        .map((b) => Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: _BillCard(bill: b),
-                            ))
-                        .toList(),
-                  ),
+                  data: (bills) => bills.isEmpty
+                      ? const _EmptyBills()
+                      : Column(
+                          children: bills
+                              .map((b) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 10),
+                                    child: _BillCard(bill: b),
+                                  ))
+                              .toList(),
+                        ),
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
                   error: (_, __) => const _MockBills(),
@@ -58,9 +62,13 @@ class BillsTab extends ConsumerWidget {
   }
 }
 
-class _PendingBanner extends StatelessWidget {
+// ── Pending Banner ─────────────────────────────────────────────────────────────
+
+class _PendingBanner extends ConsumerWidget {
+  const _PendingBanner();
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -94,16 +102,27 @@ class _PendingBanner extends StatelessWidget {
             ),
           ),
           ElevatedButton(
-            onPressed: () => _showUploadSheet(context),
+            onPressed: () {
+              final uid = ref.read(authProvider).profile?.uid ?? '';
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                shape: const RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(24))),
+                builder: (_) => _UploadReceiptSheet(uid: uid),
+              );
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.success,
               foregroundColor: Colors.white,
               minimumSize: Size.zero,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
-              textStyle:
-                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              textStyle: const TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w600),
             ),
             child: const Text('رفع إيصال'),
           ),
@@ -111,56 +130,190 @@ class _PendingBanner extends StatelessWidget {
       ),
     ).animate().fadeIn().slideY(begin: 0.2, end: 0, duration: 300.ms);
   }
+}
 
-  void _showUploadSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('رفع إيصال الدفع',
-                  style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 6),
-              Text('فاتورة يوليو 2024 — ₪ 284',
-                  style: Theme.of(context).textTheme.labelLarge),
-              const SizedBox(height: 24),
-              Container(
-                height: 120,
-                decoration: BoxDecoration(
-                  border: Border.all(
-                      color: AppColors.lightBorder, style: BorderStyle.solid),
-                  borderRadius: BorderRadius.circular(14),
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                ),
-                child: const Center(
+// ── Upload Receipt Sheet ───────────────────────────────────────────────────────
+
+class _UploadReceiptSheet extends ConsumerStatefulWidget {
+  final String uid;
+  const _UploadReceiptSheet({required this.uid});
+
+  @override
+  ConsumerState<_UploadReceiptSheet> createState() =>
+      _UploadReceiptSheetState();
+}
+
+class _UploadReceiptSheetState extends ConsumerState<_UploadReceiptSheet> {
+  Uint8List? _bytes;
+  bool _uploading = false;
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1200,
+      imageQuality: 85,
+    );
+    if (file == null) return;
+    final bytes = await file.readAsBytes();
+    if (mounted) setState(() => _bytes = bytes);
+  }
+
+  Future<void> _upload() async {
+    if (_bytes == null) return;
+    setState(() => _uploading = true);
+    try {
+      await FirebaseService().uploadReceiptForUser(widget.uid, _bytes!);
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('تم رفع الإيصال بنجاح ✓',
+                  textAlign: TextAlign.right)),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('فشل رفع الإيصال. حاول مجدداً.',
+                  textAlign: TextAlign.right)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 24,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.cloud_upload_outlined,
-                          size: 36, color: AppColors.lightMuted),
-                      SizedBox(height: 8),
-                      Text('اضغط لاختيار صورة الإيصال',
-                          style: TextStyle(
-                              color: AppColors.lightMuted, fontSize: 13)),
+                      Text('رفع إيصال الدفع',
+                          style: Theme.of(context).textTheme.titleLarge),
+                      const SizedBox(height: 4),
+                      Text('فاتورة يوليو 2024 — ₪ 284',
+                          style: Theme.of(context).textTheme.labelLarge),
                     ],
                   ),
                 ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            GestureDetector(
+              onTap: _uploading ? null : _pickImage,
+              child: AnimatedContainer(
+                duration: 200.ms,
+                height: 160,
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: _bytes != null
+                        ? AppColors.primary
+                        : AppColors.lightBorder,
+                    width: _bytes != null ? 2 : 1,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                ),
+                child: _bytes != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(13),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.memory(_bytes!, fit: BoxFit.cover),
+                            Positioned(
+                              top: 8,
+                              left: 8,
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                    color: Colors.black54,
+                                    borderRadius: BorderRadius.circular(8)),
+                                child: const Icon(Icons.edit,
+                                    size: 16, color: Colors.white),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : const Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.cloud_upload_outlined,
+                                size: 40, color: AppColors.lightMuted),
+                            SizedBox(height: 8),
+                            Text('اضغط لاختيار صورة الإيصال',
+                                style: TextStyle(
+                                    color: AppColors.lightMuted,
+                                    fontSize: 13)),
+                            SizedBox(height: 4),
+                            Text('PNG, JPG, JPEG مدعوم',
+                                style: TextStyle(
+                                    color: AppColors.lightMuted,
+                                    fontSize: 11)),
+                          ],
+                        ),
+                      ),
               ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('رفع الإيصال'),
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: (_bytes == null || _uploading) ? null : _upload,
+              child: _uploading
+                  ? const SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2.5, color: Colors.white))
+                  : Text(_bytes == null ? 'اختر صورة أولاً' : 'رفع الإيصال'),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+}
+
+// ── Bill Card ─────────────────────────────────────────────────────────────────
+
+class _EmptyBills extends StatelessWidget {
+  const _EmptyBills();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 40),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.receipt_long, size: 52, color: AppColors.lightMuted),
+          SizedBox(height: 12),
+          Text('لا توجد فواتير بعد',
+              style: TextStyle(color: AppColors.lightMuted, fontSize: 15)),
+        ],
       ),
     );
   }
@@ -249,14 +402,14 @@ class _BillCard extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                   color: AppColors.lightText)),
           const SizedBox(width: 8),
-          const Icon(Icons.chevron_left, color: AppColors.lightMuted, size: 18),
+          const Icon(Icons.chevron_left,
+              color: AppColors.lightMuted, size: 18),
         ],
       ),
     ).animate().fadeIn();
   }
 }
 
-// Mock bills for demo
 class _MockBills extends StatelessWidget {
   const _MockBills();
 
@@ -314,8 +467,10 @@ class _MockBills extends StatelessWidget {
                           children: [
                             Text(b.$1,
                                 style: const TextStyle(
-                                    fontSize: 14, fontWeight: FontWeight.w600)),
-                            Text(b.$3 == 'paid' ? 'مدفوعة' : 'غير مدفوعة',
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600)),
+                            Text(
+                                b.$3 == 'paid' ? 'مدفوعة' : 'غير مدفوعة',
                                 style: TextStyle(
                                     fontSize: 12,
                                     color: b.$3 == 'paid'

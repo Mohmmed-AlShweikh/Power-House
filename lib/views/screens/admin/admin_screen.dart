@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../models/user_model.dart';
 import '../../../models/bill_model.dart';
 import '../../../models/complaint_model.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../providers/data_provider.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../services/firebase_service.dart';
@@ -24,7 +26,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 4, vsync: this);
+    _tabs = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -110,6 +112,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
                       Tab(text: 'المشتركون'),
                       Tab(text: 'الفواتير'),
                       Tab(text: 'الشكاوى'),
+                      Tab(text: 'ملفي'),
                     ],
                   ),
                 ],
@@ -127,6 +130,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
                 const _SubscribersTab(),
                 const _BillsTab(),
                 const _ComplaintsTab(),
+                const _AdminProfileTab(),
               ],
             ),
           ),
@@ -639,6 +643,7 @@ class _MockSubscribers extends StatefulWidget {
 }
 
 class _MockSubscribersState extends State<_MockSubscribers> {
+  String _query = '';
   final _subscribers = [
     UserProfile(
         uid: '1',
@@ -698,12 +703,12 @@ class _MockSubscribersState extends State<_MockSubscribers> {
 
   @override
   Widget build(BuildContext context) {
-    final filtered = widget.search.isEmpty
+    final filtered = _query.isEmpty
         ? _subscribers
         : _subscribers
             .where((s) =>
-                s.name.toLowerCase().contains(widget.search.toLowerCase()) ||
-                s.phone.contains(widget.search))
+                s.name.toLowerCase().contains(_query.toLowerCase()) ||
+                s.phone.contains(_query))
             .toList();
 
     return Column(
@@ -720,7 +725,7 @@ class _MockSubscribersState extends State<_MockSubscribers> {
                     border: Border.all(color: AppColors.lightBorder),
                   ),
                   child: TextField(
-                    onChanged: (v) => setState(() {}),
+                    onChanged: (v) => setState(() => _query = v.trim()),
                     decoration: const InputDecoration(
                       hintText: 'بحث بالاسم أو رقم الجوال...',
                       prefixIcon: Icon(Icons.search,
@@ -733,7 +738,7 @@ class _MockSubscribersState extends State<_MockSubscribers> {
               ),
               const SizedBox(width: 10),
               ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () => _showAddSheet(context),
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('إضافة'),
                 style: ElevatedButton.styleFrom(
@@ -768,14 +773,99 @@ class _MockSubscribersState extends State<_MockSubscribers> {
       ],
     );
   }
+
+  void _showAddSheet(BuildContext context) {
+    final nameCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
+    final addressCtrl = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (_) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text('إضافة مشترك جديد',
+                        style: Theme.of(context).textTheme.headlineMedium),
+                  ),
+                  IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context)),
+                ],
+              ),
+              const SizedBox(height: 20),
+              _SheetField(
+                  controller: nameCtrl,
+                  hint: 'الاسم الكامل',
+                  icon: Icons.person_outline),
+              const SizedBox(height: 12),
+              _SheetField(
+                  controller: phoneCtrl,
+                  hint: 'رقم الهاتف (05xxxxxxxx)',
+                  icon: Icons.phone),
+              const SizedBox(height: 12),
+              _SheetField(
+                  controller: addressCtrl,
+                  hint: 'المنطقة / العنوان',
+                  icon: Icons.location_on_outlined),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  final name = nameCtrl.text.trim();
+                  final phone = phoneCtrl.text.trim();
+                  if (name.isEmpty || phone.isEmpty) return;
+                  setState(() {
+                    _subscribers.add(UserProfile(
+                      uid: DateTime.now().millisecondsSinceEpoch.toString(),
+                      phone: phone,
+                      name: name,
+                      address: addressCtrl.text.trim(),
+                      role: UserRole.consumer,
+                      subscriptionStatus: SubscriptionStatus.active,
+                      ampereLimit: 10,
+                      createdAt: DateTime.now(),
+                    ));
+                  });
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('تم إضافة المشترك ✓',
+                            textAlign: TextAlign.right)),
+                  );
+                },
+                child: const Text('إضافة المشترك'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _SheetField extends StatelessWidget {
   final String hint;
   final IconData icon;
-  const _SheetField({required this.hint, required this.icon});
+  final TextEditingController? controller;
+  const _SheetField(
+      {required this.hint, required this.icon, this.controller});
   @override
   Widget build(BuildContext context) => TextField(
+        controller: controller,
         style: const TextStyle(fontSize: 14),
         decoration: InputDecoration(
           hintText: hint,
@@ -800,8 +890,15 @@ class _SheetField extends StatelessWidget {
 
 // ── Bills Tab ─────────────────────────────────────────────────────────────────
 
-class _BillsTab extends ConsumerWidget {
+class _BillsTab extends ConsumerStatefulWidget {
   const _BillsTab();
+
+  @override
+  ConsumerState<_BillsTab> createState() => _BillsTabState();
+}
+
+class _BillsTabState extends ConsumerState<_BillsTab> {
+  String _filter = 'all';
 
   static const _mockBills = [
     ('محمد أحمد', '₪284', 'يوليو 2024', 'pendingReview'),
@@ -813,70 +910,97 @@ class _BillsTab extends ConsumerWidget {
   ];
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final billsAsync = ref.watch(allBillsProvider);
 
     return billsAsync.when(
-      data: (bills) => ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          const _FilterRow(),
-          const SizedBox(height: 12),
-          ...bills.map((b) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _AdminBillCard(bill: b),
-              )),
-        ],
-      ),
+      data: (bills) {
+        final filtered = _filter == 'all'
+            ? bills
+            : bills
+                .where((b) => b.status.name == _filter)
+                .toList();
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _FilterRow(selected: _filter, onSelect: (v) => setState(() => _filter = v)),
+            const SizedBox(height: 12),
+            ...filtered.map((b) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _AdminBillCard(bill: b),
+                )),
+          ],
+        );
+      },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          const _FilterRow(),
-          const SizedBox(height: 12),
-          ..._mockBills.map((b) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _MockAdminBillCard(
-                    name: b.$1, amount: b.$2, month: b.$3, status: b.$4),
-              )),
-        ],
-      ),
+      error: (_, __) {
+        final filtered = _filter == 'all'
+            ? _mockBills
+            : _mockBills.where((b) => b.$4 == _filter).toList();
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _FilterRow(selected: _filter, onSelect: (v) => setState(() => _filter = v)),
+            const SizedBox(height: 12),
+            ...filtered.map((b) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _MockAdminBillCard(
+                      name: b.$1, amount: b.$2, month: b.$3, status: b.$4),
+                )),
+          ],
+        );
+      },
     );
   }
 }
 
 class _FilterRow extends StatelessWidget {
-  const _FilterRow();
+  final String selected;
+  final ValueChanged<String> onSelect;
+  const _FilterRow({required this.selected, required this.onSelect});
+
+  static const _filters = [
+    ('الكل', 'all'),
+    ('بانتظار', 'pendingReview'),
+    ('مقبول', 'paid'),
+    ('مرفوض', 'rejected'),
+  ];
+
   @override
-  Widget build(BuildContext context) => Row(
-        children: ['الكل', 'بانتظار', 'مقبول', 'مرفوض']
-            .asMap()
-            .entries
-            .map((e) => Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: e.key == 0
-                          ? AppColors.primary
-                          : Theme.of(context).cardTheme.color,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                          color: e.key == 0
+  Widget build(BuildContext context) => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: _filters
+              .map((f) => Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: GestureDetector(
+                      onTap: () => onSelect(f.$2),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: selected == f.$2
                               ? AppColors.primary
-                              : AppColors.lightBorder),
+                              : Theme.of(context).cardTheme.color,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                              color: selected == f.$2
+                                  ? AppColors.primary
+                                  : AppColors.lightBorder),
+                        ),
+                        child: Text(f.$1,
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: selected == f.$2
+                                    ? Colors.white
+                                    : AppColors.lightMuted)),
+                      ),
                     ),
-                    child: Text(e.value,
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: e.key == 0
-                                ? Colors.white
-                                : AppColors.lightMuted)),
-                  ),
-                ))
-            .toList(),
+                  ))
+              .toList(),
+        ),
       );
 }
 
@@ -997,7 +1121,7 @@ class _AdminBillCard extends StatelessWidget {
   }
 }
 
-class _MockAdminBillCard extends StatelessWidget {
+class _MockAdminBillCard extends StatefulWidget {
   final String name, amount, month, status;
   const _MockAdminBillCard(
       {required this.name,
@@ -1005,13 +1129,26 @@ class _MockAdminBillCard extends StatelessWidget {
       required this.month,
       required this.status});
 
-  Color get _color => switch (status) {
+  @override
+  _MockAdminBillCardState createState() => _MockAdminBillCardState();
+}
+
+class _MockAdminBillCardState extends State<_MockAdminBillCard> {
+  late String _localStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    _localStatus = widget.status;
+  }
+
+  Color get _color => switch (_localStatus) {
         'pendingReview' => AppColors.warning,
         'paid' => AppColors.success,
         _ => AppColors.error,
       };
 
-  String get _label => switch (status) {
+  String get _label => switch (_localStatus) {
         'pendingReview' => 'بانتظار',
         'paid' => 'مقبول',
         _ => 'مرفوض',
@@ -1031,38 +1168,85 @@ class _MockAdminBillCard extends StatelessWidget {
               offset: const Offset(0, 2))
         ],
       ),
-      child: Row(
+      child: Column(
         children: [
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: AppColors.primary.withOpacity(0.12),
-            child: Text(name[0],
-                style: const TextStyle(
-                    color: AppColors.primary, fontWeight: FontWeight.w700)),
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: AppColors.primary.withOpacity(0.12),
+                child: Text(widget.name[0],
+                    style: const TextStyle(
+                        color: AppColors.primary, fontWeight: FontWeight.w700)),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(widget.name,
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600)),
+                    Text('${widget.month} • ${widget.amount}',
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.lightMuted)),
+                  ],
+                ),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                    color: _color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20)),
+                child: Text(_label,
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: _color)),
+              ),
+            ],
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          if (_localStatus == 'pendingReview') ...[
+            const SizedBox(height: 12),
+            Row(
               children: [
-                Text(name,
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w600)),
-                Text('$month • $amount',
-                    style: const TextStyle(
-                        fontSize: 12, color: AppColors.lightMuted)),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () =>
+                        setState(() => _localStatus = 'rejected'),
+                    icon: const Icon(Icons.close, size: 16),
+                    label:
+                        const Text('رفض', style: TextStyle(fontSize: 13)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      side: const BorderSide(color: AppColors.error),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () =>
+                        setState(() => _localStatus = 'paid'),
+                    icon: const Icon(Icons.check, size: 16),
+                    label:
+                        const Text('قبول', style: TextStyle(fontSize: 13)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.success,
+                      minimumSize: Size.zero,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
               ],
             ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-                color: _color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20)),
-            child: Text(_label,
-                style: TextStyle(
-                    fontSize: 11, fontWeight: FontWeight.w600, color: _color)),
-          ),
+          ],
         ],
       ),
     );
@@ -1192,7 +1376,7 @@ class _ComplaintCard extends StatelessWidget {
               const Spacer(),
               if (item.status != ComplaintStatus.resolved)
                 TextButton(
-                  onPressed: () => FirebaseService().resolveComplaint(item.id),
+                  onPressed: () => _showReplyDialog(context, item.id),
                   style: TextButton.styleFrom(
                       foregroundColor: AppColors.primary,
                       padding: EdgeInsets.zero,
@@ -1212,6 +1396,56 @@ class _ComplaintCard extends StatelessWidget {
     if (diff.inDays > 0) return 'قبل ${diff.inDays} يوم';
     if (diff.inHours > 0) return 'قبل ${diff.inHours} ساعة';
     return 'آمس';
+  }
+
+  void _showReplyDialog(BuildContext context, String complaintId) {
+    final ctrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (_) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('الرد على الشكوى'),
+          content: TextField(
+            controller: ctrl,
+            maxLines: 3,
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: 'اكتب ردك هنا...',
+              hintStyle: const TextStyle(color: AppColors.lightMuted),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10)),
+              contentPadding: const EdgeInsets.all(12),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (ctrl.text.trim().isEmpty) return;
+                await FirebaseService().resolveComplaint(complaintId);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text('تم إرسال الرد ✓',
+                          textAlign: TextAlign.right)));
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                  minimumSize: Size.zero,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 8)),
+              child: const Text('إرسال الرد'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -1296,7 +1530,7 @@ class _MockComplaintCard extends StatelessWidget {
               const Spacer(),
               if (status != 'resolved')
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () => _showMockReplyDialog(context),
                   style: TextButton.styleFrom(
                       foregroundColor: AppColors.primary,
                       padding: EdgeInsets.zero,
@@ -1310,4 +1544,354 @@ class _MockComplaintCard extends StatelessWidget {
       ),
     ).animate().fadeIn();
   }
+
+  void _showMockReplyDialog(BuildContext context) {
+    final ctrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (_) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('الرد على الشكوى'),
+          content: TextField(
+            controller: ctrl,
+            maxLines: 3,
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: 'اكتب ردك هنا...',
+              hintStyle: const TextStyle(color: AppColors.lightMuted),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10)),
+              contentPadding: const EdgeInsets.all(12),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (ctrl.text.trim().isEmpty) return;
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('تم إرسال الرد ✓',
+                        textAlign: TextAlign.right)));
+              },
+              style: ElevatedButton.styleFrom(
+                  minimumSize: Size.zero,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 8)),
+              child: const Text('إرسال الرد'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Admin Profile Tab ─────────────────────────────────────────────────────────
+
+class _AdminProfileTab extends ConsumerWidget {
+  const _AdminProfileTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profile = ref.watch(authProvider).profile;
+    final theme = Theme.of(context);
+
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topRight,
+              end: Alignment.bottomLeft,
+              colors: [AppColors.primaryDark, AppColors.primary],
+            ),
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 40, 24, 32),
+          child: Column(
+            children: [
+              Stack(
+                children: [
+                  Container(
+                    width: 84,
+                    height: 84,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          color: Colors.white.withOpacity(0.5), width: 2),
+                    ),
+                    child: const Icon(Icons.person, size: 46, color: Colors.white),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                          color: AppColors.success, shape: BoxShape.circle),
+                      child: const Icon(Icons.build, size: 13, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                profile?.name.isNotEmpty == true ? profile!.name : 'صاحب المولد',
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text('صاحب مولد',
+                    style: TextStyle(color: Colors.white70, fontSize: 12)),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: theme.cardTheme.color,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2))
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    _PRow(Icons.phone, 'رقم الهاتف', profile?.phone ?? '—'),
+                    const Divider(height: 20, color: AppColors.lightBorder),
+                    _PRow(
+                        Icons.location_on_outlined,
+                        'العنوان',
+                        profile?.address?.isNotEmpty == true
+                            ? profile!.address
+                            : '—'),
+                    const Divider(height: 20, color: AppColors.lightBorder),
+                    _PRow(
+                        Icons.calendar_today,
+                        'تاريخ الانضمام',
+                        profile != null
+                            ? '${profile.createdAt.day}/${profile.createdAt.month}/${profile.createdAt.year}'
+                            : '—'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8, right: 4),
+                child: Text('الإعدادات',
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.lightMuted)),
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  color: theme.cardTheme.color,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2))
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: AppColors.warning.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.edit_outlined,
+                            size: 18, color: AppColors.warning),
+                      ),
+                      title: const Text('تعديل البيانات',
+                          style: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w500)),
+                      trailing: const Icon(Icons.chevron_left,
+                          color: AppColors.lightMuted, size: 18),
+                      onTap: () => _showEditSheet(context, ref),
+                    ),
+                    const Divider(
+                        height: 1, indent: 56, color: AppColors.lightBorder),
+                    ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.logout,
+                            size: 18, color: AppColors.error),
+                      ),
+                      title: const Text('تسجيل الخروج',
+                          style: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w500)),
+                      trailing: const Icon(Icons.chevron_left,
+                          color: AppColors.lightMuted, size: 18),
+                      onTap: () async {
+                        await ref.read(authProvider.notifier).signOut();
+                        if (context.mounted) context.go('/login');
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              Center(
+                child: Text('بوابة المولدات v1.0.0',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.lightMuted.withOpacity(0.6))),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showEditSheet(BuildContext context, WidgetRef ref) {
+    final profile = ref.read(authProvider).profile;
+    final nameCtrl = TextEditingController(text: profile?.name ?? '');
+    final addressCtrl = TextEditingController(text: profile?.address ?? '');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (_) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text('تعديل بيانات الحساب',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w700)),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              _SheetField(
+                controller: nameCtrl,
+                hint: 'الاسم الكامل',
+                icon: Icons.person_outline,
+              ),
+              const SizedBox(height: 12),
+              _SheetField(
+                controller: addressCtrl,
+                hint: 'العنوان',
+                icon: Icons.location_on_outlined,
+              ),
+              const SizedBox(height: 20),
+              StatefulBuilder(builder: (ctx, setS) {
+                bool saving = false;
+                return ElevatedButton(
+                  onPressed: saving
+                      ? null
+                      : () async {
+                          setS(() => saving = true);
+                          await ref
+                              .read(authProvider.notifier)
+                              .updateProfile(
+                                name: nameCtrl.text.trim(),
+                                address: addressCtrl.text.trim(),
+                              );
+                          setS(() => saving = false);
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('تم حفظ البيانات ✓',
+                                      textAlign: TextAlign.right)),
+                            );
+                          }
+                        },
+                  child: saving
+                      ? const SizedBox(
+                          height: 22,
+                          width: 22,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2.5, color: Colors.white))
+                      : const Text('حفظ التغييرات'),
+                );
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PRow extends StatelessWidget {
+  final IconData icon;
+  final String label, value;
+  const _PRow(this.icon, this.label, this.value);
+
+  @override
+  Widget build(BuildContext context) => Row(
+        children: [
+          Icon(icon, size: 18, color: AppColors.primary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: const TextStyle(
+                        fontSize: 11, color: AppColors.lightMuted)),
+                const SizedBox(height: 1),
+                Text(value,
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w500)),
+              ],
+            ),
+          ),
+        ],
+      );
 }

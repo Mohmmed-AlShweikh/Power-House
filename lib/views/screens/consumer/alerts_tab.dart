@@ -51,15 +51,52 @@ class AlertsTab extends ConsumerWidget {
               ],
             ),
             actions: [
-              TextButton(
-                onPressed: () async {
-                  final uid = profile?.uid;
-                  if (uid != null && uid.isNotEmpty) {
-                    await FirebaseService().markAllAlertsRead(uid);
-                  }
-                },
-                child: const Text('قراءة الكل',
-                    style: TextStyle(color: Colors.white70, fontSize: 13)),
+              alertsAsync.when(
+                data: (alerts) => alerts.isEmpty
+                    ? const SizedBox.shrink()
+                    : TextButton(
+                        onPressed: () async {
+                          final uid = profile?.uid;
+                          if (uid == null || uid.isEmpty) return;
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (_) => Directionality(
+                              textDirection: TextDirection.rtl,
+                              child: AlertDialog(
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16)),
+                                title: const Text('مسح جميع التنبيهات؟'),
+                                content: const Text(
+                                    'سيتم حذف جميع التنبيهات نهائياً.'),
+                                actions: [
+                                  TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, false),
+                                      child: const Text('إلغاء')),
+                                  ElevatedButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, true),
+                                    style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.error,
+                                        minimumSize: Size.zero,
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 16, vertical: 8)),
+                                    child: const Text('مسح الكل'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                          if (confirm == true) {
+                            await FirebaseService().deleteAllAlerts(uid);
+                          }
+                        },
+                        child: const Text('مسح الكل',
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 13)),
+                      ),
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
               ),
             ],
           ),
@@ -160,21 +197,21 @@ class _AlertCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(alert.title,
-                        style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: alert.read
-                                ? FontWeight.w500
-                                : FontWeight.w700,
-                            color: AppColors.lightText)),
-                    if (!alert.read) ...[
-                      const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(alert.title,
+                          style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: alert.read
+                                  ? FontWeight.w500
+                                  : FontWeight.w700,
+                              color: AppColors.lightText)),
+                    ),
+                    if (!alert.read)
                       Container(
                           width: 7,
                           height: 7,
                           decoration: BoxDecoration(
                               color: _color, shape: BoxShape.circle)),
-                    ],
                   ],
                 ),
                 const SizedBox(height: 2),
@@ -184,6 +221,7 @@ class _AlertCard extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(width: 8),
           Text(_timeAgo(alert.createdAt),
               style:
                   const TextStyle(fontSize: 11, color: AppColors.lightMuted)),
@@ -214,54 +252,18 @@ class _MockAlerts extends StatelessWidget {
   const _MockAlerts();
 
   static const _items = [
-    (
-      Icons.power,
-      AppColors.success,
-      'تشغيل المولد',
-      'تم تشغيل المولد',
-      'منذ ساعتين',
-      false
-    ),
-    (
-      Icons.warning_amber,
-      AppColors.warning,
-      'انتهاء وقود قريباً',
-      'متبقي 20% من الوقود',
-      'منذ 5 ساعات',
-      true
-    ),
-    (
-      Icons.receipt,
-      AppColors.primary,
-      'فاتورة جديدة',
-      'فاتورة يوليو ₪284',
-      'أمس',
-      true
-    ),
-    (
-      Icons.power_off,
-      AppColors.error,
-      'إيقاف المولد',
-      'إيقاف مؤقت لصيانة',
-      'أمس',
-      true
-    ),
-    (
-      Icons.check_circle,
-      AppColors.success,
-      'تأكيد إيصال',
-      'تم قبول إيصال يونيو',
-      'قبل يومين',
-      true
-    ),
-    (
-      Icons.person_add,
-      AppColors.primary,
-      'مشترك جديد',
-      'تمت إضافة مشترك جديد',
-      'قبل أسبوع',
-      true
-    ),
+    (Icons.power, AppColors.success, 'تشغيل المولد', 'تم تشغيل المولد',
+        'منذ ساعتين', false),
+    (Icons.warning_amber, AppColors.warning, 'انتهاء وقود قريباً',
+        'متبقي 20% من الوقود', 'منذ 5 ساعات', true),
+    (Icons.receipt, AppColors.primary, 'فاتورة جديدة', 'فاتورة يوليو ₪284',
+        'أمس', true),
+    (Icons.power_off, AppColors.error, 'إيقاف المولد', 'إيقاف مؤقت لصيانة',
+        'أمس', true),
+    (Icons.check_circle, AppColors.success, 'تأكيد إيصال',
+        'تم قبول إيصال يونيو', 'قبل يومين', true),
+    (Icons.person_add, AppColors.primary, 'مشترك جديد',
+        'تمت إضافة مشترك جديد', 'قبل أسبوع', true),
   ];
 
   @override
@@ -303,21 +305,21 @@ class _MockAlerts extends StatelessWidget {
                           children: [
                             Row(
                               children: [
-                                Text(i.$3,
-                                    style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: i.$6
-                                            ? FontWeight.w500
-                                            : FontWeight.w700)),
-                                if (!i.$6) ...[
-                                  const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(i.$3,
+                                      style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: i.$6
+                                              ? FontWeight.w500
+                                              : FontWeight.w700)),
+                                ),
+                                if (!i.$6)
                                   Container(
                                       width: 7,
                                       height: 7,
                                       decoration: BoxDecoration(
                                           color: i.$2,
                                           shape: BoxShape.circle)),
-                                ],
                               ],
                             ),
                             const SizedBox(height: 2),
@@ -328,6 +330,7 @@ class _MockAlerts extends StatelessWidget {
                           ],
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Text(i.$5,
                           style: const TextStyle(
                               fontSize: 11, color: AppColors.lightMuted)),

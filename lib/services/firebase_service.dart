@@ -140,6 +140,19 @@ class FirebaseService {
     await batch.commit();
   }
 
+  // Delete all alerts for a user
+  Future<void> deleteAllAlerts(String userId) async {
+    final batch = _db.batch();
+    final snap = await _db
+        .collection('alerts')
+        .where('userId', isEqualTo: userId)
+        .get();
+    for (final doc in snap.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+  }
+
   // File complaint
   Future<void> addComplaint(
       String userId, String userName, String text) async {
