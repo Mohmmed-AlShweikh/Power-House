@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1079571686030",
+    "project_id": "powershare-90bd1",
+    "storage_bucket": "powershare-90bd1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1079571686030:android:598b764608721cb9db1fdf",
+        "android_client_info": {
+          "package_name": "com.example.power_share"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAbUy6RRwZrmJ_jpRfiMpYuoqSRcQbykVQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
