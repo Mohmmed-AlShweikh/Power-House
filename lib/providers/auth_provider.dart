@@ -228,6 +228,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return 'فشل التحقق الأمني (reCAPTCHA). أعد تحميل الصفحة وحاول مرة أخرى.';
       case 'network-request-failed':
         return 'تعذّر الاتصال بالإنترنت. تحقق من اتصالك وحاول مجدداً.';
+      case 'billing-not-enabled':
+        return 'إرسال الرسائل النصية يتطلب ترقية خطة Firebase إلى Blaze (ادفع حسب الاستخدام). '
+            'كبديل مجاني: أضف رقمك كـ"رقم اختبار" في Firebase Console → Authentication → Sign-in method → Phone → Test phone numbers.';
       default:
         return 'حدث خطأ أثناء إرسال رمز التحقق (${code ?? 'unknown'}).';
     }
