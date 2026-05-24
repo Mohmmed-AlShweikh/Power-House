@@ -120,6 +120,19 @@ final complaintsProvider = StreamProvider<List<Complaint>>((ref) {
           s.docs.map((d) => Complaint.fromMap(d.id, d.data())).toList());
 });
 
+// Highlighted bill id (used to deep-link from subscriber details → bills tab)
+final highlightedBillProvider = StateProvider<String?>((ref) => null);
+
+// uid → name lookup map for bills tab
+final subscribersMapProvider = StreamProvider<Map<String, String>>((ref) {
+  final db = FirebaseFirestore.instance;
+  return db
+      .collection('users')
+      .where('role', whereIn: ['user', 'consumer'])
+      .snapshots()
+      .map((s) => {for (final d in s.docs) d.id: (d.data()['name'] ?? '') as String});
+});
+
 // Usage data
 class UsageMonth {
   final String month;

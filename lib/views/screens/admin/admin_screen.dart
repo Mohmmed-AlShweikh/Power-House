@@ -12,6 +12,7 @@ import '../../../services/firebase_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../config/colors.dart';
 import '../../widgets/base64_image_viewer.dart';
+import 'subscriber_details_screen.dart';
 
 class AdminScreen extends ConsumerStatefulWidget {
   const AdminScreen({super.key});
@@ -34,6 +35,11 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
   void dispose() {
     _tabs.dispose();
     super.dispose();
+  }
+
+  void _jumpToBillsTab(String billId) {
+    ref.read(highlightedBillProvider.notifier).state = billId;
+    _tabs.animateTo(3);
   }
 
   @override
@@ -130,7 +136,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
                     generatorOn: _generatorOn,
                     onToggle: (v) => setState(() => _generatorOn = v)),
                 const _PendingUsersTab(),
-                const _SubscribersTab(),
+                _SubscribersTab(onJumpToBill: _jumpToBillsTab),
                 const _BillsTab(),
                 const _ComplaintsTab(),
                 const _AdminProfileTab(),
@@ -409,7 +415,8 @@ class _RecentActivity extends StatelessWidget {
 // ── Subscribers Tab ─────────────────────────────────────────────────────────────────
 
 class _SubscribersTab extends ConsumerStatefulWidget {
-  const _SubscribersTab();
+  final void Function(String billId) onJumpToBill;
+  const _SubscribersTab({required this.onJumpToBill});
   @override
   ConsumerState<_SubscribersTab> createState() => _SubscribersTabState();
 }
@@ -482,6 +489,7 @@ class _SubscribersTabState extends ConsumerState<_SubscribersTab> {
                   padding: const EdgeInsets.only(bottom: 10),
                   child: _SubscriberCard(
                     sub: filtered[i],
+                    onJumpToBill: widget.onJumpToBill,
                     onToggle: (v) async {
                       await FirebaseService().updateSubscriber(
                         filtered[i].uid,
@@ -547,12 +555,26 @@ class _SubscribersTabState extends ConsumerState<_SubscribersTab> {
 class _SubscriberCard extends StatelessWidget {
   final UserProfile sub;
   final ValueChanged<bool> onToggle;
-  const _SubscriberCard({required this.sub, required this.onToggle});
+  final void Function(String billId) onJumpToBill;
+  const _SubscriberCard(
+      {required this.sub,
+      required this.onToggle,
+      required this.onJumpToBill});
 
   @override
   Widget build(BuildContext context) {
     final isActive = sub.subscriptionStatus == SubscriptionStatus.active;
-    return Container(
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SubscriberDetailsScreen(
+            sub: sub,
+            onJumpToBill: onJumpToBill,
+          ),
+        ),
+      ),
+      child: Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color,
@@ -633,7 +655,8 @@ class _SubscriberCard extends StatelessWidget {
           ),
         ],
       ),
-    ).animate().fadeIn();
+    ).animate().fadeIn(),
+    );
   }
 }
 
@@ -750,6 +773,7 @@ class _MockSubscribersState extends State<_MockSubscribers> {
               padding: const EdgeInsets.only(bottom: 10),
               child: _SubscriberCard(
                 sub: filtered[i],
+                onJumpToBill: (_) {},
                 onToggle: (v) => setState(() {
                   final idx = _subscribers.indexOf(filtered[i]);
                   _subscribers[idx] = _subscribers[idx].copyWith(
@@ -891,6 +915,14 @@ class _BillsTab extends ConsumerStatefulWidget {
 
 class _BillsTabState extends ConsumerState<_BillsTab> {
   String _filter = 'all';
+  String? _highlightedBillId;
+  final _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   static const _mockBills = [
     ('محمد أحمد', '₪284', 'يوليو 2024', 'pendingReview'),
@@ -904,22 +936,59 @@ class _BillsTabState extends ConsumerState<_BillsTab> {
   @override
   Widget build(BuildContext context) {
     final billsAsync = ref.watch(allBillsProvider);
+    final subsMap = ref.watch(subscribersMapProvider).value ?? {};
+
+    ref.listen<String?>(highlightedBillProvider, (prev, next) {
+      if (next != null && next != prev) {
+        setState(() {
+          _filter = 'all';
+          _highlightedBillId = next;
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(0,
+                duration: const Duration(milliseconds: 450),
+                curve: Curves.easeOut);
+          }
+        });
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) {
+            setState(() => _highlightedBillId = null);
+            ref.read(highlightedBillProvider.notifier).state = null;
+          }
+        });
+      }
+    });
 
     return billsAsync.when(
       data: (bills) {
-        final filtered = _filter == 'all'
+        List<Bill> filtered = _filter == 'all'
             ? bills
-            : bills
-                .where((b) => b.status.name == _filter)
-                .toList();
+            : bills.where((b) => b.status.name == _filter).toList();
+
+        if (_highlightedBillId != null) {
+          final idx = filtered.indexWhere((b) => b.id == _highlightedBillId);
+          if (idx > 0) {
+            final highlighted = filtered.removeAt(idx);
+            filtered = [highlighted, ...filtered];
+          }
+        }
+
         return ListView(
+          controller: _scrollController,
           padding: const EdgeInsets.all(16),
           children: [
-            _FilterRow(selected: _filter, onSelect: (v) => setState(() => _filter = v)),
+            _FilterRow(
+                selected: _filter,
+                onSelect: (v) => setState(() => _filter = v)),
             const SizedBox(height: 12),
             ...filtered.map((b) => Padding(
                   padding: const EdgeInsets.only(bottom: 10),
-                  child: _AdminBillCard(bill: b),
+                  child: _AdminBillCard(
+                    bill: b,
+                    subscriberName: subsMap[b.userId] ?? '',
+                    isHighlighted: b.id == _highlightedBillId,
+                  ),
                 )),
           ],
         );
@@ -930,9 +999,12 @@ class _BillsTabState extends ConsumerState<_BillsTab> {
             ? _mockBills
             : _mockBills.where((b) => b.$4 == _filter).toList();
         return ListView(
+          controller: _scrollController,
           padding: const EdgeInsets.all(16),
           children: [
-            _FilterRow(selected: _filter, onSelect: (v) => setState(() => _filter = v)),
+            _FilterRow(
+                selected: _filter,
+                onSelect: (v) => setState(() => _filter = v)),
             const SizedBox(height: 12),
             ...filtered.map((b) => Padding(
                   padding: const EdgeInsets.only(bottom: 10),
@@ -998,7 +1070,12 @@ class _FilterRow extends StatelessWidget {
 
 class _AdminBillCard extends StatelessWidget {
   final Bill bill;
-  const _AdminBillCard({required this.bill});
+  final String subscriberName;
+  final bool isHighlighted;
+  const _AdminBillCard(
+      {required this.bill,
+      this.subscriberName = '',
+      this.isHighlighted = false});
 
   Color get _statusColor => switch (bill.status) {
         BillStatus.pendingReview => AppColors.warning,
@@ -1012,118 +1089,171 @@ class _AdminBillCard extends StatelessWidget {
         _ => 'مرفوض',
       };
 
+  String get _displayName =>
+      subscriberName.isNotEmpty ? subscriberName : bill.userId;
+
+  void _openReviewDialog(BuildContext context) {
+    if (bill.status != BillStatus.pendingReview) return;
+    showDialog(
+      context: context,
+      builder: (_) => ReceiptReviewDialog(
+        bill: bill,
+        subscriberName: _displayName,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2))
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: AppColors.primary.withOpacity(0.12),
-                child: Text(bill.userId.isNotEmpty ? bill.userId[0] : '?',
-                    style: const TextStyle(
-                        color: AppColors.primary, fontWeight: FontWeight.w700)),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(bill.userId,
-                        style: const TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w600)),
-                    Text('${bill.month} ${bill.year} • ₪${bill.amount}',
-                        style: const TextStyle(
-                            fontSize: 12, color: AppColors.lightMuted)),
-                  ],
-                ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _statusColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(_statusLabel,
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: _statusColor)),
-              ),
-            ],
-          ),
-          if (bill.status == BillStatus.pendingReview) ...[
-            const SizedBox(height: 12),
-            if (bill.receiptBase64 != null)
-              Base64ImageViewer(base64String: bill.receiptBase64!, height: 120),
-            const SizedBox(height: 12),
+    return GestureDetector(
+      onTap: () => _openReviewDialog(context),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isHighlighted
+              ? AppColors.warning.withOpacity(0.06)
+              : Theme.of(context).cardTheme.color,
+          borderRadius: BorderRadius.circular(14),
+          border: isHighlighted
+              ? Border.all(color: AppColors.warning, width: 2)
+              : Border.all(color: Colors.transparent),
+          boxShadow: [
+            BoxShadow(
+                color: isHighlighted
+                    ? AppColors.warning.withOpacity(0.15)
+                    : Colors.black.withOpacity(0.04),
+                blurRadius: isHighlighted ? 12 : 6,
+                offset: const Offset(0, 2))
+          ],
+        ),
+        child: Column(
+          children: [
             Row(
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () async {
-                      await FirebaseService()
-                          .updateBillStatus(bill.id, BillStatus.rejected);
-                      await NotificationService().addAlert(
-                        userId: bill.userId,
-                        title: 'تم رفض الإيصال',
-                        body: 'تم رفض إيصال الدفع لفاتورة ${bill.month} ${bill.year}. يرجى التواصل مع المشرف.',
-                        type: 'receiptRejected',
-                      );
-                    },
-                    icon: const Icon(Icons.close, size: 16),
-                    label: const Text('رفض', style: TextStyle(fontSize: 13)),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.error,
-                      side: const BorderSide(color: AppColors.error),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: AppColors.primary.withOpacity(0.12),
+                  child: Text(
+                      _displayName.isNotEmpty ? _displayName[0] : '?',
+                      style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700)),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      await FirebaseService()
-                          .updateBillStatus(bill.id, BillStatus.paid);
-                      await NotificationService().addAlert(
-                        userId: bill.userId,
-                        title: 'تم قبول الإيصال ✓',
-                        body: 'تم قبول إيصال الدفع لفاتورة ${bill.month} ${bill.year} بنجاح.',
-                        type: 'receiptApproved',
-                      );
-                    },
-                    icon: const Icon(Icons.check, size: 16),
-                    label: const Text('قبول', style: TextStyle(fontSize: 13)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.success,
-                      minimumSize: Size.zero,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(_displayName,
+                          style: const TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w600)),
+                      Text('${bill.month} ${bill.year} • ₪${bill.amount}',
+                          style: const TextStyle(
+                              fontSize: 12, color: AppColors.lightMuted)),
+                    ],
                   ),
+                ),
+                if (isHighlighted)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 3),
+                    margin: const EdgeInsets.only(left: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text('جديد',
+                        style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.warning)),
+                  ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(_statusLabel,
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: _statusColor)),
                 ),
               ],
             ),
+            if (bill.status == BillStatus.pendingReview) ...[
+              const SizedBox(height: 12),
+              if (bill.receiptBase64 != null)
+                GestureDetector(
+                  onTap: () => _openReviewDialog(context),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Base64ImageViewer(
+                        base64String: bill.receiptBase64!, height: 120),
+                  ),
+                ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        await FirebaseService()
+                            .updateBillStatus(bill.id, BillStatus.rejected);
+                        await NotificationService().addAlert(
+                          userId: bill.userId,
+                          title: 'تم رفض الإيصال',
+                          body:
+                              'تم رفض إيصال الدفع لفاتورة ${bill.month} ${bill.year}. يرجى التواصل مع المشرف.',
+                          type: 'receiptRejected',
+                        );
+                      },
+                      icon: const Icon(Icons.close, size: 16),
+                      label:
+                          const Text('رفض', style: TextStyle(fontSize: 13)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.error,
+                        side: const BorderSide(color: AppColors.error),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        await FirebaseService()
+                            .updateBillStatus(bill.id, BillStatus.paid);
+                        await NotificationService().addAlert(
+                          userId: bill.userId,
+                          title: 'تم قبول الإيصال ✓',
+                          body:
+                              'تم قبول إيصال الدفع لفاتورة ${bill.month} ${bill.year} بنجاح.',
+                          type: 'receiptApproved',
+                        );
+                      },
+                      icon: const Icon(Icons.check, size: 16),
+                      label:
+                          const Text('قبول', style: TextStyle(fontSize: 13)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.success,
+                        minimumSize: Size.zero,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     ).animate().fadeIn();
   }
