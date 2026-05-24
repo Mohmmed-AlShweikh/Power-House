@@ -25,7 +25,7 @@ class HomeTab extends ConsumerWidget {
 
     final billsAsync = ref.watch(billsProvider(uid));
     final alertsAsync = ref.watch(alertsProvider(uid));
-    final subsAsync = ref.watch(subscribersProvider);
+    final consumptionAsync = ref.watch(consumptionProvider(uid));
 
     final currentMonth = currentMonthArabic();
     final currentYear = DateTime.now().year;
@@ -54,10 +54,11 @@ class HomeTab extends ConsumerWidget {
             loading: () => '₪ …',
             error: (_, __) => '₪ —');
 
-    final totalSubs = subsAsync.when(
-        data: (s) => '${s.length}',
-        loading: () => '…',
-        error: (_, __) => '—');
+    final dailyKwh = consumptionAsync.when(
+        data: (c) =>
+            c.dailyUsage > 0 ? '${c.dailyUsage.toStringAsFixed(1)} kWh' : '— kWh',
+        loading: () => '… kWh',
+        error: (_, __) => '— kWh');
 
     final ampereLimit = profile?.ampereLimit ?? 0;
     final ampereStr = ampereLimit > 0 ? '$ampereLimit A' : '—';
@@ -207,9 +208,9 @@ class HomeTab extends ConsumerWidget {
                         color: AppColors.success),
                     const SizedBox(width: 12),
                     _StatCard(
-                        label: 'المشتركون',
-                        value: totalSubs,
-                        icon: Icons.people_outline,
+                        label: 'الاستهلاك اليومي',
+                        value: dailyKwh,
+                        icon: Icons.today_outlined,
                         color: const Color(0xFF8B5CF6)),
                   ],
                 ),

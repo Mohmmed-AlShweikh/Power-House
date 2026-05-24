@@ -222,6 +222,34 @@ final monthlyBillStatsProvider = Provider<MonthlyBillStats>((ref) {
   );
 });
 
+// Consumption (per-user doc written by admin when issuing bill)
+class ConsumptionData {
+  final double monthlyUsage;
+  final double dailyUsage;
+  final String month;
+
+  const ConsumptionData({
+    this.monthlyUsage = 0,
+    this.dailyUsage = 0,
+    this.month = '',
+  });
+}
+
+final consumptionProvider =
+    StreamProvider.family<ConsumptionData, String>((ref, userId) {
+  if (userId.isEmpty) return Stream.value(const ConsumptionData());
+  final db = FirebaseFirestore.instance;
+  return db.collection('consumption').doc(userId).snapshots().map((s) {
+    if (!s.exists) return const ConsumptionData();
+    final d = s.data()!;
+    return ConsumptionData(
+      monthlyUsage: (d['monthlyUsage'] ?? 0).toDouble(),
+      dailyUsage: (d['dailyUsage'] ?? 0).toDouble(),
+      month: d['month'] ?? '',
+    );
+  });
+});
+
 // Usage data
 class UsageMonth {
   final String month;
