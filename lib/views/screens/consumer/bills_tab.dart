@@ -63,7 +63,7 @@ class BillsTab extends ConsumerWidget {
                         ),
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
-                  error: (_, __) => const _MockBills(),
+                  error: (_, __) => const _EmptyBills(),
                 ),
                 const SizedBox(height: 20),
               ]),

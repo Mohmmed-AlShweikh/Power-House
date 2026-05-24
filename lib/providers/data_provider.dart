@@ -51,15 +51,20 @@ final generatorProvider = StreamProvider<GeneratorState>((ref) {
   });
 });
 
-// Bills
+// Bills — no orderBy to avoid composite index requirement; sort client-side
 final billsProvider = StreamProvider.family<List<Bill>, String>((ref, userId) {
+  if (userId.isEmpty) return Stream.value(const <Bill>[]);
   final db = FirebaseFirestore.instance;
   return db
       .collection('bills')
       .where('userId', isEqualTo: userId)
-      .orderBy('createdAt', descending: true)
       .snapshots()
-      .map((s) => s.docs.map((d) => Bill.fromMap(d.id, d.data())).toList());
+      .map((s) {
+    final list =
+        s.docs.map((d) => Bill.fromMap(d.id, d.data())).toList();
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
+  });
 });
 
 final allBillsProvider = StreamProvider<List<Bill>>((ref) {
