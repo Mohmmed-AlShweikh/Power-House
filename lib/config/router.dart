@@ -5,10 +5,10 @@ import '../providers/auth_provider.dart';
 import '../models/user_model.dart';
 import '../views/screens/splash_screen.dart';
 import '../views/screens/login_screen.dart';
-import '../views/screens/otp_screen.dart';
-import '../views/screens/setup_screen.dart';
+import '../views/screens/register_screen.dart';
 import '../views/screens/consumer/consumer_shell.dart';
 import '../views/screens/admin/admin_screen.dart';
+import '../views/screens/super_admin/super_admin_screen.dart';
 
 class _RouterNotifier extends ChangeNotifier {
   final Ref _ref;
@@ -22,20 +22,47 @@ class _RouterNotifier extends ChangeNotifier {
     final authState = _ref.read(authProvider);
     final isDemo = _ref.read(demoModeProvider);
     final isLoading = authState.loading;
-    final loggedIn = isDemo || authState.user != null;
     final path = state.uri.path;
 
+    // Allow splash to show during initial load
     if (isLoading && path == '/splash') return null;
 
+    final loggedIn = isDemo || authState.user != null;
+    final profile = authState.profile;
 
-    if (loggedIn) {
-      if (path == '/login' || path == '/otp' || path == '/splash') {
-        final role = authState.profile?.role;
-        return role == UserRole.admin ? '/admin' : '/consumer';
+    if (loggedIn && profile != null) {
+      // Already on the right screen — don't redirect
+      final correctPath = switch (profile.role) {
+        UserRole.superAdmin => '/super_admin',
+        UserRole.admin => '/admin',
+        UserRole.consumer => '/consumer',
+      };
+
+      if (path == '/login' ||
+          path == '/register' ||
+          path == '/splash') {
+        return correctPath;
       }
-    } else {
-      if (path != '/login' && path != '/splash') return '/login';
+
+      // Prevent super admin from accessing consumer/admin screens and vice-versa
+      if (profile.role == UserRole.superAdmin && path != '/super_admin') {
+        return '/super_admin';
+      }
+      if (profile.role == UserRole.admin && path == '/consumer') {
+        return '/admin';
+      }
+      if (profile.role == UserRole.consumer && path == '/admin') {
+        return '/consumer';
+      }
+    } else if (!isLoading) {
+      // Not logged in
+      if (path != '/login' &&
+          path != '/register' &&
+          path != '/splash') {
+        return '/login';
+      }
     }
+
     return null;
   }
 }
@@ -54,8 +81,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
-      GoRoute(path: '/otp', builder: (_, __) => const OtpScreen()),
-      GoRoute(path: '/setup', builder: (_, __) => const SetupScreen()),
+      GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
+      GoRoute(
+          path: '/super_admin',
+          builder: (_, __) => const SuperAdminScreen()),
       GoRoute(path: '/consumer', builder: (_, __) => const ConsumerShell()),
       GoRoute(path: '/admin', builder: (_, __) => const AdminScreen()),
     ],

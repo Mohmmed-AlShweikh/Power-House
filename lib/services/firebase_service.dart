@@ -194,4 +194,14 @@ class FirebaseService {
       'address': address,
     });
   }
+
+  // Approve a pending user or generator owner
+  Future<void> approveUser(String uid) async {
+    await _db.collection('users').doc(uid).update({'status': 'approved'});
+  }
+
+  // Reject a pending user or generator owner
+  Future<void> rejectUser(String uid) async {
+    await _db.collection('users').doc(uid).update({'status': 'rejected'});
+  }
 }

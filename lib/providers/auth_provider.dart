@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -10,9 +9,6 @@ class AuthState {
   final UserProfile? profile;
   final bool loading;
   final bool isDemo;
-  final String? verificationId;
-  final String phoneNumber;
-  final UserRole selectedRole;
   final String? error;
 
   const AuthState({
@@ -20,9 +16,6 @@ class AuthState {
     this.profile,
     this.loading = true,
     this.isDemo = false,
-    this.verificationId,
-    this.phoneNumber = '',
-    this.selectedRole = UserRole.consumer,
     this.error,
   });
 
@@ -31,9 +24,6 @@ class AuthState {
     UserProfile? profile,
     bool? loading,
     bool? isDemo,
-    Object? verificationId = const _Sentinel(),
-    String? phoneNumber,
-    UserRole? selectedRole,
     Object? error = const _Sentinel(),
   }) =>
       AuthState(
@@ -41,11 +31,6 @@ class AuthState {
         profile: profile ?? this.profile,
         loading: loading ?? this.loading,
         isDemo: isDemo ?? this.isDemo,
-        verificationId: verificationId is _Sentinel
-            ? this.verificationId
-            : verificationId as String?,
-        phoneNumber: phoneNumber ?? this.phoneNumber,
-        selectedRole: selectedRole ?? this.selectedRole,
         error: error is _Sentinel ? this.error : error as String?,
       );
 }
@@ -53,6 +38,48 @@ class AuthState {
 class _Sentinel {
   const _Sentinel();
 }
+
+// ── Demo profiles ──────────────────────────────────────────────────────────────
+
+final _now = DateTime.now();
+
+final _demoConsumer = UserProfile(
+  uid: 'demo-consumer',
+  idNumber: '0000000000',
+  name: 'محمد أحمد',
+  address: 'رام الله، حي البيرة',
+  role: UserRole.consumer,
+  approvalStatus: ApprovalStatus.approved,
+  subscriptionStatus: SubscriptionStatus.active,
+  ampereLimit: 10,
+  createdAt: _now,
+);
+
+final _demoAdmin = UserProfile(
+  uid: 'demo-admin',
+  idNumber: '9999999999',
+  name: 'أبو أحمد',
+  address: 'رام الله',
+  role: UserRole.admin,
+  approvalStatus: ApprovalStatus.approved,
+  subscriptionStatus: SubscriptionStatus.active,
+  ampereLimit: 0,
+  createdAt: _now,
+);
+
+final _demoSuperAdmin = UserProfile(
+  uid: 'demo-super-admin',
+  idNumber: '1111111111',
+  name: 'المشرف العام',
+  address: '',
+  role: UserRole.superAdmin,
+  approvalStatus: ApprovalStatus.approved,
+  subscriptionStatus: SubscriptionStatus.active,
+  ampereLimit: 0,
+  createdAt: _now,
+);
+
+// ── Notifier ───────────────────────────────────────────────────────────────────
 
 class AuthNotifier extends StateNotifier<AuthState> {
   AuthNotifier() : super(const AuthState()) {
@@ -63,215 +90,219 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final _db = FirebaseFirestore.instance;
   StreamSubscription? _authSub;
   StreamSubscription? _profileSub;
+  bool _seeding = false;
 
-  static final _now = DateTime.now();
+  static String _toEmail(String id) =>
+      '${id.trim()}@powershare.app';
 
-  static final _demoConsumer = UserProfile(
-    uid: 'demo-consumer',
-    phone: '0500000000',
-    name: 'محمد أحمد',
-    address: 'رام الله، حي البيرة',
-    role: UserRole.consumer,
-    subscriptionStatus: SubscriptionStatus.active,
-    ampereLimit: 10,
-    createdAt: _now,
-  );
+  static const _superAdminId = '1234567890';
+  static const _superAdminPass = 'Admin@2024!';
 
-  static final _demoAdmin = UserProfile(
-    uid: 'demo-admin',
-    phone: '0599999999',
-    name: 'أبو أحمد',
-    address: 'رام الله',
-    role: UserRole.admin,
-    subscriptionStatus: SubscriptionStatus.active,
-    ampereLimit: 0,
-    createdAt: _now,
-  );
+  void _init() async {
+    // Timeout safety net
+    Future.delayed(const Duration(seconds: 8), () {
+      if (state.loading) state = state.copyWith(loading: false);
+    });
 
-  void _init() {
+    // Seed super admin account then start listener
+    _seeding = true;
+    await _seedSuperAdmin();
+    _seeding = false;
+
     _authSub = _auth.authStateChanges().listen((u) async {
+      if (_seeding) return;
       if (u == null) {
-        state = state.copyWith(user: null, profile: null, loading: false);
+        state = state.copyWith(
+            user: null,
+            profile: null,
+            loading: false,
+            error: const _Sentinel());
         return;
       }
       state = state.copyWith(user: u, loading: true);
-      await _loadProfile(u.uid);
+      await _loadAndCheckProfile(u.uid);
     }, onError: (_) {
       state = state.copyWith(loading: false);
     });
-    Future.delayed(const Duration(seconds: 3), () {
-      if (state.loading) state = state.copyWith(loading: false);
-    });
   }
 
-  Future<void> _loadProfile(String uid) async {
+  Future<void> _seedSuperAdmin() async {
+    try {
+      // Check if already in Firestore
+      final q = await _db
+          .collection('users')
+          .where('role', isEqualTo: 'super_admin')
+          .limit(1)
+          .get()
+          .timeout(const Duration(seconds: 4));
+
+      if (q.docs.isNotEmpty) return; // already seeded
+
+      // Try to create the Firebase Auth account
+      try {
+        final cred = await _auth.createUserWithEmailAndPassword(
+          email: _toEmail(_superAdminId),
+          password: _superAdminPass,
+        );
+        await _db.collection('users').doc(cred.user!.uid).set({
+          'idNumber': _superAdminId,
+          'name': 'المشرف العام',
+          'address': '',
+          'role': 'super_admin',
+          'status': 'approved',
+          'subscriptionStatus': 'active',
+          'ampereLimit': 0,
+          'createdAt': DateTime.now().millisecondsSinceEpoch,
+        });
+        await _auth.signOut();
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'email-already-in-use') {
+          // Auth exists but Firestore doc missing — sign in, fix, sign out
+          try {
+            final c = await _auth.signInWithEmailAndPassword(
+              email: _toEmail(_superAdminId),
+              password: _superAdminPass,
+            );
+            await _db.collection('users').doc(c.user!.uid).set({
+              'idNumber': _superAdminId,
+              'name': 'المشرف العام',
+              'address': '',
+              'role': 'super_admin',
+              'status': 'approved',
+              'subscriptionStatus': 'active',
+              'ampereLimit': 0,
+              'createdAt': DateTime.now().millisecondsSinceEpoch,
+            }, SetOptions(merge: true));
+            await _auth.signOut();
+          } catch (_) {}
+        }
+      }
+    } catch (_) {
+      // Network or permissions issue — continue without seed
+    }
+  }
+
+  Future<void> _loadAndCheckProfile(String uid) async {
     _profileSub?.cancel();
     try {
-      final ref = _db.collection('users').doc(uid);
-      final snap = await ref.get();
-      if (snap.exists) {
-        final p = UserProfile.fromMap(uid, snap.data()!);
-        state = state.copyWith(profile: p, loading: false);
-        _profileSub = ref.snapshots().listen((s) {
-          if (s.exists)
-            state =
-                state.copyWith(profile: UserProfile.fromMap(uid, s.data()!));
-        });
-      } else {
-        state = state.copyWith(loading: false);
+      final doc = await _db.collection('users').doc(uid).get();
+      if (!doc.exists) {
+        await _auth.signOut();
+        state = state.copyWith(
+            user: null, profile: null, loading: false,
+            error: 'الحساب غير موجود في النظام. تواصل مع المشرف.');
+        return;
+      }
+      final p = UserProfile.fromMap(uid, doc.data()!);
+      switch (p.approvalStatus) {
+        case ApprovalStatus.pending:
+          await _auth.signOut();
+          final msg = p.role == UserRole.admin
+              ? 'طلبك قيد المراجعة من قِبل المشرف العام.'
+              : 'طلبك قيد المراجعة من قِبل صاحب المولد.';
+          state = state.copyWith(
+              user: null, profile: null, loading: false, error: msg);
+          break;
+        case ApprovalStatus.rejected:
+          await _auth.signOut();
+          state = state.copyWith(
+              user: null,
+              profile: null,
+              loading: false,
+              error: 'تم رفض طلبك من قِبل المشرف. تواصل معه للمزيد.');
+          break;
+        case ApprovalStatus.approved:
+          state = state.copyWith(profile: p, loading: false);
+          _profileSub =
+              _db.collection('users').doc(uid).snapshots().listen((s) {
+            if (s.exists) {
+              state = state.copyWith(
+                  profile: UserProfile.fromMap(uid, s.data()!));
+            }
+          });
+          break;
       }
     } catch (_) {
       state = state.copyWith(loading: false);
+    }
+  }
+
+  // ── Public Methods ──────────────────────────────────────────────────────────
+
+  /// Returns null on success, Arabic error message on failure.
+  Future<String?> login(String idNumber, String password) async {
+    state = state.copyWith(loading: true, error: null);
+    try {
+      await _auth.signInWithEmailAndPassword(
+        email: _toEmail(idNumber),
+        password: password,
+      );
+      // _loadAndCheckProfile is triggered by the auth listener
+      return null;
+    } on FirebaseAuthException catch (e) {
+      final msg = _friendlyError(e.code);
+      state = state.copyWith(loading: false, error: msg);
+      return msg;
+    } catch (_) {
+      const msg = 'تعذّر الاتصال بالخادم. تحقق من اتصالك.';
+      state = state.copyWith(loading: false, error: msg);
+      return msg;
+    }
+  }
+
+  /// Returns null on success, Arabic error message on failure.
+  Future<String?> register({
+    required String idNumber,
+    required String name,
+    required String address,
+    required String password,
+    required UserRole role,
+  }) async {
+    state = state.copyWith(loading: true, error: null);
+    try {
+      final cred = await _auth.createUserWithEmailAndPassword(
+        email: _toEmail(idNumber),
+        password: password,
+      );
+      final uid = cred.user!.uid;
+      final firestoreRole =
+          role == UserRole.admin ? 'generator_owner' : 'user';
+      await _db.collection('users').doc(uid).set({
+        'idNumber': idNumber,
+        'name': name,
+        'address': address,
+        'role': firestoreRole,
+        'status': 'pending',
+        'subscriptionStatus': 'inactive',
+        'ampereLimit': 0,
+        'createdAt': DateTime.now().millisecondsSinceEpoch,
+      });
+      await _auth.signOut();
+      state = state.copyWith(loading: false, error: null);
+      return null;
+    } on FirebaseAuthException catch (e) {
+      final msg = _friendlyError(e.code);
+      state = state.copyWith(loading: false, error: msg);
+      return msg;
+    } catch (_) {
+      const msg = 'تعذّر إنشاء الحساب. حاول مجدداً.';
+      state = state.copyWith(loading: false, error: msg);
+      return msg;
     }
   }
 
   void demoLogin(UserRole role) {
+    final profile = switch (role) {
+      UserRole.superAdmin => _demoSuperAdmin,
+      UserRole.admin => _demoAdmin,
+      _ => _demoConsumer,
+    };
     state = state.copyWith(
       isDemo: true,
-      profile: role == UserRole.admin ? _demoAdmin : _demoConsumer,
+      profile: profile,
       loading: false,
+      error: null,
     );
-  }
-
-  Future<bool> sendOtp(String phone, BuildContext context) async {
-    final digits = phone.trim().replaceAll(RegExp(r'\D'), '');
-    final normalized = digits.startsWith('0') ? digits : '0$digits';
-    if (normalized.length < 9) {
-      state = state.copyWith(error: 'الرجاء إدخال رقم هاتف صالح');
-      return false;
-    }
-
-    state = state.copyWith(phoneNumber: normalized, error: null);
-
-    // Try to look up the user's role in Firestore first.
-    // If this fails (e.g. permissions), we still attempt to send the OTP.
-    try {
-      final query = await _db
-          .collection('users')
-          .where('phone', isEqualTo: normalized)
-          .limit(1)
-          .get();
-
-      if (query.docs.isEmpty) {
-        state = state.copyWith(error: 'رقم الهاتف غير مسجل في النظام');
-        return false;
-      }
-
-      final userMap = query.docs.first.data();
-      final role =
-          userMap['role'] == 'admin' ? UserRole.admin : UserRole.consumer;
-      state = state.copyWith(selectedRole: role);
-    } catch (_) {
-      // Firestore lookup failed (rules/network) — continue anyway.
-      // Role will be determined after successful sign-in via _ensureProfile.
-    }
-
-    final full = '+972${normalized.replaceFirst('0', '')}';
-    final completer = Completer<bool>();
-
-    try {
-      await _auth.verifyPhoneNumber(
-        phoneNumber: full,
-        verificationCompleted: (cred) async {
-          // Auto-verified (Android only). Sign in immediately.
-          try {
-            final r = await _auth.signInWithCredential(cred);
-            if (r.user != null) await _ensureProfile(r.user!.uid);
-            if (!completer.isCompleted) completer.complete(true);
-          } catch (e) {
-            if (!completer.isCompleted) completer.complete(false);
-            state = state.copyWith(error: e.toString());
-          }
-        },
-        verificationFailed: (e) {
-          final msg = _friendlyAuthError(e.code);
-          state = state.copyWith(error: msg);
-          if (!completer.isCompleted) completer.complete(false);
-        },
-        codeSent: (vid, _) {
-          state = state.copyWith(verificationId: vid);
-          if (!completer.isCompleted) completer.complete(true);
-        },
-        // codeAutoRetrievalTimeout is Android-only; on web it may fire
-        // immediately — do NOT complete with false here, the completer
-        // is already resolved by codeSent or verificationFailed.
-        codeAutoRetrievalTimeout: (_) {},
-      );
-
-      return completer.future;
-    } catch (e) {
-      final msg = e is FirebaseAuthException
-          ? _friendlyAuthError(e.code)
-          : 'تعذّر الاتصال بالخادم. تحقق من اتصالك بالإنترنت.';
-      state = state.copyWith(error: msg);
-      return false;
-    }
-  }
-
-  /// Maps Firebase error codes to user-friendly Arabic messages.
-  static String _friendlyAuthError(String? code) {
-    switch (code) {
-      case 'operation-not-allowed':
-        return 'خدمة التحقق برقم الهاتف غير مفعّلة. يرجى التواصل مع المشرف.';
-      case 'unauthorized-domain':
-        return 'النطاق الحالي غير مصرح له. يرجى التواصل مع المشرف.';
-      case 'invalid-phone-number':
-        return 'رقم الهاتف غير صالح. تأكد من الصيغة (مثال: 0591234567).';
-      case 'too-many-requests':
-        return 'عدد كبير من المحاولات. يرجى الانتظار دقائق والمحاولة مجدداً.';
-      case 'quota-exceeded':
-        return 'تم تجاوز الحد المسموح من الرسائل. حاول لاحقاً.';
-      case 'missing-phone-number':
-        return 'الرجاء إدخال رقم الهاتف.';
-      case 'captcha-check-failed':
-      case 'missing-client-identifier':
-        return 'فشل التحقق الأمني (reCAPTCHA). أعد تحميل الصفحة وحاول مرة أخرى.';
-      case 'network-request-failed':
-        return 'تعذّر الاتصال بالإنترنت. تحقق من اتصالك وحاول مجدداً.';
-      case 'billing-not-enabled':
-        return 'إرسال الرسائل النصية يتطلب ترقية خطة Firebase إلى Blaze (ادفع حسب الاستخدام). '
-            'كبديل مجاني: أضف رقمك كـ"رقم اختبار" في Firebase Console → Authentication → Sign-in method → Phone → Test phone numbers.';
-      default:
-        return 'حدث خطأ أثناء إرسال رمز التحقق (${code ?? 'unknown'}).';
-    }
-  }
-
-  Future<void> verifyOtp(String code) async {
-    final vid = state.verificationId;
-    if (vid == null) {
-      state = state.copyWith(error: 'انتهت صلاحية الجلسة. ارجع وأدخل رقمك من جديد.');
-      return;
-    }
-    try {
-      final cred =
-          PhoneAuthProvider.credential(verificationId: vid, smsCode: code);
-      final r = await _auth.signInWithCredential(cred);
-      if (r.user != null) await _ensureProfile(r.user!.uid);
-    } catch (e) {
-      final msg = e is FirebaseAuthException
-          ? _friendlyAuthError(e.code)
-          : 'رمز التحقق خاطئ أو منتهي الصلاحية.';
-      state = state.copyWith(error: msg);
-    }
-  }
-
-  Future<void> _ensureProfile(String uid) async {
-    final ref = _db.collection('users').doc(uid);
-    final snap = await ref.get();
-    if (!snap.exists) {
-      final p = UserProfile(
-        uid: uid,
-        phone: state.phoneNumber,
-        name: '',
-        address: '',
-        role: state.selectedRole,
-        subscriptionStatus: SubscriptionStatus.inactive,
-        ampereLimit: state.selectedRole == UserRole.admin ? 0 : 10,
-        createdAt: DateTime.now(),
-      );
-      await ref.set(p.toMap());
-      state = state.copyWith(profile: p);
-    }
   }
 
   Future<void> updateProfile({String? name, String? address}) async {
@@ -285,7 +316,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final data = <String, dynamic>{};
     if (name != null) data['name'] = name;
     if (address != null) data['address'] = address;
-    if (data.isNotEmpty) await _db.collection('users').doc(uid).update(data);
+    if (data.isNotEmpty) {
+      await _db.collection('users').doc(uid).update(data);
+    }
   }
 
   Future<void> signOut() async {
@@ -294,7 +327,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = const AuthState(loading: false);
   }
 
-  void setRole(UserRole role) => state = state.copyWith(selectedRole: role);
   void clearError() => state = state.copyWith(error: null);
 
   @override
@@ -303,9 +335,31 @@ class AuthNotifier extends StateNotifier<AuthState> {
     _profileSub?.cancel();
     super.dispose();
   }
+
+  static String _friendlyError(String? code) {
+    switch (code) {
+      case 'user-not-found':
+      case 'invalid-credential':
+      case 'wrong-password':
+        return 'رقم الهوية أو كلمة المرور غير صحيحة.';
+      case 'email-already-in-use':
+        return 'رقم الهوية هذا مسجّل بالفعل. جرّب تسجيل الدخول.';
+      case 'weak-password':
+        return 'كلمة المرور ضعيفة. استخدم 8 أحرف أو أكثر.';
+      case 'too-many-requests':
+        return 'عدد كبير من المحاولات. انتظر قليلاً وحاول مجدداً.';
+      case 'network-request-failed':
+        return 'تعذّر الاتصال بالإنترنت. تحقق من اتصالك.';
+      case 'operation-not-allowed':
+        return 'تسجيل الدخول بالبريد الإلكتروني غير مفعّل في Firebase Console.';
+      default:
+        return 'حدث خطأ (${code ?? 'unknown'}). حاول مجدداً.';
+    }
+  }
 }
 
 final authProvider =
     StateNotifierProvider<AuthNotifier, AuthState>((ref) => AuthNotifier());
+
 final demoModeProvider =
     Provider<bool>((ref) => ref.watch(authProvider).isDemo);

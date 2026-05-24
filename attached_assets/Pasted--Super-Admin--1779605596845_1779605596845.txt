@@ -1,0 +1,74 @@
+حقك عليّ، معك كل الحق! التعديل الأخير ذكرت فيه الـ Super Admin في كود الدخول ولكن لم أفصّل واجهاته وطريقة تسجيل دخوله بشكل مستقل وممتاز في نص البرومت لتفادي أي سوء فهم من المطورين.
+
+إليك البرومت الكامل والنهائي بعد إضافة تفاصيل الـ Super Admin بالكامل (حيث يدخل برقم هويته وكلمة سره، وتكون واجهته الرئيسية مخصصة فقط لإدارة أصحاب المولدات):
+
+Subject: Complete Specification: New Authentication Flow, Multi-Tier Roles (Including Super Admin), and Dashboard Management
+
+Hi team,
+
+Please implement a complete overhaul of our current authentication system. We want to completely remove the Phone Number + SMS OTP login and replace it with a secure, cost-effective system based on (National ID Number + Password).
+
+We require a three-tier role system: Super Admin ➡️ Generator Owner ➡️ Regular User, with strict approval workflows and dedicated dashboards. Please find the detailed specifications below:
+
+1. User Types & Registration (Sign-Up) Fields
+We have three distinct roles in the system. Registration forms are required for Users and Generator Owners, while the Super Admin is pre-configured:
+
+A. Regular User Registration:
+
+UI Fields: [ID Number], [Full Name], [Address], and [Password].
+
+Backend Logic: Map the ID number to a dummy email behind the scenes (e.g., id_number@company.com) to use Firebase's free Email/Password Provider. Store the data in the users collection with role: "user" and status: "pending" by default.
+
+Post-Sign-Up Workflow: Automatically trigger signOut() immediately. Do not let them log in. Show an alert: "Your request has been submitted. Please wait for the generator owner's approval to log in."
+
+B. Generator Owner Registration:
+
+UI Fields: [ID Number], [Generator Name], [Address], and [Password].
+
+Backend Logic: Map the ID to a dummy email format just like the users. Store the data in the users collection with role: "generator_owner" and status: "pending" by default.
+
+Post-Sign-Up Workflow: Automatically trigger signOut() immediately. Show an alert: "Your request has been submitted. Please wait for the Super Admin's approval to log in."
+
+C. Super Admin Account Setup:
+
+There is no sign-up page for the Super Admin. This account must be hardcoded/seeded by you directly in Firestore or created manually in Firebase Console with an ID number and password, with fields: role: "super_admin" and status: "approved".
+
+(Note: Please add input validation to ensure all ID fields only accept numbers and match the standard national ID length).
+
+2. Login Logic & Status Routing
+When any user (including the Super Admin) logs in using their ID Number and Password, check their document status in Firestore before granting entry:
+
+If status == "pending": Call signOut() immediately and show an alert: "Your account is still under review."
+
+If status == "rejected": Call signOut() immediately and show an alert: "Your request has been rejected by the administrator."
+
+If status == "approved": Route them immediately based on their role:
+
+If role == "super_admin" ➡️ Route to Super Admin Home Screen.
+
+If role == "generator_owner" ➡️ Route to Generator Owner Home Screen.
+
+If role == "user" ➡️ Route to User Home Screen.
+
+3. Dashboard UI & Management Features (Accept / Reject)
+A. Super Admin Home Screen (Dashboard):
+
+UI Structure: The Super Admin logs in using their designated ID and password. Their home screen must be clean, simple, and focused only on managing pending Generator Owners. It should display a list of all requests where role == "generator_owner" and status == "pending".
+
+Actions: Next to each generator owner's request, provide two buttons:
+
+[Accept]: Updates their status to "approved". They can now log in successfully.
+
+[Reject]: Updates their status to "rejected", blocking their access.
+
+B. Generator Owner Home Screen (Request Management):
+
+UI Structure: The Generator Owner's home screen must feature a dedicated section called "Request Management" (إدارة الطلبات). This section will display a list of all regular users who registered under them and are waiting for approval (role == "user" and status == "pending").
+
+Actions: Next to each user request, provide two buttons:
+
+[Accept]: Updates the user's status to "approved". The user can now log into the app.
+
+[Reject]: Updates the user's status to "rejected", preventing them from logging in.
+
+Please ensure all Firebase configuration is updated to disable the Phone Auth module so we do not trigger any Firebase Blaze plan (paid tier) requirements.

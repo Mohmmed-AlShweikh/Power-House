@@ -26,7 +26,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 5, vsync: this);
+    _tabs = TabController(length: 6, vsync: this);
   }
 
   @override
@@ -109,6 +109,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
                     unselectedLabelStyle: const TextStyle(fontSize: 13),
                     tabs: const [
                       Tab(text: 'نظرة عامة'),
+                      Tab(text: 'الطلبات'),
                       Tab(text: 'المشتركون'),
                       Tab(text: 'الفواتير'),
                       Tab(text: 'الشكاوى'),
@@ -127,6 +128,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
                 _DashboardTab(
                     generatorOn: _generatorOn,
                     onToggle: (v) => setState(() => _generatorOn = v)),
+                const _PendingUsersTab(),
                 const _SubscribersTab(),
                 const _BillsTab(),
                 const _ComplaintsTab(),
@@ -1867,6 +1869,387 @@ class _AdminProfileTab extends ConsumerWidget {
     );
   }
 }
+
+// ── Pending Users Tab ────────────────────────────────────────────────────────
+
+class _PendingUsersTab extends ConsumerWidget {
+  const _PendingUsersTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pendingAsync = ref.watch(pendingUsersProvider);
+
+    return pendingAsync.when(
+      data: (users) => users.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                        color: AppColors.success.withOpacity(0.1),
+                        shape: BoxShape.circle),
+                    child: const Icon(Icons.check_circle,
+                        size: 48, color: AppColors.success),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('لا توجد طلبات معلقة',
+                      style: TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  const Text('جميع الطلبات تمت معالجتها',
+                      style: TextStyle(
+                          fontSize: 13, color: AppColors.lightMuted)),
+                ],
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: users.length,
+              itemBuilder: (context, i) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _PendingUserCard(user: users[i]),
+              ),
+            ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => const _MockPendingUsers(),
+    );
+  }
+}
+
+class _PendingUserCard extends ConsumerStatefulWidget {
+  final UserProfile user;
+  const _PendingUserCard({required this.user});
+
+  @override
+  ConsumerState<_PendingUserCard> createState() => _PendingUserCardState();
+}
+
+class _PendingUserCardState extends ConsumerState<_PendingUserCard> {
+  bool _loading = false;
+
+  Future<void> _act(bool approve) async {
+    setState(() => _loading = true);
+    try {
+      if (approve) {
+        await FirebaseService().approveUser(widget.user.uid);
+      } else {
+        await FirebaseService().rejectUser(widget.user.uid);
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(approve ? 'تمت الموافقة ✓' : 'تم رفض الطلب',
+              textAlign: TextAlign.right),
+          backgroundColor: approve ? AppColors.success : AppColors.error,
+        ));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content:
+                Text('حدث خطأ. حاول مجدداً.', textAlign: TextAlign.right)));
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final u = widget.user;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color,
+        borderRadius: BorderRadius.circular(16),
+        border:
+            Border.all(color: AppColors.warning.withOpacity(0.3), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2))
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundColor: AppColors.warning.withOpacity(0.15),
+                child: Text(u.name.isNotEmpty ? u.name[0] : '؟',
+                    style: const TextStyle(
+                        color: AppColors.warning,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(u.name.isNotEmpty ? u.name : 'بدون اسم',
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w700)),
+                    Text(
+                        'رقم الهوية: ${u.idNumber.isNotEmpty ? u.idNumber : '—'}',
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.lightMuted)),
+                  ],
+                ),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                    color: AppColors.warning.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20)),
+                child: const Text('بانتظار',
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.warning)),
+              ),
+            ],
+          ),
+          if (u.address.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Icon(Icons.location_on_outlined,
+                    size: 14, color: AppColors.lightMuted),
+                const SizedBox(width: 4),
+                Text(u.address,
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColors.lightMuted)),
+              ],
+            ),
+          ],
+          const SizedBox(height: 12),
+          _loading
+              ? const Center(
+                  child: SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2.5)))
+              : Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _act(false),
+                        icon: const Icon(Icons.close, size: 16),
+                        label: const Text('رفض',
+                            style: TextStyle(fontSize: 13)),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                          side: const BorderSide(color: AppColors.error),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _act(true),
+                        icon: const Icon(Icons.check, size: 16),
+                        label: const Text('موافقة',
+                            style: TextStyle(fontSize: 13)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.success,
+                          minimumSize: Size.zero,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+        ],
+      ),
+    ).animate().fadeIn().slideY(begin: 0.1, end: 0, duration: 250.ms);
+  }
+}
+
+class _MockPendingUsers extends StatefulWidget {
+  const _MockPendingUsers();
+
+  @override
+  State<_MockPendingUsers> createState() => _MockPendingUsersState();
+}
+
+class _MockPendingUsersState extends State<_MockPendingUsers> {
+  final _items = [
+    ('خالد محمود', '123456789', 'رام الله، الحي الشمالي'),
+    ('سارة عمر', '987654321', 'البيرة، شارع الاستقلال'),
+    ('محمد علي', '456789123', 'بيتونيا، المنطقة الغربية'),
+  ];
+  final _done = <int>{};
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = List.generate(_items.length, (i) => i)
+        .where((i) => !_done.contains(i))
+        .toList();
+
+    if (visible.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                  color: AppColors.success.withOpacity(0.1),
+                  shape: BoxShape.circle),
+              child: const Icon(Icons.check_circle,
+                  size: 48, color: AppColors.success),
+            ),
+            const SizedBox(height: 16),
+            const Text('لا توجد طلبات معلقة',
+                style:
+                    TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: visible.length,
+      itemBuilder: (context, idx) {
+        final i = visible[idx];
+        final item = _items[i];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardTheme.color,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                  color: AppColors.warning.withOpacity(0.3), width: 1.5),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 22,
+                      backgroundColor:
+                          AppColors.warning.withOpacity(0.15),
+                      child: Text(item.$1[0],
+                          style: const TextStyle(
+                              color: AppColors.warning,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(item.$1,
+                              style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700)),
+                          Text('رقم الهوية: ${item.$2}',
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.lightMuted)),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                          color: AppColors.warning.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20)),
+                      child: const Text('بانتظار',
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.warning)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Icon(Icons.location_on_outlined,
+                        size: 14, color: AppColors.lightMuted),
+                    const SizedBox(width: 4),
+                    Text(item.$3,
+                        style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.lightMuted)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          setState(() => _done.add(i));
+                          ScaffoldMessenger.of(context)
+                              .showSnackBar(const SnackBar(
+                                  content: Text('تم رفض الطلب',
+                                      textAlign: TextAlign.right),
+                                  backgroundColor: AppColors.error));
+                        },
+                        icon: const Icon(Icons.close, size: 16),
+                        label: const Text('رفض'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                          side: const BorderSide(color: AppColors.error),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          setState(() => _done.add(i));
+                          ScaffoldMessenger.of(context)
+                              .showSnackBar(const SnackBar(
+                                  content: Text('تمت الموافقة ✓',
+                                      textAlign: TextAlign.right),
+                                  backgroundColor: AppColors.success));
+                        },
+                        icon: const Icon(Icons.check, size: 16),
+                        label: const Text('موافقة'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.success,
+                          minimumSize: Size.zero,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _PRow extends StatelessWidget {
   final IconData icon;

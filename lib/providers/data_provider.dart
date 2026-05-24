@@ -39,7 +39,8 @@ final generatorProvider = StreamProvider<GeneratorState>((ref) {
 // Bills
 final billsProvider = StreamProvider.family<List<Bill>, String>((ref, userId) {
   final db = FirebaseFirestore.instance;
-  return db.collection('bills')
+  return db
+      .collection('bills')
       .where('userId', isEqualTo: userId)
       .orderBy('createdAt', descending: true)
       .snapshots()
@@ -48,42 +49,78 @@ final billsProvider = StreamProvider.family<List<Bill>, String>((ref, userId) {
 
 final allBillsProvider = StreamProvider<List<Bill>>((ref) {
   final db = FirebaseFirestore.instance;
-  return db.collection('bills')
+  return db
+      .collection('bills')
       .orderBy('createdAt', descending: true)
       .snapshots()
       .map((s) => s.docs.map((d) => Bill.fromMap(d.id, d.data())).toList());
 });
 
 // Alerts
-final alertsProvider = StreamProvider.family<List<AppAlert>, String>((ref, userId) {
+final alertsProvider =
+    StreamProvider.family<List<AppAlert>, String>((ref, userId) {
   final db = FirebaseFirestore.instance;
-  return db.collection('alerts')
+  return db
+      .collection('alerts')
       .where('userId', isEqualTo: userId)
       .orderBy('createdAt', descending: true)
       .snapshots()
-      .map((s) => s.docs.map((d) => AppAlert.fromMap(d.id, d.data())).toList());
+      .map(
+          (s) => s.docs.map((d) => AppAlert.fromMap(d.id, d.data())).toList());
 });
 
-// All subscribers (admin)
+// Active subscribers (generator owner view)
 final subscribersProvider = StreamProvider<List<UserProfile>>((ref) {
   final db = FirebaseFirestore.instance;
-  return db.collection('users')
-      .where('role', isEqualTo: 'consumer')
+  return db
+      .collection('users')
+      .where('role', whereIn: ['user', 'consumer'])
+      .where('status', isEqualTo: 'approved')
       .orderBy('createdAt', descending: true)
       .snapshots()
-      .map((s) => s.docs.map((d) => UserProfile.fromMap(d.id, d.data())).toList());
+      .map(
+          (s) => s.docs.map((d) => UserProfile.fromMap(d.id, d.data())).toList());
+});
+
+// Pending regular users (awaiting generator owner approval)
+final pendingUsersProvider = StreamProvider<List<UserProfile>>((ref) {
+  final db = FirebaseFirestore.instance;
+  return db
+      .collection('users')
+      .where('role', whereIn: ['user', 'consumer'])
+      .where('status', isEqualTo: 'pending')
+      .orderBy('createdAt', descending: true)
+      .snapshots()
+      .map(
+          (s) => s.docs.map((d) => UserProfile.fromMap(d.id, d.data())).toList());
+});
+
+// Pending generator owners (awaiting super admin approval)
+final pendingGeneratorOwnersProvider =
+    StreamProvider<List<UserProfile>>((ref) {
+  final db = FirebaseFirestore.instance;
+  return db
+      .collection('users')
+      .where('role', whereIn: ['generator_owner', 'admin'])
+      .where('status', isEqualTo: 'pending')
+      .orderBy('createdAt', descending: true)
+      .snapshots()
+      .map(
+          (s) => s.docs.map((d) => UserProfile.fromMap(d.id, d.data())).toList());
 });
 
 // Complaints
 final complaintsProvider = StreamProvider<List<Complaint>>((ref) {
   final db = FirebaseFirestore.instance;
-  return db.collection('complaints')
+  return db
+      .collection('complaints')
       .orderBy('createdAt', descending: true)
       .snapshots()
-      .map((s) => s.docs.map((d) => Complaint.fromMap(d.id, d.data())).toList());
+      .map((s) =>
+          s.docs.map((d) => Complaint.fromMap(d.id, d.data())).toList());
 });
 
-// Usage data (mock for now, will be Firestore-based)
+// Usage data
 class UsageMonth {
   final String month;
   final double kwh;
@@ -92,11 +129,11 @@ class UsageMonth {
 }
 
 final usageProvider = Provider<List<UsageMonth>>((ref) => const [
-  UsageMonth('يناير',   118, 236),
-  UsageMonth('فبراير', 132, 264),
-  UsageMonth('مارس',    105, 210),
-  UsageMonth('أبريل',   148, 296),
-  UsageMonth('مايو',    127, 254),
-  UsageMonth('يونيو',   155, 310),
-  UsageMonth('يوليو',   142, 284),
-]);
+      UsageMonth('يناير', 118, 236),
+      UsageMonth('فبراير', 132, 264),
+      UsageMonth('مارس', 105, 210),
+      UsageMonth('أبريل', 148, 296),
+      UsageMonth('مايو', 127, 254),
+      UsageMonth('يونيو', 155, 310),
+      UsageMonth('يوليو', 142, 284),
+    ]);

@@ -1,73 +1,116 @@
-enum UserRole { admin, consumer }
+enum UserRole { superAdmin, admin, consumer }
 
 enum SubscriptionStatus { active, inactive, pending }
 
+enum ApprovalStatus { pending, approved, rejected }
+
 class UserProfile {
   final String uid;
+  final String idNumber;
   final String phone;
   final String name;
   final String address;
   final UserRole role;
+  final ApprovalStatus approvalStatus;
   final SubscriptionStatus subscriptionStatus;
   final int ampereLimit;
   final DateTime createdAt;
 
   const UserProfile({
     required this.uid,
-    required this.phone,
+    this.idNumber = '',
+    this.phone = '',
     required this.name,
-    required this.address,
+    this.address = '',
     required this.role,
-    required this.subscriptionStatus,
-    required this.ampereLimit,
+    this.approvalStatus = ApprovalStatus.approved,
+    this.subscriptionStatus = SubscriptionStatus.active,
+    this.ampereLimit = 0,
     required this.createdAt,
   });
 
   factory UserProfile.fromMap(String uid, Map<String, dynamic> map) {
     return UserProfile(
       uid: uid,
+      idNumber: map['idNumber'] ?? map['phone'] ?? '',
       phone: map['phone'] ?? '',
       name: map['name'] ?? '',
       address: map['address'] ?? '',
       role: _parseRole(map['role']),
-      subscriptionStatus: _parseStatus(map['subscriptionStatus']),
+      approvalStatus: _parseApproval(map['status']),
+      subscriptionStatus: _parseSubStatus(map['subscriptionStatus']),
       ampereLimit: map['ampereLimit'] ?? 0,
       createdAt: _parseDate(map['createdAt']),
     );
   }
 
   Map<String, dynamic> toMap() => {
-    'phone': phone,
-    'name': name,
-    'address': address,
-    'role': role.name,
-    'subscriptionStatus': subscriptionStatus.name,
-    'ampereLimit': ampereLimit,
-    'createdAt': createdAt.millisecondsSinceEpoch,
-  };
+        'idNumber': idNumber,
+        'phone': phone,
+        'name': name,
+        'address': address,
+        'role': _roleToString(role),
+        'status': approvalStatus.name,
+        'subscriptionStatus': subscriptionStatus.name,
+        'ampereLimit': ampereLimit,
+        'createdAt': createdAt.millisecondsSinceEpoch,
+      };
 
   UserProfile copyWith({
     String? name,
     String? address,
+    ApprovalStatus? approvalStatus,
     SubscriptionStatus? subscriptionStatus,
     int? ampereLimit,
-  }) => UserProfile(
-    uid: uid,
-    phone: phone,
-    name: name ?? this.name,
-    address: address ?? this.address,
-    role: role,
-    subscriptionStatus: subscriptionStatus ?? this.subscriptionStatus,
-    ampereLimit: ampereLimit ?? this.ampereLimit,
-    createdAt: createdAt,
-  );
+  }) =>
+      UserProfile(
+        uid: uid,
+        idNumber: idNumber,
+        phone: phone,
+        name: name ?? this.name,
+        address: address ?? this.address,
+        role: role,
+        approvalStatus: approvalStatus ?? this.approvalStatus,
+        subscriptionStatus: subscriptionStatus ?? this.subscriptionStatus,
+        ampereLimit: ampereLimit ?? this.ampereLimit,
+        createdAt: createdAt,
+      );
 
   static UserRole _parseRole(dynamic v) {
-    if (v == 'admin') return UserRole.admin;
-    return UserRole.consumer;
+    switch (v) {
+      case 'super_admin':
+        return UserRole.superAdmin;
+      case 'generator_owner':
+      case 'admin':
+        return UserRole.admin;
+      default:
+        return UserRole.consumer;
+    }
   }
 
-  static SubscriptionStatus _parseStatus(dynamic v) {
+  static String _roleToString(UserRole r) {
+    switch (r) {
+      case UserRole.superAdmin:
+        return 'super_admin';
+      case UserRole.admin:
+        return 'generator_owner';
+      case UserRole.consumer:
+        return 'user';
+    }
+  }
+
+  static ApprovalStatus _parseApproval(dynamic v) {
+    switch (v) {
+      case 'approved':
+        return ApprovalStatus.approved;
+      case 'rejected':
+        return ApprovalStatus.rejected;
+      default:
+        return ApprovalStatus.pending;
+    }
+  }
+
+  static SubscriptionStatus _parseSubStatus(dynamic v) {
     if (v == 'active') return SubscriptionStatus.active;
     if (v == 'inactive') return SubscriptionStatus.inactive;
     return SubscriptionStatus.pending;

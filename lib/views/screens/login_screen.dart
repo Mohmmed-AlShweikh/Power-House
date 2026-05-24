@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -14,66 +15,61 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _phoneCtrl = TextEditingController();
+  final _idCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
+  bool _passVisible = false;
   bool _loading = false;
-  UserRole _role = UserRole.consumer;
   String? _errorMsg;
 
   @override
-  void initState() {
-    super.initState();
-    _phoneCtrl.addListener(() {
-      if (mounted) setState(() {});
-    });
+  void dispose() {
+    _idCtrl.dispose();
+    _passCtrl.dispose();
+    super.dispose();
   }
 
-  void _submit() async {
-    final digits = _phoneCtrl.text.trim().replaceAll(RegExp(r'\D'), '');
-    if (digits.length < 9) return;
-
-    // Demo bypass codes
-    if (digits == '0000000000') {
-      ref.read(authProvider.notifier).demoLogin(UserRole.consumer);
-      if (mounted) context.go('/consumer');
-      return;
-    }
-    if (digits == '9999999999') {
-      ref.read(authProvider.notifier).demoLogin(UserRole.admin);
-      if (mounted) context.go('/admin');
-      return;
-    }
+  Future<void> _submit() async {
+    final id = _idCtrl.text.trim();
+    final pass = _passCtrl.text;
+    if (id.isEmpty || pass.isEmpty) return;
 
     setState(() { _loading = true; _errorMsg = null; });
-    final sent = await ref.read(authProvider.notifier).sendOtp(digits, context);
-    if (!mounted) return;
 
-    final error = ref.read(authProvider).error;
+    final error = await ref.read(authProvider.notifier).login(id, pass);
+    if (!mounted) return;
     setState(() { _loading = false; _errorMsg = error; });
 
-    if (sent && error == null) context.push('/otp');
+    if (error == null) {
+      // Router handles redirect based on role
+    }
   }
 
-  @override
-  void dispose() {
-    _phoneCtrl.dispose();
-    super.dispose();
+  void _demoLogin(UserRole role) {
+    ref.read(authProvider.notifier).demoLogin(role);
+    final path = switch (role) {
+      UserRole.superAdmin => '/super_admin',
+      UserRole.admin => '/admin',
+      _ => '/consumer',
+    };
+    context.go(path);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final digits = _phoneCtrl.text.trim().replaceAll(RegExp(r'\D'), '');
-    final isDemo = digits == '0000000000' || digits == '9999999999';
-    final isValid = digits.length >= 9;
+
+    // Show error from provider (e.g. after status check redirect)
+    final providerError = ref.watch(authProvider).error;
+    final displayError = _errorMsg ?? providerError;
 
     return Scaffold(
       body: Column(
         children: [
-          // Header
+          // ── Header ───────────────────────────────────────────────────────
           Container(
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppColors.primaryDark,
-              borderRadius: const BorderRadius.only(
+              borderRadius: BorderRadius.only(
                 bottomLeft: Radius.circular(28),
                 bottomRight: Radius.circular(28),
               ),
@@ -122,15 +118,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             fontSize: 18,
                             fontWeight: FontWeight.w600)),
                     const SizedBox(height: 4),
-                    const Text('سجّل دخولك للمتابعة',
-                        style: TextStyle(color: Colors.white60, fontSize: 14)),
+                    const Text('سجّل دخولك برقم هويتك وكلمة المرور',
+                        style:
+                            TextStyle(color: Colors.white60, fontSize: 14)),
                   ],
                 ),
               ),
             ),
           ),
 
-          // Form
+          // ── Form ─────────────────────────────────────────────────────────
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
@@ -141,52 +138,48 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _Label('نوع الحساب'),
-                        const SizedBox(height: 10),
-                        _RoleToggle(
-                          selected: _role,
-                          onChanged: (v) => setState(() => _role = v),
-                        ),
-                        const SizedBox(height: 20),
-                        _Label('رقم الهاتف'),
+                        _Label('رقم الهوية'),
                         const SizedBox(height: 8),
-                        _PhoneInput(
-                          controller: _phoneCtrl,
-                          onChanged: (_) => setState(() {}),
-                          onSubmitted: _submit,
+                        TextField(
+                          controller: _idCtrl,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(10),
+                          ],
+                          style: const TextStyle(
+                              fontSize: 16, letterSpacing: 1.0),
+                          onSubmitted: (_) => _submit(),
+                          decoration: _fieldDecor(
+                              'xxxxxxxxxx', Icons.badge_outlined),
                         ),
-                        const SizedBox(height: 6),
-                        Text('مثال: 0591234567',
-                            style: theme.textTheme.labelLarge),
-                        if (isDemo) ...[
-                          const SizedBox(height: 12),
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: AppColors.success.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                  color: AppColors.success.withOpacity(0.3)),
-                            ),
-                            child: Row(
-                              children: [
-                                const Text('🎭',
-                                    style: TextStyle(fontSize: 16)),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'وضع المعاينة — ${digits == '9999999999' ? 'صاحب مولد' : 'مستهلك'}',
-                                    style: const TextStyle(
-                                        color: AppColors.success,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600),
-                                  ),
-                                ),
-                              ],
+                        const SizedBox(height: 16),
+                        _Label('كلمة المرور'),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _passCtrl,
+                          obscureText: !_passVisible,
+                          style: const TextStyle(fontSize: 16),
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => _submit(),
+                          decoration: _fieldDecor(
+                            '••••••••',
+                            Icons.lock_outline,
+                          ).copyWith(
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                  _passVisible
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  size: 20,
+                                  color: AppColors.lightMuted),
+                              onPressed: () => setState(
+                                  () => _passVisible = !_passVisible),
                             ),
                           ),
-                        ],
-                        if (_errorMsg != null) ...[
+                        ),
+
+                        if (displayError != null) ...[
                           const SizedBox(height: 12),
                           Container(
                             padding: const EdgeInsets.all(12),
@@ -194,7 +187,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               color: AppColors.error.withOpacity(0.08),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                  color: AppColors.error.withOpacity(0.3)),
+                                  color:
+                                      AppColors.error.withOpacity(0.3)),
                             ),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,49 +197,133 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     size: 18, color: AppColors.error),
                                 const SizedBox(width: 8),
                                 Expanded(
-                                  child: Text(
-                                    _errorMsg!,
-                                    style: const TextStyle(
-                                        color: AppColors.error,
-                                        fontSize: 13,
-                                        height: 1.4),
-                                  ),
+                                  child: Text(displayError,
+                                      style: const TextStyle(
+                                          color: AppColors.error,
+                                          fontSize: 13,
+                                          height: 1.4)),
                                 ),
                               ],
                             ),
                           ),
                         ],
+
                         const SizedBox(height: 24),
                         ElevatedButton(
-                          onPressed: _loading || !isValid ? null : _submit,
+                          onPressed: (_loading ||
+                                  _idCtrl.text.isEmpty ||
+                                  _passCtrl.text.isEmpty)
+                              ? null
+                              : _submit,
                           child: _loading
                               ? const SizedBox(
                                   height: 22,
                                   width: 22,
                                   child: CircularProgressIndicator(
-                                      strokeWidth: 2.5, color: Colors.white),
-                                )
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
+                                      strokeWidth: 2.5,
+                                      color: Colors.white))
+                              : const Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.center,
                                   children: [
-                                    Text(isDemo ? 'دخول المعاينة' : 'متابعة'),
-                                    const SizedBox(width: 8),
-                                    const Icon(Icons.arrow_back, size: 18),
+                                    Text('تسجيل الدخول'),
+                                    SizedBox(width: 8),
+                                    Icon(Icons.arrow_back, size: 18),
                                   ],
                                 ),
                         ).animate().fadeIn(delay: 200.ms),
+                        const SizedBox(height: 12),
+                        Center(
+                          child: TextButton(
+                            onPressed: () => context.go('/register'),
+                            child: RichText(
+                              text: const TextSpan(
+                                text: 'ليس لديك حساب؟ ',
+                                style: TextStyle(
+                                    color: AppColors.lightMuted,
+                                    fontFamily: 'Tajawal'),
+                                children: [
+                                  TextSpan(
+                                    text: 'سجّل الآن',
+                                    style: TextStyle(
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.w600,
+                                        fontFamily: 'Tajawal'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: Text(
-                      isDemo
-                          ? 'أكواد المعاينة: 0000000000 (مستهلك) · 9999999999 (أدمن)'
-                          : 'سيتم إرسال رمز التحقق على رقمك',
-                      style: theme.textTheme.labelLarge,
+
+                  const SizedBox(height: 20),
+
+                  // ── Demo Section ─────────────────────────────────────────
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                          color: AppColors.primary.withOpacity(0.2)),
                     ),
-                  ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Text('🎭',
+                                style: TextStyle(fontSize: 16)),
+                            const SizedBox(width: 8),
+                            const Text('وضع المعاينة',
+                                style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700)),
+                            const Spacer(),
+                            Text('بدون Firebase',
+                                style: TextStyle(
+                                    color: AppColors.primary
+                                        .withOpacity(0.6),
+                                    fontSize: 11)),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            _DemoBtn(
+                              label: 'مستخدم',
+                              icon: Icons.person,
+                              color: AppColors.success,
+                              onTap: () =>
+                                  _demoLogin(UserRole.consumer),
+                            ),
+                            const SizedBox(width: 8),
+                            _DemoBtn(
+                              label: 'صاحب مولد',
+                              icon: Icons.bolt,
+                              color: AppColors.primary,
+                              onTap: () =>
+                                  _demoLogin(UserRole.admin),
+                            ),
+                            const SizedBox(width: 8),
+                            _DemoBtn(
+                              label: 'مشرف عام',
+                              icon: Icons.admin_panel_settings,
+                              color: const Color(0xFF9c27b0),
+                              onTap: () =>
+                                  _demoLogin(UserRole.superAdmin),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ).animate().fadeIn(delay: 400.ms),
+
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -254,7 +332,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
     );
   }
+
+  InputDecoration _fieldDecor(String hint, IconData icon) =>
+      InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: AppColors.lightMuted),
+        prefixIcon: Icon(icon, color: AppColors.lightMuted, size: 20),
+        filled: true,
+        fillColor: Theme.of(context).scaffoldBackgroundColor,
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.lightBorder)),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.lightBorder)),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide:
+                const BorderSide(color: AppColors.primary, width: 2)),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
+      );
 }
+
+// ── Reusable widgets ──────────────────────────────────────────────────────────
 
 class _Card extends StatelessWidget {
   final Widget child;
@@ -281,149 +382,48 @@ class _Label extends StatelessWidget {
   final String text;
   const _Label(this.text);
   @override
-  Widget build(BuildContext context) => Text(
-        text,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: AppColors.lightText,
-            ),
-      );
+  Widget build(BuildContext context) => Text(text,
+      style: Theme.of(context)
+          .textTheme
+          .titleMedium
+          ?.copyWith(color: AppColors.lightText));
 }
 
-class _RoleToggle extends StatelessWidget {
-  final UserRole selected;
-  final ValueChanged<UserRole> onChanged;
-  const _RoleToggle({required this.selected, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    final bg = Theme.of(context).scaffoldBackgroundColor;
-    return Container(
-      decoration:
-          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
-      padding: const EdgeInsets.all(4),
-      child: Row(
-        children: [
-          _Tab(
-              label: 'مستهلك',
-              icon: Icons.person,
-              selected: selected == UserRole.consumer,
-              onTap: () => onChanged(UserRole.consumer)),
-          const SizedBox(width: 4),
-          _Tab(
-              label: 'صاحب مولد',
-              icon: Icons.settings,
-              selected: selected == UserRole.admin,
-              onTap: () => onChanged(UserRole.admin)),
-        ],
-      ),
-    );
-  }
-}
-
-class _Tab extends StatelessWidget {
+class _DemoBtn extends StatelessWidget {
   final String label;
   final IconData icon;
-  final bool selected;
+  final Color color;
   final VoidCallback onTap;
-  const _Tab(
+  const _DemoBtn(
       {required this.label,
       required this.icon,
-      required this.selected,
+      required this.color,
       required this.onTap});
 
   @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: 200.ms,
-          padding: const EdgeInsets.symmetric(vertical: 11),
-          decoration: BoxDecoration(
-            color: selected ? AppColors.primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(9),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon,
-                  size: 17,
-                  color: selected ? Colors.white : AppColors.lightMuted),
-              const SizedBox(width: 6),
-              Text(label,
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: selected ? Colors.white : AppColors.lightMuted)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PhoneInput extends StatelessWidget {
-  final TextEditingController controller;
-  final ValueChanged<String>? onChanged;
-  final VoidCallback? onSubmitted;
-  const _PhoneInput(
-      {required this.controller, this.onChanged, this.onSubmitted});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        border: Border.all(color: AppColors.lightBorder),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
+  Widget build(BuildContext context) => Expanded(
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
-              color: Theme.of(context).scaffoldBackgroundColor,
-              borderRadius: const BorderRadius.only(
-                topRight: Radius.circular(12),
-                bottomRight: Radius.circular(12),
-              ),
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: color.withOpacity(0.3)),
             ),
-            child: const Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text('🇵🇸', style: TextStyle(fontSize: 18)),
-                SizedBox(width: 6),
-                Text('+972',
+                Icon(icon, size: 20, color: color),
+                const SizedBox(height: 4),
+                Text(label,
                     style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.lightText)),
+                        color: color)),
               ],
             ),
           ),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              keyboardType: TextInputType.phone,
-              textInputAction: TextInputAction.done,
-              textDirection: TextDirection.ltr,
-              onChanged: onChanged,
-              onSubmitted: (_) => onSubmitted?.call(),
-              style: const TextStyle(fontSize: 16, letterSpacing: 1.2),
-              decoration: const InputDecoration(
-                hintText: '05xxxxxxxx',
-                hintStyle:
-                    TextStyle(color: AppColors.lightMuted, letterSpacing: 0.5),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 14, vertical: 15),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+      );
 }
