@@ -19,8 +19,11 @@ service cloud.firestore {
     }
 
     match /users/{uid} {
+      // Public read — required for demo mode to work + harmless (name/address/idNumber only)
       allow read: if true;
+      // Only the user themselves can create their doc during registration
       allow create: if request.auth != null && request.auth.uid == uid;
+      // Only the user, super admin, or generator owner can update
       allow update: if request.auth != null && (
         request.auth.uid == uid ||
         isSuperAdmin() ||

@@ -86,32 +86,37 @@ class SuperAdminScreen extends ConsumerWidget {
                           onPressed: () async {
                             final db = FirebaseFirestore.instance;
                             try {
-                              // جرب الـ query الجديد
-                              final snap = await db
-                                  .collection('users')
-                                  .where('role', isEqualTo: 'generator_owner')
-                                  .get();
-                              final info = snap.docs.map((d) {
+                              final snap = await db.collection('users').get();
+                              final all = snap.docs.map((d) {
                                 final data = d.data();
                                 final role = (data['role'] ?? '').toString();
                                 final name = (data['name'] ?? '').toString();
                                 final status = (data['status'] ?? '').toString();
                                 final idNumber =
                                     (data['idNumber'] ?? '').toString();
-                                final created =
-                                    data['createdAt']?.toString() ?? '';
-                                return 'ID: ${d.id}\nname: $name\nrole: $role\nstatus: $status\nidNumber: $idNumber\ncreatedAt: $created';
-                              }).join('\n\n');
+                                return 'ID:${d.id} | role:$role | status:$status | name:$name | idNum:$idNumber';
+                              }).join('\n');
+                              final owners = snap.docs.where((d) {
+                                final r = (d.data()['role'] ?? '').toString();
+                                return r == 'generator_owner';
+                              }).toList();
+                              final pendingOwners = owners.where((d) {
+                                final s = (d.data()['status'] ?? '').toString();
+                                return s == 'pending';
+                              }).toList();
+                              final info =
+                                  'المجموع: ${snap.size} مستند\n'
+                                  'أصحاب المولدات: ${owners.length}\n'
+                                  'بانتظار الموافقة: ${pendingOwners.length}\n'
+                                  '\n--- جميع المستندين ---\n$all';
                               await showDialog(
                                 context: context,
                                 builder: (_) => Directionality(
                                   textDirection: TextDirection.rtl,
                                   child: AlertDialog(
-                                    title: const Text('الطلبات في الفايرستور'),
+                                    title: const Text('بيانات الفايرستور'),
                                     content: SingleChildScrollView(
-                                      child: SelectableText(info.isEmpty
-                                          ? 'NO generator_owner DOCS FOUND'
-                                          : info),
+                                      child: SelectableText(info),
                                     ),
                                     actions: [
                                       ElevatedButton(

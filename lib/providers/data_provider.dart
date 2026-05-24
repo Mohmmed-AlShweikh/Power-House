@@ -86,60 +86,51 @@ final alertsProvider =
 });
 
 // Active subscribers (generator owner view)
-// Single-field query + client-side filter to avoid composite-index requirement.
+// Fetches ALL users and filters 100% client-side — zero Firestore query constraints.
 final subscribersProvider = StreamProvider<List<UserProfile>>((ref) {
   final db = FirebaseFirestore.instance;
-  return db
-      .collection('users')
-      .where('role', whereIn: ['user', 'consumer'])
-      .snapshots()
-      .map((s) {
-        final list = s.docs
-            .map((d) => UserProfile.fromMap(d.id, d.data()))
-            .where((u) => u.approvalStatus == ApprovalStatus.approved)
-            .toList();
-        list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        return list;
-      });
+  return db.collection('users').snapshots().map((s) {
+    final list = s.docs
+        .map((d) => UserProfile.fromMap(d.id, d.data()))
+        .where((u) =>
+            u.role == UserRole.consumer &&
+            u.approvalStatus == ApprovalStatus.approved)
+        .toList();
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
+  });
 });
 
 // Pending regular users (awaiting generator owner approval)
-// Single-field query + client-side filter to avoid composite-index requirement.
+// Fetches ALL users and filters 100% client-side — zero Firestore query constraints.
 final pendingUsersProvider = StreamProvider<List<UserProfile>>((ref) {
   final db = FirebaseFirestore.instance;
-  return db
-      .collection('users')
-      .where('role', whereIn: ['user', 'consumer'])
-      .snapshots()
-      .map((s) {
-        final list = s.docs
-            .map((d) => UserProfile.fromMap(d.id, d.data()))
-            .where((u) => u.approvalStatus == ApprovalStatus.pending)
-            .toList();
-        list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        return list;
-      });
+  return db.collection('users').snapshots().map((s) {
+    final list = s.docs
+        .map((d) => UserProfile.fromMap(d.id, d.data()))
+        .where((u) =>
+            u.role == UserRole.consumer &&
+            u.approvalStatus == ApprovalStatus.pending)
+        .toList();
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
+  });
 });
 
 // Pending generator owners (awaiting super admin approval)
-// Single-field query + client-side filter to avoid composite-index requirement.
+// Fetches ALL users and filters 100% client-side — zero Firestore query constraints.
 final pendingGeneratorOwnersProvider = StreamProvider<List<UserProfile>>((ref) {
   final db = FirebaseFirestore.instance;
-  return _safelyHandlePermissionDenied<List<UserProfile>>(
-    db
-        .collection('users')
-        .where('role', isEqualTo: 'generator_owner')
-        .snapshots()
-        .map((s) {
-      final list = s.docs
-          .map((d) => UserProfile.fromMap(d.id, d.data()))
-          .where((u) => u.approvalStatus == ApprovalStatus.pending)
-          .toList();
-      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return list;
-    }),
-    const <UserProfile>[],
-  );
+  return db.collection('users').snapshots().map((s) {
+    final list = s.docs
+        .map((d) => UserProfile.fromMap(d.id, d.data()))
+        .where((u) =>
+            u.role == UserRole.admin &&
+            u.approvalStatus == ApprovalStatus.pending)
+        .toList();
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
+  });
 });
 
 // Complaints
