@@ -1,0 +1,61 @@
+I need you to fully inspect and fix the registration, approval, and login workflow in the project.
+
+There are 3 user roles in the system:
+
+Admin
+Generator Owner
+Consumer
+
+Current issue:
+
+When new Generator Owner accounts are registered, their requests do NOT appear in the Admin dashboard.
+The Admin sees:
+“No requests”
+requests count = 0
+Even though I already created multiple Generator Owner accounts.
+The expected behavior is:
+New Generator Owner registrations should appear as pending requests for the Admin.
+The Admin approves them.
+After approval, the Generator Owner can log in.
+
+There is also another approval flow:
+
+When a Consumer registers, their request should be sent to the related Generator Owner.
+The Generator Owner should see pending Consumer requests.
+After the Generator Owner approves the Consumer, the Consumer should be able to log in.
+
+Required tasks:
+
+Inspect the entire registration flow.
+Inspect the approval workflow logic.
+Verify that user status is stored correctly in the database.
+Ensure proper statuses exist and are used correctly:
+pending
+approved
+rejected
+Ensure the Admin correctly fetches pending Generator Owner requests from the database.
+Ensure Generator Owners correctly fetch Consumer requests.
+Fix any issues related to:
+API endpoints
+Backend logic
+Database queries
+Authentication
+Authorization
+Role handling
+Ensure users cannot log in until approved.
+Add clear messages for these states:
+Account pending approval
+Request rejected
+Request approved
+Ensure pending request counters update correctly.
+Investigate and fix possible issues with:
+async state handling
+caching
+realtime updates
+token/session handling
+Add clear logs/debugging information to trace the issue.
+Ensure the UI updates correctly immediately after registration or approval.
+Provide a complete working fix, not only an explanation.
+Explain the root cause of the issue and exactly what was changed.
+
+I want a complete practical implementation and code fixes across frontend, backend, and database if needed.

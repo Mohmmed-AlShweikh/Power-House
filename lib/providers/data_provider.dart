@@ -86,52 +86,55 @@ final alertsProvider =
 });
 
 // Active subscribers (generator owner view)
+// NOTE: orderBy removed to avoid composite-index requirement — sorted client-side.
 final subscribersProvider = StreamProvider<List<UserProfile>>((ref) {
   final db = FirebaseFirestore.instance;
   return db
       .collection('users')
       .where('role', whereIn: ['user', 'consumer'])
       .where('status', isEqualTo: 'approved')
-      .orderBy('createdAt', descending: true)
       .snapshots()
-      .map((s) =>
-          s.docs.map((d) => UserProfile.fromMap(d.id, d.data())).toList());
+      .map((s) {
+        final list =
+            s.docs.map((d) => UserProfile.fromMap(d.id, d.data())).toList();
+        list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        return list;
+      });
 });
 
 // Pending regular users (awaiting generator owner approval)
+// NOTE: orderBy removed to avoid composite-index requirement — sorted client-side.
 final pendingUsersProvider = StreamProvider<List<UserProfile>>((ref) {
   final db = FirebaseFirestore.instance;
   return db
       .collection('users')
       .where('role', whereIn: ['user', 'consumer'])
       .where('status', isEqualTo: 'pending')
-      .orderBy('createdAt', descending: true)
       .snapshots()
-      .map((s) =>
-          s.docs.map((d) => UserProfile.fromMap(d.id, d.data())).toList());
+      .map((s) {
+        final list =
+            s.docs.map((d) => UserProfile.fromMap(d.id, d.data())).toList();
+        list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        return list;
+      });
 });
 
 // Pending generator owners (awaiting super admin approval)
+// Uses exact role match to avoid false positives.
 final pendingGeneratorOwnersProvider = StreamProvider<List<UserProfile>>((ref) {
   final db = FirebaseFirestore.instance;
   return _safelyHandlePermissionDenied<List<UserProfile>>(
     db
         .collection('users')
+        .where('role', isEqualTo: 'generator_owner')
         .where('status', isEqualTo: 'pending')
         .snapshots()
         .map((s) {
-      final pendingOwners = s.docs
-          .where((d) {
-            final role =
-                (d.data()['role'] as String?)?.trim().toLowerCase() ?? '';
-            return role.contains('generator') ||
-                role.contains('owner') ||
-                role.contains('admin');
-          })
+      final list = s.docs
           .map((d) => UserProfile.fromMap(d.id, d.data()))
           .toList();
-      pendingOwners.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return pendingOwners;
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
     }),
     const <UserProfile>[],
   );

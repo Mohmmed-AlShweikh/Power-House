@@ -2670,7 +2670,24 @@ class _PendingUsersTab extends ConsumerWidget {
               ),
             ),
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => const _MockPendingUsers(),
+      error: (err, _) => Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: AppColors.warning),
+              const SizedBox(height: 16),
+              const Text('تعذّر تحميل الطلبات المعلقة',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              Text(err.toString(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 11, color: AppColors.lightMuted)),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -2703,11 +2720,14 @@ class _PendingUserCardState extends ConsumerState<_PendingUserCard> {
           backgroundColor: approve ? AppColors.success : AppColors.error,
         ));
       }
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content:
-                Text('حدث خطأ. حاول مجدداً.', textAlign: TextAlign.right)));
+        final msg = e.toString().contains('permission')
+            ? 'لا تملك صلاحية تنفيذ هذا الإجراء.'
+            : 'حدث خطأ: ${e.toString()}';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(msg, textAlign: TextAlign.right),
+            backgroundColor: AppColors.error));
       }
     } finally {
       if (mounted) setState(() => _loading = false);

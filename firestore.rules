@@ -2,43 +2,60 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Allow unauthenticated read of users by phone for login lookup
-    // Only allow reading phone/role fields (not sensitive data)
+    function callerRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '');
+    }
+
+    function isSuperAdmin() {
+      return request.auth != null && callerRole() == 'super_admin';
+    }
+
+    function isGeneratorOwner() {
+      return request.auth != null && callerRole() == 'generator_owner';
+    }
+
+    function isAdminLevel() {
+      return isSuperAdmin() || isGeneratorOwner();
+    }
+
     match /users/{uid} {
       allow read: if true;
-      allow write: if request.auth != null && (
+      allow create: if request.auth != null && request.auth.uid == uid;
+      allow update: if request.auth != null && (
         request.auth.uid == uid ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+        isSuperAdmin() ||
+        isGeneratorOwner()
       );
+      allow delete: if isSuperAdmin();
     }
 
-    // Generator status — anyone authenticated can read, only admin can write
     match /system/{doc} {
-      allow read: if request.auth != null || true;
-      allow write: if request.auth != null &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow read: if true;
+      allow write: if isAdminLevel();
     }
 
-    // Bills — owner or admin can read; owner can create; admin can update status
     match /bills/{billId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null;
       allow update: if request.auth != null;
     }
 
-    // Alerts — owner can read/update their own; admin can create
-    match /alerts/{alertId} {
-      allow read, update: if request.auth != null &&
-        (resource.data.userId == request.auth.uid ||
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
-      allow create: if request.auth != null;
+    match /consumption/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
     }
 
-    // Complaints — authenticated users can read/create; admin can update
+    match /alerts/{alertId} {
+      allow read, update: if request.auth != null &&
+        (resource.data.userId == request.auth.uid || isAdminLevel());
+      allow create: if request.auth != null;
+      allow delete: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+    }
+
     match /complaints/{id} {
       allow read, create: if request.auth != null;
-      allow update: if request.auth != null &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow update: if request.auth != null && isAdminLevel();
     }
   }
 }

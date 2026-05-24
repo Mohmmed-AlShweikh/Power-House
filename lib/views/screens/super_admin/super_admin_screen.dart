@@ -285,11 +285,14 @@ class _OwnerRequestCardState extends ConsumerState<_OwnerRequestCard> {
           backgroundColor: approve ? AppColors.success : AppColors.error,
         ));
       }
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content:
-                Text('حدث خطأ. حاول مجدداً.', textAlign: TextAlign.right)));
+        final msg = e.toString().contains('permission')
+            ? 'لا تملك صلاحية تنفيذ هذا الإجراء.'
+            : 'حدث خطأ: ${e.toString()}';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(msg, textAlign: TextAlign.right),
+            backgroundColor: AppColors.error));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
