@@ -15,7 +15,8 @@ class BillsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(authProvider).profile;
-    final billsAsync = ref.watch(billsProvider(profile?.uid ?? ''));
+    final uid = profile?.uid ?? '';
+    final billsAsync = ref.watch(billsProvider(uid));
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -33,7 +34,19 @@ class BillsTab extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                const _PendingBanner(),
+                // Pass real bills data to the banner so it can pick the
+                // latest unpaid bill without a second Firestore read.
+                billsAsync.when(
+                  data: (bills) {
+                    final pending = bills
+                        .where((b) => b.status == BillStatus.pending)
+                        .toList();
+                    if (pending.isEmpty) return const SizedBox.shrink();
+                    return _PendingBanner(bill: pending.first, uid: uid);
+                  },
+                  loading: () => const _PendingBannerSkeleton(),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
                 const SizedBox(height: 16),
                 Text('سجل الفواتير', style: theme.textTheme.titleLarge),
                 const SizedBox(height: 12),
@@ -44,7 +57,7 @@ class BillsTab extends ConsumerWidget {
                           children: bills
                               .map((b) => Padding(
                                     padding: const EdgeInsets.only(bottom: 10),
-                                    child: _BillCard(bill: b),
+                                    child: _BillCard(bill: b, uid: uid),
                                   ))
                               .toList(),
                         ),
@@ -64,11 +77,13 @@ class BillsTab extends ConsumerWidget {
 
 // ── Pending Banner ─────────────────────────────────────────────────────────────
 
-class _PendingBanner extends ConsumerWidget {
-  const _PendingBanner();
+class _PendingBanner extends StatelessWidget {
+  final Bill bill;
+  final String uid;
+  const _PendingBanner({required this.bill, required this.uid});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -86,31 +101,35 @@ class _PendingBanner extends ConsumerWidget {
                 const Icon(Icons.receipt_long, color: Colors.white, size: 24),
           ),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('فاتورة يوليو غير مدفوعة',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700)),
-                SizedBox(height: 3),
-                Text('المبلغ المستحق: ₪ 284',
-                    style: TextStyle(color: Colors.white70, fontSize: 13)),
+                Text(
+                  'فاتورة ${bill.month} ${bill.year} غير مدفوعة',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'المبلغ المستحق: ₪ ${bill.amount}',
+                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                ),
               ],
             ),
           ),
           ElevatedButton(
             onPressed: () {
-              final uid = ref.read(authProvider).profile?.uid ?? '';
               showModalBottomSheet(
                 context: context,
                 isScrollControlled: true,
                 shape: const RoundedRectangleBorder(
                     borderRadius:
                         BorderRadius.vertical(top: Radius.circular(24))),
-                builder: (_) => _UploadReceiptSheet(uid: uid),
+                builder: (_) =>
+                    _UploadReceiptSheet(uid: uid, bill: bill),
               );
             },
             style: ElevatedButton.styleFrom(
@@ -132,11 +151,28 @@ class _PendingBanner extends ConsumerWidget {
   }
 }
 
+class _PendingBannerSkeleton extends StatelessWidget {
+  const _PendingBannerSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 78,
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(16),
+      ),
+    ).animate(onPlay: (c) => c.repeat())
+        .shimmer(duration: 1200.ms, color: Colors.white24);
+  }
+}
+
 // ── Upload Receipt Sheet ───────────────────────────────────────────────────────
 
 class _UploadReceiptSheet extends ConsumerStatefulWidget {
   final String uid;
-  const _UploadReceiptSheet({required this.uid});
+  final Bill bill;
+  const _UploadReceiptSheet({required this.uid, required this.bill});
 
   @override
   ConsumerState<_UploadReceiptSheet> createState() =>
@@ -163,7 +199,7 @@ class _UploadReceiptSheetState extends ConsumerState<_UploadReceiptSheet> {
     if (_bytes == null) return;
     setState(() => _uploading = true);
     try {
-      await FirebaseService().uploadReceiptForUser(widget.uid, _bytes!);
+      await FirebaseService().uploadReceipt(widget.bill.id, _bytes!);
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -187,6 +223,7 @@ class _UploadReceiptSheetState extends ConsumerState<_UploadReceiptSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final bill = widget.bill;
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Padding(
@@ -209,8 +246,10 @@ class _UploadReceiptSheetState extends ConsumerState<_UploadReceiptSheet> {
                       Text('ارسال وصل الدفع',
                           style: Theme.of(context).textTheme.titleLarge),
                       const SizedBox(height: 4),
-                      Text('فاتورة يوليو 2024 — ₪ 284',
-                          style: Theme.of(context).textTheme.labelLarge),
+                      Text(
+                        'فاتورة ${bill.month} ${bill.year} — ₪ ${bill.amount}',
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
                     ],
                   ),
                 ),
@@ -321,90 +360,104 @@ class _EmptyBills extends StatelessWidget {
 
 class _BillCard extends StatelessWidget {
   final Bill bill;
-  const _BillCard({required this.bill});
+  final String uid;
+  const _BillCard({required this.bill, required this.uid});
 
   @override
   Widget build(BuildContext context) {
     final isPaid = bill.status == BillStatus.paid;
     final isPendingReview = bill.status == BillStatus.pendingReview;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2))
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: (isPaid
-                      ? AppColors.success
-                      : isPendingReview
-                          ? AppColors.warning
-                          : AppColors.error)
-                  .withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
+    final isPending = bill.status == BillStatus.pending;
+
+    Color statusColor = isPaid
+        ? AppColors.success
+        : isPendingReview
+            ? AppColors.warning
+            : AppColors.error;
+
+    String statusLabel = isPaid
+        ? 'مدفوعة'
+        : isPendingReview
+            ? 'بانتظار المراجعة'
+            : 'غير مدفوعة';
+
+    return GestureDetector(
+      onTap: isPending
+          ? () => showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                shape: const RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(24))),
+                builder: (_) =>
+                    _UploadReceiptSheet(uid: uid, bill: bill),
+              )
+          : null,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardTheme.color,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 6,
+                offset: const Offset(0, 2))
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                isPaid
+                    ? Icons.check_circle_outline
+                    : isPendingReview
+                        ? Icons.pending_outlined
+                        : Icons.error_outline,
+                size: 22,
+                color: statusColor,
+              ),
             ),
-            child: Icon(
-              isPaid
-                  ? Icons.check_circle_outline
-                  : isPendingReview
-                      ? Icons.pending_outlined
-                      : Icons.error_outline,
-              size: 22,
-              color: isPaid
-                  ? AppColors.success
-                  : isPendingReview
-                      ? AppColors.warning
-                      : AppColors.error,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('${bill.month} ${bill.year}',
-                    style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.lightText)),
-                const SizedBox(height: 2),
-                Text(
-                  isPaid
-                      ? 'مدفوعة'
-                      : isPendingReview
-                          ? 'بانتظار المراجعة'
-                          : 'غير مدفوعة',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isPaid
-                        ? AppColors.success
-                        : isPendingReview
-                            ? AppColors.warning
-                            : AppColors.error,
-                    fontWeight: FontWeight.w500,
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('${bill.month} ${bill.year}',
+                      style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.lightText)),
+                  const SizedBox(height: 2),
+                  Text(
+                    statusLabel,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: statusColor,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Text('₪${bill.amount}',
-              style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.lightText)),
-          const SizedBox(width: 8),
-          const Icon(Icons.chevron_left,
-              color: AppColors.lightMuted, size: 18),
-        ],
+            Text('₪${bill.amount}',
+                style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.lightText)),
+            const SizedBox(width: 8),
+            Icon(
+              isPending ? Icons.upload_file : Icons.chevron_left,
+              color: isPending ? AppColors.primary : AppColors.lightMuted,
+              size: 18,
+            ),
+          ],
+        ),
       ),
     ).animate().fadeIn();
   }
