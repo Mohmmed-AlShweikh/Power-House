@@ -124,7 +124,7 @@ class _PendingBanner extends ConsumerWidget {
               textStyle: const TextStyle(
                   fontSize: 13, fontWeight: FontWeight.w600),
             ),
-            child: const Text('رفع إيصال'),
+            child: const Text('ارسال وصل'),
           ),
         ],
       ),
@@ -206,7 +206,7 @@ class _UploadReceiptSheetState extends ConsumerState<_UploadReceiptSheet> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('رفع إيصال الدفع',
+                      Text('ارسال وصل الدفع',
                           style: Theme.of(context).textTheme.titleLarge),
                       const SizedBox(height: 4),
                       Text('فاتورة يوليو 2024 — ₪ 284',
@@ -288,7 +288,7 @@ class _UploadReceiptSheetState extends ConsumerState<_UploadReceiptSheet> {
                       width: 22,
                       child: CircularProgressIndicator(
                           strokeWidth: 2.5, color: Colors.white))
-                  : Text(_bytes == null ? 'اختر صورة أولاً' : 'رفع الإيصال'),
+                  : Text(_bytes == null ? 'اختر صورة أولاً' : 'ارسال الوصل'),
             ),
           ],
         ),
