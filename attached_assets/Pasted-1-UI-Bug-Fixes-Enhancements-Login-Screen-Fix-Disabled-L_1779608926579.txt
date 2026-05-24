@@ -1,0 +1,48 @@
+1. UI Bug Fixes & Enhancements (Login Screen)
+Fix Disabled Login Button: Currently, the "Log In" button appears disabled or unclickable on the login screen. Please fix this bug so that the button becomes fully functional when the user inputs their credentials.
+
+Add "Forgot Password" Feature: Please add a "Forgot Password?" (نسيت كلمة المرور) text button on the login screen. Since I have already enabled the Email/Password option in the Firebase Console, you need to program this button to:
+
+Take the User's ID Number.
+
+Convert it behind the scenes into our system's dummy email format (e.g., id_number@company.com).
+
+Call Firebase's native sendPasswordResetEmail() function using that dummy email.
+
+Display a confirmation message to the user: "A password reset link has been processed. Please coordinate with support/admin to reset your password." (Or handle it via standard email if they have access to it).
+
+2. 100% Free Notification System (Firebase Cloud Messaging)
+To ensure the notification system remains 100% free on the Firebase Spark Plan (without using paid Cloud Functions or external servers), please implement Direct App-to-App signaling via the Firebase FCM HTTP v1 API.
+
+FCM Token Management: Save/update each user's fcm_token inside their respective Firestore document in the users collection upon registration and every successful login.
+
+Required Notification Triggers & Text:
+A. When a New Request is Received:
+
+Generator Owner Registers: Send an immediate push notification to the Super Admin's device token:
+
+Title: "طلب تسجيل جديد"
+
+Body: "قام صاحب مولد جديد بتقديم طلب انضمام، يرجى المراجعة."
+
+Regular User Registers: Send an immediate push notification to their specific Generator Owner's device token:
+
+Title: "طلب انضمام جديد"
+
+Body: "قام مستخدم جديد بتقديم طلب انضمام لمولدك، يرجى المراجعة."
+
+B. When a Request Action is Taken (Accept / Reject):
+
+When Admin/Owner clicks [Accept]: Send an immediate push notification to that specific applicant's token:
+
+Title: "تم قبول طلبك 🎉"
+
+Body: "تهانينا! تم تفعيل حسابك بنجاح. يمكنك الآن تسجيل الدخول إلى التطبيق."
+
+When Admin/Owner clicks [Reject]: Send an immediate push notification to that specific applicant's token:
+
+Title: "تحديث بشأن طلبك"
+
+Body: "نعتذر منك، لم يتم الموافقة على طلب انضمامك للتطبيق."
+
+Please ensure that these notifications are properly configured to display whether the user's app is currently in the foreground or background.

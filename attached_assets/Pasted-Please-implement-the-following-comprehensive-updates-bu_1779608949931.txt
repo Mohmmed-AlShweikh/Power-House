@@ -1,0 +1,48 @@
+Please implement the following comprehensive updates, bug fixes, and feature integrations across all screens and roles in our Flutter/Firebase application:
+
+1. REGULAR USER SCREEN UPDATES
+Home Screen: * Remove the text/action phrase "اضغط لتشغيل المولد" (Click to start generator) as regular users are not authorized to perform this action.
+
+Notification Icon: Fix the notification icon navigation so that clicking it redirects the user directly to the Notifications Tab.
+
+Notifications Tab: Add a fully functional "Clear All" (مسح كل الاشعارات) button that deletes all notifications for that user from the database.
+
+Invoices & Receipts (OCR Integration): When a user uploads a payment receipt image and clicks the "Upload Receipt" button, integrate an on-device OCR package (like google_mlkit_text_recognition) to convert the image text into a string. Store this extracted text metadata in Firestore along with the image URL, and display a success snackbar: "تم ارسال الوصل بنجاح".
+
+User Profile Screen:
+
+Remove the profile image upload/selection feature entirely.
+
+Avatar: Display a circular avatar containing only the first letter of the user’s full name.
+
+Display the following text data clearly: Name, Phone Number, Address, User Type ("مستهلك"), and Join Date.
+
+Ensure both the "Edit Profile" and "Log Out" buttons are fully operational.
+
+2. GENERATOR OWNER SCREEN UPDATES
+Subscriber Management: Immediately after a Generator Owner approves a user's pending request, that user must be automatically added to the owner's "Subscribers List" (المشتركون التابعون للمولد).
+
+UI Cleanup: Remove the "Add New Subscriber" button from the owner's dashboard entirely, as users register themselves.
+
+Invoices Review: When the owner clicks on any user invoice/receipt, open a detailed page that fetches the stored OCR text/metadata from Firebase and renders the invoice details clearly alongside the uploaded receipt image.
+
+Invoice Actions: Inside this review page, provide [Accept] and [Reject] buttons for the invoice status.
+
+Complaints (الشكاوي): When the owner resolves or responds to a complaint, trigger an automated push notification via FCM directly back to the specific user who submitted that complaint.
+
+Owner Profile Screen:
+
+Remove the profile photo selection feature. Replace it with a circular avatar showing the first letter of the owner’s name.
+
+Display the following data: Name, Phone Number, Address, User Type ("صاحب مولد"), and Join Date.
+
+Ensure both the "Edit Profile" and "Log Out" buttons are fully operational.
+
+3. SUPER ADMIN (GENERAL MANAGER) SCREEN UPDATES
+UI Cleanup: Remove the status box that says "نشط" (Active) from the Super Admin home screen dashboard.
+
+Real-time Counter: Fix the pending requests counter so that it displays the actual, real-time number of pending Generator Owner requests fetched from Firestore.
+
+Notifications: Ensure the Super Admin receives a real-time push notification whenever a new Generator Owner registers a new account.
+
+Please ensure all backend workflows for data processing (OCR text extraction) and notification delivery (App-to-App via FCM HTTP v1) are implemented within Firebase's free tier capabilities.
