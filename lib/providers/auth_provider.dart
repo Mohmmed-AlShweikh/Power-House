@@ -332,9 +332,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     );
   }
 
-  Future<void> updateProfile({String? name, String? address}) async {
+  Future<void> updateProfile(
+      {String? name, String? address, String? phone}) async {
     if (state.isDemo) {
-      final updated = state.profile!.copyWith(name: name, address: address);
+      final updated =
+          state.profile!.copyWith(name: name, address: address, phone: phone);
       state = state.copyWith(profile: updated);
       return;
     }
@@ -343,6 +345,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final data = <String, dynamic>{};
     if (name != null) data['name'] = name;
     if (address != null) data['address'] = address;
+    if (phone != null) data['phone'] = phone;
     if (data.isNotEmpty) {
       await _db.collection('users').doc(uid).update(data);
     }

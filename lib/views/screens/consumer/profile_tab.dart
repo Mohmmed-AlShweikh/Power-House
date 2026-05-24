@@ -140,10 +140,9 @@ class ProfileTab extends ConsumerWidget {
 
   void _showEditSheet(BuildContext context, WidgetRef ref) {
     final profile = ref.read(authProvider).profile;
-    final nameCtrl =
-        TextEditingController(text: profile?.name ?? '');
-    final addressCtrl =
-        TextEditingController(text: profile?.address ?? '');
+    final nameCtrl = TextEditingController(text: profile?.name ?? '');
+    final addressCtrl = TextEditingController(text: profile?.address ?? '');
+    final phoneCtrl = TextEditingController(text: profile?.phone ?? '');
 
     showModalBottomSheet(
       context: context,
@@ -159,67 +158,76 @@ class ProfileTab extends ConsumerWidget {
             top: 24,
             bottom: MediaQuery.of(context).viewInsets.bottom + 24,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Expanded(
-                    child: Text('تعديل البيانات',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w700)),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              _SheetField(
-                  controller: nameCtrl,
-                  hint: 'الاسم الكامل',
-                  icon: Icons.person_outline),
-              const SizedBox(height: 12),
-              _SheetField(
-                  controller: addressCtrl,
-                  hint: 'العنوان',
-                  icon: Icons.location_on_outlined),
-              const SizedBox(height: 20),
-              StatefulBuilder(builder: (ctx, setS) {
-                bool saving = false;
-                return ElevatedButton(
-                  onPressed: saving
-                      ? null
-                      : () async {
-                          setS(() => saving = true);
-                          await ref
-                              .read(authProvider.notifier)
-                              .updateProfile(
-                                name: nameCtrl.text.trim(),
-                                address: addressCtrl.text.trim(),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text('تعديل البيانات',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w700)),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                _SheetField(
+                    controller: nameCtrl,
+                    hint: 'الاسم الكامل',
+                    icon: Icons.person_outline),
+                const SizedBox(height: 12),
+                _SheetField(
+                    controller: addressCtrl,
+                    hint: 'العنوان',
+                    icon: Icons.location_on_outlined),
+                const SizedBox(height: 12),
+                _SheetField(
+                    controller: phoneCtrl,
+                    hint: 'رقم الجوال',
+                    icon: Icons.phone_outlined,
+                    keyboardType: TextInputType.phone),
+                const SizedBox(height: 20),
+                StatefulBuilder(builder: (ctx, setS) {
+                  bool saving = false;
+                  return ElevatedButton(
+                    onPressed: saving
+                        ? null
+                        : () async {
+                            setS(() => saving = true);
+                            await ref
+                                .read(authProvider.notifier)
+                                .updateProfile(
+                                  name: nameCtrl.text.trim(),
+                                  address: addressCtrl.text.trim(),
+                                  phone: phoneCtrl.text.trim(),
+                                );
+                            setS(() => saving = false);
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('تم حفظ البيانات ✓',
+                                        textAlign: TextAlign.right)),
                               );
-                          setS(() => saving = false);
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('تم حفظ البيانات ✓',
-                                      textAlign: TextAlign.right)),
-                            );
-                          }
-                        },
-                  child: saving
-                      ? const SizedBox(
-                          height: 22,
-                          width: 22,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2.5, color: Colors.white))
-                      : const Text('حفظ التغييرات'),
-                );
-              }),
-            ],
+                            }
+                          },
+                    child: saving
+                        ? const SizedBox(
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2.5, color: Colors.white))
+                        : const Text('حفظ التغييرات'),
+                  );
+                }),
+              ],
+            ),
           ),
         ),
       ),
@@ -251,12 +259,17 @@ class _SheetField extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
   final IconData icon;
+  final TextInputType? keyboardType;
   const _SheetField(
-      {required this.controller, required this.hint, required this.icon});
+      {required this.controller,
+      required this.hint,
+      required this.icon,
+      this.keyboardType});
 
   @override
   Widget build(BuildContext context) => TextField(
         controller: controller,
+        keyboardType: keyboardType,
         style: const TextStyle(fontSize: 15),
         decoration: InputDecoration(
           hintText: hint,

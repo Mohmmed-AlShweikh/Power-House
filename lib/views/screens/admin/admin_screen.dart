@@ -76,16 +76,24 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
                               color: Colors.white, size: 22),
                         ),
                         const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('لوحة الإدارة',
-                                style: theme.textTheme.headlineMedium
-                                    ?.copyWith(color: Colors.white)),
-                            Text('مولد حي البيرة',
-                                style: theme.textTheme.bodyMedium
-                                    ?.copyWith(color: Colors.white60)),
-                          ],
+                        Consumer(
+                          builder: (_, ref, __) {
+                            final profile = ref.watch(authProvider).profile;
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('لوحة الإدارة',
+                                    style: theme.textTheme.headlineMedium
+                                        ?.copyWith(color: Colors.white)),
+                                Text(
+                                    profile != null && profile.name.isNotEmpty
+                                        ? profile.name
+                                        : 'مولد حي البيرة',
+                                    style: theme.textTheme.bodyMedium
+                                        ?.copyWith(color: Colors.white60)),
+                              ],
+                            );
+                          },
                         ),
                         const Spacer(),
                         Consumer(
@@ -611,17 +619,6 @@ class _SubscribersTabState extends ConsumerState<_SubscribersTab> {
                               const BoxConstraints(minWidth: 44, minHeight: 44),
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  ElevatedButton.icon(
-                    onPressed: () => _showAddSheet(context),
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('إضافة'),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(0, 44),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 12),
                     ),
                   ),
                 ],
@@ -1443,10 +1440,11 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
         top: 24,
         bottom: MediaQuery.of(context).viewInsets.bottom + 28,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           // Header
           Row(
             children: [
@@ -1670,7 +1668,8 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 }
 
@@ -2026,15 +2025,17 @@ class _ComplaintsTab extends ConsumerWidget {
     final complaintsAsync = ref.watch(complaintsProvider);
 
     return complaintsAsync.when(
-      data: (complaints) => ListView(
-        padding: const EdgeInsets.all(16),
-        children: complaints
-            .map((c) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _ComplaintCard(item: c),
-                ))
-            .toList(),
-      ),
+      data: (complaints) => complaints.isEmpty
+          ? const _EmptyComplaints()
+          : ListView(
+              padding: const EdgeInsets.all(16),
+              children: complaints
+                  .map((c) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _ComplaintCard(item: c),
+                      ))
+                  .toList(),
+            ),
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (_, __) => ListView(
         padding: const EdgeInsets.all(16),
@@ -2045,6 +2046,81 @@ class _ComplaintsTab extends ConsumerWidget {
                       name: c.$1, text: c.$2, time: c.$3, status: c.$4),
                 ))
             .toList(),
+      ),
+    );
+  }
+}
+
+class _EmptyComplaints extends StatelessWidget {
+  const _EmptyComplaints();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 60),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppColors.success.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_circle_outline,
+                size: 56,
+                color: AppColors.success,
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              '\u0644\u0627 \u062a\u0648\u062c\u062f \u0634\u0643\u0627\u0648\u064a \u0645\u0639\u0644\u0642\u0629',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.success,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              '\u062c\u0645\u064a\u0639 \u0627\u0644\u0634\u0643\u0627\u0648\u064a \u062a\u0645\u062a \u0627\u0644\u0645\u0639\u0627\u0644\u062c\u0629 \u0628\u0646\u062c\u0627\u062d. \u0627\u0644\u0646\u0638\u0627\u0645 \u064a\u0639\u0645\u0644 \u0628\u0634\u0643\u0644 \u0637\u0628\u064a\u0639\u064a.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.lightMuted,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                    color: AppColors.primary.withOpacity(0.2)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.sentiment_satisfied_alt,
+                      size: 18, color: AppColors.primary),
+                  const SizedBox(width: 8),
+                  const Text(
+                    '\u0627\u0644\u0645\u0634\u062a\u0631\u0643\u0648\n \u0631\u0627\u0636\u064a\u0646 \u0639\u0646 \u0627\u0644\u0645\u0648\u0644\u062f',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2544,6 +2620,7 @@ class _AdminProfileTab extends ConsumerWidget {
     final profile = ref.read(authProvider).profile;
     final nameCtrl = TextEditingController(text: profile?.name ?? '');
     final addressCtrl = TextEditingController(text: profile?.address ?? '');
+    final phoneCtrl = TextEditingController(text: profile?.phone ?? '');
 
     showModalBottomSheet(
       context: context,
@@ -2559,67 +2636,79 @@ class _AdminProfileTab extends ConsumerWidget {
             top: 24,
             bottom: MediaQuery.of(context).viewInsets.bottom + 24,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Expanded(
-                    child: Text('تعديل بيانات الحساب',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w700)),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              _SheetField(
-                controller: nameCtrl,
-                hint: 'الاسم الكامل',
-                icon: Icons.person_outline,
-              ),
-              const SizedBox(height: 12),
-              _SheetField(
-                controller: addressCtrl,
-                hint: 'العنوان',
-                icon: Icons.location_on_outlined,
-              ),
-              const SizedBox(height: 20),
-              StatefulBuilder(builder: (ctx, setS) {
-                bool saving = false;
-                return ElevatedButton(
-                  onPressed: saving
-                      ? null
-                      : () async {
-                          setS(() => saving = true);
-                          await ref.read(authProvider.notifier).updateProfile(
-                                name: nameCtrl.text.trim(),
-                                address: addressCtrl.text.trim(),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text('تعديل بيانات الحساب',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w700)),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                _SheetField(
+                  controller: nameCtrl,
+                  hint: 'الاسم الكامل',
+                  icon: Icons.person_outline,
+                ),
+                const SizedBox(height: 12),
+                _SheetField(
+                  controller: addressCtrl,
+                  hint: 'العنوان',
+                  icon: Icons.location_on_outlined,
+                ),
+                const SizedBox(height: 12),
+                _SheetField(
+                  controller: phoneCtrl,
+                  hint: 'رقم الجوال',
+                  icon: Icons.phone_outlined,
+                  keyboardType: TextInputType.phone,
+                ),
+                const SizedBox(height: 20),
+                StatefulBuilder(builder: (ctx, setS) {
+                  bool saving = false;
+                  return ElevatedButton(
+                    onPressed: saving
+                        ? null
+                        : () async {
+                            setS(() => saving = true);
+                            await ref
+                                .read(authProvider.notifier)
+                                .updateProfile(
+                                  name: nameCtrl.text.trim(),
+                                  address: addressCtrl.text.trim(),
+                                  phone: phoneCtrl.text.trim(),
+                                );
+                            setS(() => saving = false);
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('تم حفظ البيانات ✓',
+                                        textAlign: TextAlign.right)),
                               );
-                          setS(() => saving = false);
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('تم حفظ البيانات ✓',
-                                      textAlign: TextAlign.right)),
-                            );
-                          }
-                        },
-                  child: saving
-                      ? const SizedBox(
-                          height: 22,
-                          width: 22,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2.5, color: Colors.white))
-                      : const Text('حفظ التغييرات'),
-                );
-              }),
-            ],
+                            }
+                          },
+                    child: saving
+                        ? const SizedBox(
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2.5, color: Colors.white))
+                        : const Text('حفظ التغييرات'),
+                  );
+                }),
+              ],
+            ),
           ),
         ),
       ),

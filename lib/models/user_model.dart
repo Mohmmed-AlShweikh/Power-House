@@ -59,6 +59,7 @@ class UserProfile {
   UserProfile copyWith({
     String? name,
     String? address,
+    String? phone,
     ApprovalStatus? approvalStatus,
     SubscriptionStatus? subscriptionStatus,
     int? ampereLimit,
@@ -66,7 +67,7 @@ class UserProfile {
       UserProfile(
         uid: uid,
         idNumber: idNumber,
-        phone: phone,
+        phone: phone ?? this.phone,
         name: name ?? this.name,
         address: address ?? this.address,
         role: role,
