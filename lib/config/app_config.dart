@@ -12,9 +12,4 @@ class AppConfig {
   static const firebaseMessagingSenderId = '1079571686030';
   static const firebaseAppId = '1:1079571686030:web:2cc375300b2292e6db1fdf';
 
-  // FCM — get from Firebase Console > Project Settings > Cloud Messaging
-  // Server key (Legacy): Project Settings > Cloud Messaging > Server key
-  static const fcmServerKey = '';
-  // VAPID key (Web Push): Project Settings > Cloud Messaging > Web Push certificates > Key pair
-  static const fcmVapidKey = '';
 }

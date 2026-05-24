@@ -59,12 +59,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
-    setState(() => _loading = true);
-    final error =
-        await ref.read(authProvider.notifier).sendPasswordReset(id);
-    if (!mounted) return;
-    setState(() => _loading = false);
-
+    // Show informational dialog — in-app reset handled by admin
     showDialog(
       context: context,
       builder: (_) => Directionality(
@@ -78,33 +73,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: (error == null ? AppColors.success : AppColors.error)
-                      .withOpacity(0.1),
+                  color: AppColors.primary.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  error == null
-                      ? Icons.mark_email_read_outlined
-                      : Icons.error_outline,
-                  size: 40,
-                  color: error == null ? AppColors.success : AppColors.error,
-                ),
+                child: const Icon(Icons.lock_reset_outlined,
+                    size: 40, color: AppColors.primary),
               ),
               const SizedBox(height: 14),
-              Text(
-                error == null ? 'تمت المعالجة' : 'تعذّر الإرسال',
-                style: const TextStyle(
-                    fontSize: 17, fontWeight: FontWeight.w700),
+              const Text(
+                'إعادة تعيين كلمة المرور',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
               Text(
-                error ??
-                    'تم معالجة طلب إعادة تعيين كلمة المرور.\nيُرجى التواصل مع الدعم/الإدارة لإعادة تعيين كلمة المرور الخاصة بك.',
+                'يرجى التواصل مع الإدارة أو صاحب المولد لإعادة تعيين كلمة المرور \u201c${id.length > 6 ? id.substring(0, 3) + '****' + id.substring(id.length - 3) : id}\u201c.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.lightMuted,
-                    height: 1.5),
+                    fontSize: 13, color: AppColors.lightMuted, height: 1.5),
               ),
             ],
           ),

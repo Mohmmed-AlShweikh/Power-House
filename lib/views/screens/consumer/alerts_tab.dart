@@ -162,6 +162,11 @@ class _AlertCard extends StatelessWidget {
         AlertType.receiptRejected => AppColors.error,
         AlertType.newSubscriber => AppColors.primary,
         AlertType.complaint => AppColors.warning,
+        AlertType.newOwnerRequest => AppColors.primary,
+        AlertType.newConsumerRequest => AppColors.primary,
+        AlertType.requestApproved => AppColors.success,
+        AlertType.requestRejected => AppColors.error,
+        AlertType.passwordReset => AppColors.warning,
       };
 
   @override
@@ -238,6 +243,11 @@ class _AlertCard extends StatelessWidget {
         AlertType.receiptRejected => Icons.cancel,
         AlertType.newSubscriber => Icons.person_add,
         AlertType.complaint => Icons.report,
+        AlertType.newOwnerRequest => Icons.person_add_alt_1,
+        AlertType.newConsumerRequest => Icons.person_add,
+        AlertType.requestApproved => Icons.check_circle,
+        AlertType.requestRejected => Icons.cancel,
+        AlertType.passwordReset => Icons.lock_reset,
       };
 
   String _timeAgo(DateTime dt) {

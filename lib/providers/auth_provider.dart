@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
 import '../services/notification_service.dart';
+import '../services/firebase_service.dart';
 
 class AuthState {
   final User? user;
@@ -234,13 +235,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<String?> login(String idNumber, String password) async {
     state = state.copyWith(loading: true, error: null);
     try {
-      final cred = await _auth.signInWithEmailAndPassword(
+      await _auth.signInWithEmailAndPassword(
         email: _toEmail(idNumber),
         password: password,
       );
-      if (cred.user != null) {
-        NotificationService().getAndSaveToken(cred.user!.uid);
-      }
       // _loadAndCheckProfile is triggered by the auth listener
       return null;
     } on FirebaseAuthException catch (e) {
@@ -254,14 +252,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<String?> sendPasswordReset(String idNumber) async {
+  /// Admin resets a user's password and sends them a notification.
+  Future<String?> adminResetPassword(String uid, String newPassword) async {
     try {
-      await _auth.sendPasswordResetEmail(email: _toEmail(idNumber));
+      await _db.collection('users').doc(uid).update({
+        'password': newPassword,
+        'passwordUpdatedAt': DateTime.now().millisecondsSinceEpoch,
+      });
+      NotificationService().notifyPasswordReset(uid);
       return null;
-    } on FirebaseAuthException catch (e) {
-      return _friendlyError(e.code);
     } catch (_) {
-      return 'تعذّر الاتصال بالخادم. تحقق من اتصالك.';
+      return 'تعذّر تحديث كلمة المرور. حاول مجدداً.';
     }
   }
 
@@ -292,8 +293,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
         'ampereLimit': 0,
         'createdAt': DateTime.now().millisecondsSinceEpoch,
       });
-      // Try to save FCM token before signing out
-      await NotificationService().getAndSaveToken(uid);
       await _auth.signOut();
       // Send registration notification
       if (role == UserRole.admin) {

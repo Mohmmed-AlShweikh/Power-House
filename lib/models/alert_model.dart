@@ -1,4 +1,4 @@
-enum AlertType { generatorOn, generatorOff, lowFuel, newBill, receiptApproved, receiptRejected, newSubscriber, complaint }
+enum AlertType { generatorOn, generatorOff, lowFuel, newBill, receiptApproved, receiptRejected, newSubscriber, complaint, newOwnerRequest, newConsumerRequest, requestApproved, requestRejected, passwordReset }
 
 class AppAlert {
   final String id;
@@ -38,6 +38,11 @@ class AppAlert {
       case 'receiptRejected': return AlertType.receiptRejected;
       case 'newSubscriber': return AlertType.newSubscriber;
       case 'complaint': return AlertType.complaint;
+      case 'newOwnerRequest': return AlertType.newOwnerRequest;
+      case 'newConsumerRequest': return AlertType.newConsumerRequest;
+      case 'requestApproved': return AlertType.requestApproved;
+      case 'requestRejected': return AlertType.requestRejected;
+      case 'passwordReset': return AlertType.passwordReset;
       default: return AlertType.generatorOn;
     }
   }
