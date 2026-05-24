@@ -8,6 +8,28 @@ import 'services/firebase_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await FirebaseService.initialize();
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return Material(
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        color: Colors.red.shade50,
+        child: SafeArea(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 48),
+              const SizedBox(height: 16),
+              Text(
+                details.exception.toString(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.red, fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  };
   runApp(const ProviderScope(child: GeneratorPortalApp()));
 }
 

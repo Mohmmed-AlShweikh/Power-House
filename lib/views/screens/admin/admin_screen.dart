@@ -1085,92 +1085,119 @@ class _BillsTabState extends ConsumerState<_BillsTab> {
 
   @override
   Widget build(BuildContext context) {
-    final billsAsync = ref.watch(allBillsProvider);
-    final subsMap = ref.watch(subscribersMapProvider).value ?? {};
+    try {
+      final billsAsync = ref.watch(allBillsProvider);
+      final subsMap = ref.watch(subscribersMapProvider).value ?? {};
 
-    ref.listen<String?>(highlightedBillProvider, (prev, next) {
-      if (next != null && next != prev) {
-        // Defer setState to avoid "called during build" crash
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          setState(() {
-            _filter = 'all';
-            _highlightedBillId = next;
-          });
-          if (_scrollController.hasClients) {
-            _scrollController.animateTo(0,
-                duration: const Duration(milliseconds: 450),
-                curve: Curves.easeOut);
-          }
-          Future.delayed(const Duration(seconds: 3), () {
-            if (mounted) {
-              setState(() => _highlightedBillId = null);
-              ref.read(highlightedBillProvider.notifier).state = null;
-            }
-          });
-        });
-      }
-    });
+      return billsAsync.when(
+        data: (bills) {
+          List<Bill> filtered = _filter == 'all'
+              ? List<Bill>.from(bills)
+              : bills.where((b) => b.status.name == _filter).toList();
 
-    return billsAsync.when(
-      data: (bills) {
-        List<Bill> filtered = _filter == 'all'
-            ? List<Bill>.from(bills)
-            : bills.where((b) => b.status.name == _filter).toList();
-
-        if (_highlightedBillId != null) {
-          final idx = filtered.indexWhere((b) => b.id == _highlightedBillId);
-          if (idx > 0) {
-            final highlighted = filtered.removeAt(idx);
-            filtered = [highlighted, ...filtered];
-          }
-        }
-
-        return ListView(
-          controller: _scrollController,
-          padding: const EdgeInsets.all(16),
-          children: [
-            _AddBillHeader(onAdd: () => _showAddBillSheet(context)),
-            const SizedBox(height: 10),
-            _FilterRow(
-                selected: _filter,
-                onSelect: (v) => setState(() => _filter = v)),
-            const SizedBox(height: 12),
-            ...filtered.map((b) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _AdminBillCard(
-                    bill: b,
-                    subscriberName: subsMap[b.userId] ?? '',
-                    isHighlighted: b.id == _highlightedBillId,
+          return ListView(
+            controller: _scrollController,
+            padding: const EdgeInsets.all(16),
+            children: [
+              _AddBillHeader(onAdd: () => _showAddBillSheet(context)),
+              const SizedBox(height: 10),
+              _FilterRow(
+                  selected: _filter,
+                  onSelect: (v) => setState(() => _filter = v)),
+              const SizedBox(height: 12),
+              if (filtered.isEmpty)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Text('لا توجد فواتير',
+                        style: TextStyle(color: AppColors.lightMuted)),
                   ),
-                )),
-          ],
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) {
-        final filtered = _filter == 'all'
-            ? _mockBills
-            : _mockBills.where((b) => b.$4 == _filter).toList();
-        return ListView(
-          controller: _scrollController,
-          padding: const EdgeInsets.all(16),
-          children: [
-            _AddBillHeader(onAdd: () => _showAddBillSheet(context)),
-            const SizedBox(height: 10),
-            _FilterRow(
-                selected: _filter,
-                onSelect: (v) => setState(() => _filter = v)),
-            const SizedBox(height: 12),
-            ...filtered.map((b) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _MockAdminBillCard(
-                      name: b.$1, amount: b.$2, month: b.$3, status: b.$4),
-                )),
-          ],
-        );
-      },
-    );
+                )
+              else
+                ...filtered.asMap().entries.map((entry) {
+                  final b = entry.value;
+                  try {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _AdminBillCard(
+                        bill: b,
+                        subscriberName: subsMap[b.userId] ?? '',
+                        isHighlighted: false,
+                      ),
+                    );
+                  } catch (e) {
+                    return Container(
+                      padding: const EdgeInsets.all(16),
+                      color: Colors.red.withOpacity(0.1),
+                      child: Text('Error in bill ${b.id}: $e',
+                          style: const TextStyle(color: Colors.red)),
+                    );
+                  }
+                }),
+            ],
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, st) {
+          return ListView(
+            controller: _scrollController,
+            padding: const EdgeInsets.all(16),
+            children: [
+              _AddBillHeader(onAdd: () => _showAddBillSheet(context)),
+              const SizedBox(height: 10),
+              _FilterRow(
+                  selected: _filter,
+                  onSelect: (v) => setState(() => _filter = v)),
+              const SizedBox(height: 12),
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      const Icon(Icons.error_outline,
+                          color: AppColors.error, size: 40),
+                      const SizedBox(height: 12),
+                      Text('خطأ في تحميل الفواتير',
+                          style: const TextStyle(color: AppColors.error)),
+                      const SizedBox(height: 4),
+                      Text(err.toString(),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              fontSize: 11, color: AppColors.lightMuted)),
+                    ],
+                  ),
+                ),
+              ),
+              ..._mockBills.where((b) => _filter == 'all' || b.$4 == _filter).map((b) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _MockAdminBillCard(
+                        name: b.$1, amount: b.$2, month: b.$3, status: b.$4),
+                  )),
+            ],
+          );
+        },
+      );
+    } catch (e, st) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, color: AppColors.error, size: 48),
+              const SizedBox(height: 16),
+              Text('خطأ: $e',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppColors.error)),
+              const SizedBox(height: 8),
+              Text(st.toString(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 10, color: AppColors.lightMuted)),
+            ],
+          ),
+        ),
+      );
+    }
   }
 
   void _showAddBillSheet(BuildContext context) {
