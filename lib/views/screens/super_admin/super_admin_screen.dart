@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../config/colors.dart';
@@ -77,6 +79,70 @@ class SuperAdminScreen extends ConsumerWidget {
                             ],
                           ),
                         ),
+                        if (kDebugMode)
+                          IconButton(
+                            icon: const Icon(Icons.bug_report,
+                                color: Colors.white70),
+                            tooltip: 'Debug pending users',
+                            onPressed: () async {
+                              final db = FirebaseFirestore.instance;
+                              try {
+                                final snap = await db
+                                    .collection('users')
+                                    .where('status', isEqualTo: 'pending')
+                                    .get();
+                                final info = snap.docs.map((d) {
+                                  final data = d.data();
+                                  final role = (data['role'] ?? '').toString();
+                                  final name = (data['name'] ?? '').toString();
+                                  final idNumber =
+                                      (data['idNumber'] ?? '').toString();
+                                  final created =
+                                      data['createdAt']?.toString() ?? '';
+                                  return '${d.id}\nname: $name\nrole: $role\nidNumber: $idNumber\ncreatedAt: $created';
+                                }).join('\n\n');
+                                await showDialog(
+                                  context: context,
+                                  builder: (_) => Directionality(
+                                    textDirection: TextDirection.rtl,
+                                    child: AlertDialog(
+                                      title: const Text('DEBUG: Pending users'),
+                                      content: SingleChildScrollView(
+                                        child: Text(info.isEmpty
+                                            ? 'NO_PENDING_DOCS'
+                                            : info),
+                                      ),
+                                      actions: [
+                                        ElevatedButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context),
+                                          child: const Text('حسناً'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              } catch (e) {
+                                await showDialog(
+                                  context: context,
+                                  builder: (_) => Directionality(
+                                    textDirection: TextDirection.rtl,
+                                    child: AlertDialog(
+                                      title: const Text('DEBUG Error'),
+                                      content: Text(e.toString()),
+                                      actions: [
+                                        ElevatedButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context),
+                                          child: const Text('حسناً'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
                         IconButton(
                           icon: const Icon(Icons.logout, color: Colors.white70),
                           tooltip: 'تسجيل الخروج',
@@ -99,6 +165,25 @@ class SuperAdminScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
+                    if (kDebugMode) ...[
+                      const SizedBox(height: 8),
+                      Builder(builder: (ctx) {
+                        return pendingAsync.when(
+                          data: (list) => Text(
+                              'DEBUG: pending owners=${list.length}',
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 12)),
+                          loading: () => const Text(
+                              'DEBUG: loading pending owners...',
+                              style: TextStyle(
+                                  color: Colors.white70, fontSize: 12)),
+                          error: (e, s) => Text(
+                              'DEBUG: error: ${e?.toString() ?? 'unknown'}',
+                              style: const TextStyle(
+                                  color: Colors.redAccent, fontSize: 12)),
+                        );
+                      }),
+                    ],
                   ],
                 ),
               ),
@@ -118,9 +203,8 @@ class SuperAdminScreen extends ConsumerWidget {
                         child: _OwnerRequestCard(owner: owners[i]),
                       ),
                     ),
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
-              error: (_, __) => _MockOwnersList(),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stack) => const _SuperAdminErrorState(),
             ),
           ),
         ],
@@ -163,8 +247,8 @@ class _StatChip extends StatelessWidget {
                           fontSize: 16,
                           fontWeight: FontWeight.w800)),
                   Text(label,
-                      style: const TextStyle(
-                          color: Colors.white60, fontSize: 11)),
+                      style:
+                          const TextStyle(color: Colors.white60, fontSize: 11)),
                 ],
               ),
             ],
@@ -178,8 +262,7 @@ class _OwnerRequestCard extends ConsumerStatefulWidget {
   const _OwnerRequestCard({required this.owner});
 
   @override
-  ConsumerState<_OwnerRequestCard> createState() =>
-      _OwnerRequestCardState();
+  ConsumerState<_OwnerRequestCard> createState() => _OwnerRequestCardState();
 }
 
 class _OwnerRequestCardState extends ConsumerState<_OwnerRequestCard> {
@@ -197,8 +280,7 @@ class _OwnerRequestCardState extends ConsumerState<_OwnerRequestCard> {
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-              approve ? 'تمت الموافقة على الطلب ✓' : 'تم رفض الطلب',
+          content: Text(approve ? 'تمت الموافقة على الطلب ✓' : 'تم رفض الطلب',
               textAlign: TextAlign.right),
           backgroundColor: approve ? AppColors.success : AppColors.error,
         ));
@@ -206,8 +288,8 @@ class _OwnerRequestCardState extends ConsumerState<_OwnerRequestCard> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('حدث خطأ. حاول مجدداً.',
-                textAlign: TextAlign.right)));
+            content:
+                Text('حدث خطأ. حاول مجدداً.', textAlign: TextAlign.right)));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -222,8 +304,8 @@ class _OwnerRequestCardState extends ConsumerState<_OwnerRequestCard> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-            color: AppColors.warning.withOpacity(0.3), width: 1.5),
+        border:
+            Border.all(color: AppColors.warning.withOpacity(0.3), width: 1.5),
         boxShadow: [
           BoxShadow(
               color: Colors.black.withOpacity(0.05),
@@ -239,8 +321,7 @@ class _OwnerRequestCardState extends ConsumerState<_OwnerRequestCard> {
               CircleAvatar(
                 radius: 22,
                 backgroundColor: AppColors.warning.withOpacity(0.15),
-                child: Text(
-                    o.name.isNotEmpty ? o.name[0] : '؟',
+                child: Text(o.name.isNotEmpty ? o.name[0] : '؟',
                     style: const TextStyle(
                         color: AppColors.warning,
                         fontWeight: FontWeight.w700,
@@ -254,15 +335,16 @@ class _OwnerRequestCardState extends ConsumerState<_OwnerRequestCard> {
                     Text(o.name.isNotEmpty ? o.name : 'بدون اسم',
                         style: const TextStyle(
                             fontSize: 15, fontWeight: FontWeight.w700)),
-                    Text('رقم الهوية: ${o.idNumber.isNotEmpty ? o.idNumber : '—'}',
+                    Text(
+                        'رقم الهوية: ${o.idNumber.isNotEmpty ? o.idNumber : '—'}',
                         style: const TextStyle(
                             fontSize: 12, color: AppColors.lightMuted)),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                     color: AppColors.warning.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20)),
@@ -300,14 +382,12 @@ class _OwnerRequestCardState extends ConsumerState<_OwnerRequestCard> {
                       child: OutlinedButton.icon(
                         onPressed: () => _act(false),
                         icon: const Icon(Icons.close, size: 16),
-                        label: const Text('رفض',
-                            style: TextStyle(fontSize: 13)),
+                        label:
+                            const Text('رفض', style: TextStyle(fontSize: 13)),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.error,
-                          side:
-                              const BorderSide(color: AppColors.error),
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 8),
+                          side: const BorderSide(color: AppColors.error),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10)),
                         ),
@@ -323,8 +403,7 @@ class _OwnerRequestCardState extends ConsumerState<_OwnerRequestCard> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.success,
                           minimumSize: Size.zero,
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 8),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10)),
                         ),
@@ -354,13 +433,37 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             const Text('لا توجد طلبات معلقة',
-                style: TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.w600)),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             const Text('جميع طلبات أصحاب المولدات تمت معالجتها',
-                style: TextStyle(
-                    fontSize: 13, color: AppColors.lightMuted)),
+                style: TextStyle(fontSize: 13, color: AppColors.lightMuted)),
           ],
+        ),
+      );
+}
+
+class _SuperAdminErrorState extends StatelessWidget {
+  const _SuperAdminErrorState();
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.error_outline, size: 52, color: AppColors.warning),
+              SizedBox(height: 16),
+              Text(
+                'تعذّر تحميل بيانات المشرف العام. سجّل الدخول كمشرف عام حقيقي لعرض الطلبات الفعلية.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.lightMuted),
+              ),
+            ],
+          ),
         ),
       );
 }
@@ -407,8 +510,7 @@ class _MockOwnersListState extends State<_MockOwnersList> {
                   children: [
                     CircleAvatar(
                       radius: 22,
-                      backgroundColor:
-                          AppColors.warning.withOpacity(0.15),
+                      backgroundColor: AppColors.warning.withOpacity(0.15),
                       child: Text(item.$1[0],
                           style: const TextStyle(
                               color: AppColors.warning,
@@ -422,12 +524,10 @@ class _MockOwnersListState extends State<_MockOwnersList> {
                         children: [
                           Text(item.$1,
                               style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700)),
+                                  fontSize: 15, fontWeight: FontWeight.w700)),
                           Text('رقم الهوية: ${item.$2}',
                               style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.lightMuted)),
+                                  fontSize: 12, color: AppColors.lightMuted)),
                         ],
                       ),
                     ),
@@ -453,8 +553,7 @@ class _MockOwnersListState extends State<_MockOwnersList> {
                     const SizedBox(width: 4),
                     Text(item.$3,
                         style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.lightMuted)),
+                            fontSize: 12, color: AppColors.lightMuted)),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -464,21 +563,18 @@ class _MockOwnersListState extends State<_MockOwnersList> {
                       child: OutlinedButton.icon(
                         onPressed: () {
                           setState(() => _rejected.add(i));
-                          ScaffoldMessenger.of(context)
-                              .showSnackBar(const SnackBar(
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
                                   content: Text('تم رفض الطلب',
-                                      textAlign:
-                                          TextAlign.right),
+                                      textAlign: TextAlign.right),
                                   backgroundColor: AppColors.error));
                         },
                         icon: const Icon(Icons.close, size: 16),
                         label: const Text('رفض'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.error,
-                          side:
-                              const BorderSide(color: AppColors.error),
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 8),
+                          side: const BorderSide(color: AppColors.error),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10)),
                         ),
@@ -489,21 +585,18 @@ class _MockOwnersListState extends State<_MockOwnersList> {
                       child: ElevatedButton.icon(
                         onPressed: () {
                           setState(() => _approved.add(i));
-                          ScaffoldMessenger.of(context)
-                              .showSnackBar(const SnackBar(
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
                                   content: Text('تمت الموافقة ✓',
-                                      textAlign:
-                                          TextAlign.right),
-                                  backgroundColor:
-                                      AppColors.success));
+                                      textAlign: TextAlign.right),
+                                  backgroundColor: AppColors.success));
                         },
                         icon: const Icon(Icons.check, size: 16),
                         label: const Text('موافقة'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.success,
                           minimumSize: Size.zero,
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 8),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10)),
                         ),

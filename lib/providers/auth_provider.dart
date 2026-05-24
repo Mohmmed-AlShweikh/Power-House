@@ -95,8 +95,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   bool _seeding = false;
   bool _registering = false;
 
-  static String _toEmail(String id) =>
-      '${id.trim()}@powershare.app';
+  static String _toEmail(String id) => '${id.trim()}@powershare.app';
 
   static const _superAdminId = '1234567890';
   static const _superAdminPass = 'Admin@2024!';
@@ -192,7 +191,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (!doc.exists) {
         await _auth.signOut();
         state = state.copyWith(
-            user: null, profile: null, loading: false,
+            user: null,
+            profile: null,
+            loading: false,
             error: 'الحساب غير موجود في النظام. تواصل مع المشرف.');
         return;
       }
@@ -219,8 +220,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
           _profileSub =
               _db.collection('users').doc(uid).snapshots().listen((s) {
             if (s.exists) {
-              state = state.copyWith(
-                  profile: UserProfile.fromMap(uid, s.data()!));
+              state =
+                  state.copyWith(profile: UserProfile.fromMap(uid, s.data()!));
             }
           });
           break;
@@ -283,8 +284,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         password: password,
       );
       final uid = cred.user!.uid;
-      final firestoreRole =
-          role == UserRole.admin ? 'generator_owner' : 'user';
+      final firestoreRole = role == UserRole.admin ? 'generator_owner' : 'user';
       await _db.collection('users').doc(uid).set({
         'idNumber': idNumber,
         'name': name,
@@ -318,7 +318,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  void demoLogin(UserRole role) {
+  Future<void> demoLogin(UserRole role) async {
     final profile = switch (role) {
       UserRole.superAdmin => _demoSuperAdmin,
       UserRole.admin => _demoAdmin,

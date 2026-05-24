@@ -43,8 +43,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         builder: (_) => Directionality(
           textDirection: TextDirection.rtl,
           child: AlertDialog(
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: const Text('نسيت كلمة المرور؟'),
             content: const Text('يرجى إدخال رقم هويتك أولاً في الحقل أعلاه.'),
             actions: [
@@ -65,8 +65,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       builder: (_) => Directionality(
         textDirection: TextDirection.rtl,
         child: AlertDialog(
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -112,19 +112,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final pass = _passCtrl.text;
     if (id.isEmpty || pass.isEmpty) return;
 
-    setState(() { _loading = true; _errorMsg = null; });
+    setState(() {
+      _loading = true;
+      _errorMsg = null;
+    });
 
     final error = await ref.read(authProvider.notifier).login(id, pass);
     if (!mounted) return;
-    setState(() { _loading = false; _errorMsg = error; });
+    setState(() {
+      _loading = false;
+      _errorMsg = error;
+    });
 
     if (error == null) {
       // Router handles redirect based on role
     }
   }
 
-  void _demoLogin(UserRole role) {
-    ref.read(authProvider.notifier).demoLogin(role);
+  Future<void> _demoLogin(UserRole role) async {
+    await ref.read(authProvider.notifier).demoLogin(role);
     final path = switch (role) {
       UserRole.superAdmin => '/super_admin',
       UserRole.admin => '/admin',
@@ -198,8 +204,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             fontWeight: FontWeight.w600)),
                     const SizedBox(height: 4),
                     const Text('سجّل دخولك برقم هويتك وكلمة المرور',
-                        style:
-                            TextStyle(color: Colors.white60, fontSize: 14)),
+                        style: TextStyle(color: Colors.white60, fontSize: 14)),
                   ],
                 ),
               ),
@@ -226,11 +231,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             FilteringTextInputFormatter.digitsOnly,
                             LengthLimitingTextInputFormatter(10),
                           ],
-                          style: const TextStyle(
-                              fontSize: 16, letterSpacing: 1.0),
+                          style:
+                              const TextStyle(fontSize: 16, letterSpacing: 1.0),
                           onSubmitted: (_) => _submit(),
-                          decoration: _fieldDecor(
-                              'xxxxxxxxxx', Icons.badge_outlined),
+                          decoration:
+                              _fieldDecor('xxxxxxxxxx', Icons.badge_outlined),
                         ),
                         const SizedBox(height: 16),
                         _Label('كلمة المرور'),
@@ -252,12 +257,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       : Icons.visibility_outlined,
                                   size: 20,
                                   color: AppColors.lightMuted),
-                              onPressed: () => setState(
-                                  () => _passVisible = !_passVisible),
+                              onPressed: () =>
+                                  setState(() => _passVisible = !_passVisible),
                             ),
                           ),
                         ),
-
                         if (displayError != null) ...[
                           const SizedBox(height: 12),
                           Container(
@@ -266,8 +270,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               color: AppColors.error.withOpacity(0.08),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                  color:
-                                      AppColors.error.withOpacity(0.3)),
+                                  color: AppColors.error.withOpacity(0.3)),
                             ),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -286,7 +289,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ),
                         ],
-
                         const SizedBox(height: 8),
                         Align(
                           alignment: Alignment.centerLeft,
@@ -318,11 +320,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   height: 22,
                                   width: 22,
                                   child: CircularProgressIndicator(
-                                      strokeWidth: 2.5,
-                                      color: Colors.white))
+                                      strokeWidth: 2.5, color: Colors.white))
                               : const Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.center,
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text('تسجيل الدخول'),
                                     SizedBox(width: 8),
@@ -365,16 +365,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     decoration: BoxDecoration(
                       color: AppColors.primary.withOpacity(0.06),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                          color: AppColors.primary.withOpacity(0.2)),
+                      border:
+                          Border.all(color: AppColors.primary.withOpacity(0.2)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            const Text('🎭',
-                                style: TextStyle(fontSize: 16)),
+                            const Text('🎭', style: TextStyle(fontSize: 16)),
                             const SizedBox(width: 8),
                             const Text('وضع المعاينة',
                                 style: TextStyle(
@@ -384,8 +383,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             const Spacer(),
                             Text('بدون Firebase',
                                 style: TextStyle(
-                                    color: AppColors.primary
-                                        .withOpacity(0.6),
+                                    color: AppColors.primary.withOpacity(0.6),
                                     fontSize: 11)),
                           ],
                         ),
@@ -396,24 +394,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               label: 'مستخدم',
                               icon: Icons.person,
                               color: AppColors.success,
-                              onTap: () =>
-                                  _demoLogin(UserRole.consumer),
+                              onTap: () async =>
+                                  await _demoLogin(UserRole.consumer),
                             ),
                             const SizedBox(width: 8),
                             _DemoBtn(
                               label: 'صاحب مولد',
                               icon: Icons.bolt,
                               color: AppColors.primary,
-                              onTap: () =>
-                                  _demoLogin(UserRole.admin),
+                              onTap: () async =>
+                                  await _demoLogin(UserRole.admin),
                             ),
                             const SizedBox(width: 8),
                             _DemoBtn(
                               label: 'مشرف عام',
                               icon: Icons.admin_panel_settings,
                               color: const Color(0xFF9c27b0),
-                              onTap: () =>
-                                  _demoLogin(UserRole.superAdmin),
+                              onTap: () async =>
+                                  await _demoLogin(UserRole.superAdmin),
                             ),
                           ],
                         ),
@@ -431,26 +429,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  InputDecoration _fieldDecor(String hint, IconData icon) =>
-      InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: AppColors.lightMuted),
-        prefixIcon: Icon(icon, color: AppColors.lightMuted, size: 20),
-        filled: true,
-        fillColor: Theme.of(context).scaffoldBackgroundColor,
-        border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.lightBorder)),
-        enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.lightBorder)),
-        focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide:
-                const BorderSide(color: AppColors.primary, width: 2)),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
-      );
+  InputDecoration _fieldDecor(String hint, IconData icon) {
+    final color = Theme.of(context).colorScheme.onSurface;
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(color: color.withOpacity(0.65)),
+      prefixIcon: Icon(icon, color: color.withOpacity(0.75), size: 20),
+      filled: true,
+      fillColor: Theme.of(context).scaffoldBackgroundColor,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: color.withOpacity(0.15)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: color.withOpacity(0.15)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
+    );
+  }
 }
 
 // ── Reusable widgets ──────────────────────────────────────────────────────────
@@ -480,11 +481,11 @@ class _Label extends StatelessWidget {
   final String text;
   const _Label(this.text);
   @override
-  Widget build(BuildContext context) => Text(text,
-      style: Theme.of(context)
-          .textTheme
-          .titleMedium
-          ?.copyWith(color: AppColors.lightText));
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.onSurface;
+    return Text(text,
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(color: color));
+  }
 }
 
 class _DemoBtn extends StatelessWidget {

@@ -77,15 +77,14 @@ class UserProfile {
       );
 
   static UserRole _parseRole(dynamic v) {
-    switch (v) {
-      case 'super_admin':
-        return UserRole.superAdmin;
-      case 'generator_owner':
-      case 'admin':
-        return UserRole.admin;
-      default:
-        return UserRole.consumer;
+    final role = (v as String?)?.trim().toLowerCase() ?? '';
+    if (role.contains('super')) return UserRole.superAdmin;
+    if (role.contains('generator') ||
+        role.contains('owner') ||
+        role == 'admin') {
+      return UserRole.admin;
     }
+    return UserRole.consumer;
   }
 
   static String _roleToString(UserRole r) {

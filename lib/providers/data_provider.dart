@@ -1,9 +1,23 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/bill_model.dart';
 import '../models/alert_model.dart';
 import '../models/complaint_model.dart';
 import '../models/user_model.dart';
+
+Stream<T> _safelyHandlePermissionDenied<T>(Stream<T> stream, T fallbackValue) {
+  return stream.transform(StreamTransformer.fromHandlers(
+    handleError: (error, stackTrace, sink) {
+      if (error is FirebaseException && error.code == 'permission-denied') {
+        sink.add(fallbackValue);
+      } else {
+        sink.addError(error, stackTrace);
+      }
+    },
+  ));
+}
 
 // Generator status
 class GeneratorState {
@@ -49,11 +63,14 @@ final billsProvider = StreamProvider.family<List<Bill>, String>((ref, userId) {
 
 final allBillsProvider = StreamProvider<List<Bill>>((ref) {
   final db = FirebaseFirestore.instance;
-  return db
-      .collection('bills')
-      .orderBy('createdAt', descending: true)
-      .snapshots()
-      .map((s) => s.docs.map((d) => Bill.fromMap(d.id, d.data())).toList());
+  return _safelyHandlePermissionDenied(
+    db
+        .collection('bills')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((s) => s.docs.map((d) => Bill.fromMap(d.id, d.data())).toList()),
+    const <Bill>[],
+  );
 });
 
 // Alerts
@@ -65,8 +82,7 @@ final alertsProvider =
       .where('userId', isEqualTo: userId)
       .orderBy('createdAt', descending: true)
       .snapshots()
-      .map(
-          (s) => s.docs.map((d) => AppAlert.fromMap(d.id, d.data())).toList());
+      .map((s) => s.docs.map((d) => AppAlert.fromMap(d.id, d.data())).toList());
 });
 
 // Active subscribers (generator owner view)
@@ -78,8 +94,8 @@ final subscribersProvider = StreamProvider<List<UserProfile>>((ref) {
       .where('status', isEqualTo: 'approved')
       .orderBy('createdAt', descending: true)
       .snapshots()
-      .map(
-          (s) => s.docs.map((d) => UserProfile.fromMap(d.id, d.data())).toList());
+      .map((s) =>
+          s.docs.map((d) => UserProfile.fromMap(d.id, d.data())).toList());
 });
 
 // Pending regular users (awaiting generator owner approval)
@@ -91,22 +107,34 @@ final pendingUsersProvider = StreamProvider<List<UserProfile>>((ref) {
       .where('status', isEqualTo: 'pending')
       .orderBy('createdAt', descending: true)
       .snapshots()
-      .map(
-          (s) => s.docs.map((d) => UserProfile.fromMap(d.id, d.data())).toList());
+      .map((s) =>
+          s.docs.map((d) => UserProfile.fromMap(d.id, d.data())).toList());
 });
 
 // Pending generator owners (awaiting super admin approval)
-final pendingGeneratorOwnersProvider =
-    StreamProvider<List<UserProfile>>((ref) {
+final pendingGeneratorOwnersProvider = StreamProvider<List<UserProfile>>((ref) {
   final db = FirebaseFirestore.instance;
-  return db
-      .collection('users')
-      .where('role', whereIn: ['generator_owner', 'admin'])
-      .where('status', isEqualTo: 'pending')
-      .orderBy('createdAt', descending: true)
-      .snapshots()
-      .map(
-          (s) => s.docs.map((d) => UserProfile.fromMap(d.id, d.data())).toList());
+  return _safelyHandlePermissionDenied<List<UserProfile>>(
+    db
+        .collection('users')
+        .where('status', isEqualTo: 'pending')
+        .snapshots()
+        .map((s) {
+      final pendingOwners = s.docs
+          .where((d) {
+            final role =
+                (d.data()['role'] as String?)?.trim().toLowerCase() ?? '';
+            return role.contains('generator') ||
+                role.contains('owner') ||
+                role.contains('admin');
+          })
+          .map((d) => UserProfile.fromMap(d.id, d.data()))
+          .toList();
+      pendingOwners.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return pendingOwners;
+    }),
+    const <UserProfile>[],
+  );
 });
 
 // Complaints
@@ -116,8 +144,8 @@ final complaintsProvider = StreamProvider<List<Complaint>>((ref) {
       .collection('complaints')
       .orderBy('createdAt', descending: true)
       .snapshots()
-      .map((s) =>
-          s.docs.map((d) => Complaint.fromMap(d.id, d.data())).toList());
+      .map(
+          (s) => s.docs.map((d) => Complaint.fromMap(d.id, d.data())).toList());
 });
 
 // Highlighted bill id (used to deep-link from subscriber details → bills tab)
@@ -126,18 +154,32 @@ final highlightedBillProvider = StateProvider<String?>((ref) => null);
 // uid → name lookup map for bills tab
 final subscribersMapProvider = StreamProvider<Map<String, String>>((ref) {
   final db = FirebaseFirestore.instance;
-  return db
-      .collection('users')
-      .where('role', whereIn: ['user', 'consumer'])
-      .snapshots()
-      .map((s) => {for (final d in s.docs) d.id: (d.data()['name'] ?? '') as String});
+  return _safelyHandlePermissionDenied(
+    db
+        .collection('users')
+        .where('role', whereIn: ['user', 'consumer'])
+        .snapshots()
+        .map((s) =>
+            {for (final d in s.docs) d.id: (d.data()['name'] ?? '') as String}),
+    const <String, String>{},
+  );
 });
 
 // Current month in Arabic
 String currentMonthArabic() {
   const months = [
-    'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
+    'يناير',
+    'فبراير',
+    'مارس',
+    'أبريل',
+    'مايو',
+    'يونيو',
+    'يوليو',
+    'أغسطس',
+    'سبتمبر',
+    'أكتوبر',
+    'نوفمبر',
+    'ديسمبر',
   ];
   return months[DateTime.now().month - 1];
 }

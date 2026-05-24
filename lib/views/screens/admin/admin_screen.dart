@@ -221,8 +221,7 @@ class _DashboardTab extends ConsumerWidget {
                 color: const Color(0xFF8B5CF6)),
           ]),
           const SizedBox(height: 16),
-          _MonthlyBillStatsCard(
-              stats: stats, month: currentMonth),
+          _MonthlyBillStatsCard(stats: stats, month: currentMonth),
           const SizedBox(height: 16),
           _RecentActivity(),
         ],
@@ -606,8 +605,10 @@ class _SubscribersTabState extends ConsumerState<_SubscribersTab> {
                           prefixIcon: const Icon(Icons.search,
                               color: AppColors.lightMuted, size: 20),
                           border: InputBorder.none,
-                          contentPadding:
-                              const EdgeInsets.symmetric(vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                              vertical: 12, horizontal: 12),
+                          prefixIconConstraints:
+                              const BoxConstraints(minWidth: 44, minHeight: 44),
                         ),
                       ),
                     ),
@@ -618,7 +619,7 @@ class _SubscribersTabState extends ConsumerState<_SubscribersTab> {
                     icon: const Icon(Icons.add, size: 18),
                     label: const Text('إضافة'),
                     style: ElevatedButton.styleFrom(
-                      minimumSize: Size.zero,
+                      minimumSize: const Size(0, 44),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 12),
                     ),
@@ -702,9 +703,7 @@ class _SubscriberCard extends StatelessWidget {
   final ValueChanged<bool> onToggle;
   final void Function(String billId) onJumpToBill;
   const _SubscriberCard(
-      {required this.sub,
-      required this.onToggle,
-      required this.onJumpToBill});
+      {required this.sub, required this.onToggle, required this.onJumpToBill});
 
   @override
   Widget build(BuildContext context) {
@@ -720,87 +719,93 @@ class _SubscriberCard extends StatelessWidget {
         ),
       ),
       child: Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2))
-        ],
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: AppColors.primary.withOpacity(0.12),
-            child: Text(sub.name.isNotEmpty ? sub.name[0] : '?',
-                style: const TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(sub.name.isNotEmpty ? sub.name : 'بدون اسم',
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Text(sub.phone,
-                        style: const TextStyle(
-                            fontSize: 12, color: AppColors.lightMuted)),
-                    const SizedBox(width: 8),
-                    Container(
-                        width: 4,
-                        height: 4,
-                        decoration: const BoxDecoration(
-                            color: AppColors.lightMuted,
-                            shape: BoxShape.circle)),
-                    const SizedBox(width: 8),
-                    Text(sub.address,
-                        style: const TextStyle(
-                            fontSize: 12, color: AppColors.lightMuted)),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text('الأمبير: ${sub.ampereLimit}A',
-                    style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w500)),
-              ],
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardTheme.color,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 6,
+                offset: const Offset(0, 2))
+          ],
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 22,
+              backgroundColor: AppColors.primary.withOpacity(0.12),
+              child: Text(sub.name.isNotEmpty ? sub.name[0] : '?',
+                  style: const TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16)),
             ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: (isActive ? AppColors.success : AppColors.error)
-                  .withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(sub.name.isNotEmpty ? sub.name : 'بدون اسم',
+                      style: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(sub.phone,
+                            style: const TextStyle(
+                                fontSize: 12, color: AppColors.lightMuted),
+                            overflow: TextOverflow.ellipsis),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                          width: 4,
+                          height: 4,
+                          decoration: const BoxDecoration(
+                              color: AppColors.lightMuted,
+                              shape: BoxShape.circle)),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(sub.address,
+                            style: const TextStyle(
+                                fontSize: 12, color: AppColors.lightMuted),
+                            overflow: TextOverflow.ellipsis),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text('الأمبير: ${sub.ampereLimit}A',
+                      style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w500)),
+                ],
+              ),
             ),
-            child: Text(isActive ? 'نشط' : 'موقوف',
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: isActive ? AppColors.success : AppColors.error)),
-          ),
-          const SizedBox(width: 8),
-          Switch(
-            value: isActive,
-            onChanged: onToggle,
-            activeColor: AppColors.success,
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-        ],
-      ),
-    ).animate().fadeIn(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: (isActive ? AppColors.success : AppColors.error)
+                    .withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(isActive ? 'نشط' : 'موقوف',
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isActive ? AppColors.success : AppColors.error)),
+            ),
+            const SizedBox(width: 8),
+            Switch(
+              value: isActive,
+              onChanged: onToggle,
+              activeColor: AppColors.success,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ],
+        ),
+      ).animate().fadeIn(),
     );
   }
 }
@@ -1168,18 +1173,23 @@ class _BillsTabState extends ConsumerState<_BillsTab> {
                   ),
                 ),
               ),
-              ..._mockBills.where((b) => _filter == 'all' || b.$4 == _filter).map((b) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _MockAdminBillCard(
-                        name: b.$1, amount: b.$2, month: b.$3, status: b.$4),
-                  )),
+              ..._mockBills
+                  .where((b) => _filter == 'all' || b.$4 == _filter)
+                  .map((b) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _MockAdminBillCard(
+                            name: b.$1,
+                            amount: b.$2,
+                            month: b.$3,
+                            status: b.$4),
+                      )),
             ],
           );
         },
       );
     } catch (e, st) {
       return Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1188,11 +1198,16 @@ class _BillsTabState extends ConsumerState<_BillsTab> {
               const SizedBox(height: 16),
               Text('خطأ: $e',
                   textAlign: TextAlign.center,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(color: AppColors.error)),
               const SizedBox(height: 8),
               Text(st.toString(),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 10, color: AppColors.lightMuted)),
+                  maxLines: 6,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 10, color: AppColors.lightMuted)),
             ],
           ),
         ),
@@ -1280,8 +1295,7 @@ class _AddBillHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('الفواتير',
-                  style: Theme.of(context).textTheme.titleLarge),
+              Text('الفواتير', style: Theme.of(context).textTheme.titleLarge),
               Text('شهر $month ${DateTime.now().year}',
                   style: const TextStyle(
                       fontSize: 12, color: AppColors.lightMuted)),
@@ -1294,8 +1308,7 @@ class _AddBillHeader extends StatelessWidget {
           label: const Text('إضافة فاتورة'),
           style: ElevatedButton.styleFrom(
             minimumSize: Size.zero,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           ),
         ),
       ],
@@ -1421,8 +1434,7 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
   Widget build(BuildContext context) {
     final month = currentMonthArabic();
     final year = DateTime.now().year;
-    final canSubmit =
-        _idValid && !_submitting && !_checking;
+    final canSubmit = _idValid && !_submitting && !_checking;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -1461,8 +1473,7 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
 
           // Auto month badge
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: AppColors.primary.withOpacity(0.08),
               borderRadius: BorderRadius.circular(10),
@@ -1481,8 +1492,8 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
                         color: AppColors.primary)),
                 const SizedBox(width: 6),
                 const Text('(تلقائي)',
-                    style: TextStyle(
-                        fontSize: 11, color: AppColors.lightMuted)),
+                    style:
+                        TextStyle(fontSize: 11, color: AppColors.lightMuted)),
               ],
             ),
           ),
@@ -1491,8 +1502,8 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
 
           // ID Number field with live validation
           Text('رقم هوية المشترك',
-              style: const TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w600)),
+              style:
+                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1504,8 +1515,7 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
                   style: const TextStyle(fontSize: 14),
                   decoration: InputDecoration(
                     hintText: 'أدخل رقم الهوية',
-                    hintStyle:
-                        const TextStyle(color: AppColors.lightMuted),
+                    hintStyle: const TextStyle(color: AppColors.lightMuted),
                     prefixIcon: const Icon(Icons.badge_outlined,
                         size: 20, color: AppColors.lightMuted),
                     suffixIcon: _checking
@@ -1514,25 +1524,21 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
                             child: SizedBox(
                                 width: 18,
                                 height: 18,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2)))
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2)))
                         : _idChecked
-                            ? Icon(
-                                _idValid
-                                    ? Icons.check_circle
-                                    : Icons.cancel,
+                            ? Icon(_idValid ? Icons.check_circle : Icons.cancel,
                                 color: _idValid
                                     ? AppColors.success
                                     : AppColors.error,
                                 size: 22)
                             : null,
                     filled: true,
-                    fillColor:
-                        Theme.of(context).scaffoldBackgroundColor,
+                    fillColor: Theme.of(context).scaffoldBackgroundColor,
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                            color: AppColors.lightBorder)),
+                        borderSide:
+                            const BorderSide(color: AppColors.lightBorder)),
                     enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
@@ -1568,13 +1574,12 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
                   onPressed: _checking ? null : _validateId,
                   style: ElevatedButton.styleFrom(
                     minimumSize: Size.zero,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 0),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('تحقق',
-                      style: TextStyle(fontSize: 13)),
+                  child: const Text('تحقق', style: TextStyle(fontSize: 13)),
                 ),
               ),
             ],
@@ -1585,8 +1590,7 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
             const SizedBox(height: 6),
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: (_idValid ? AppColors.success : AppColors.error)
                     .withOpacity(0.08),
@@ -1594,14 +1598,9 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
               ),
               child: Row(
                 children: [
-                  Icon(
-                      _idValid
-                          ? Icons.person_pin
-                          : Icons.person_off_outlined,
+                  Icon(_idValid ? Icons.person_pin : Icons.person_off_outlined,
                       size: 16,
-                      color: _idValid
-                          ? AppColors.success
-                          : AppColors.error),
+                      color: _idValid ? AppColors.success : AppColors.error),
                   const SizedBox(width: 8),
                   Text(
                     _idValid
@@ -1610,9 +1609,7 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
                     style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: _idValid
-                            ? AppColors.success
-                            : AppColors.error),
+                        color: _idValid ? AppColors.success : AppColors.error),
                   ),
                 ],
               ),
@@ -1623,8 +1620,8 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
 
           // Amount field
           Text('قيمة الفاتورة (₪)',
-              style: const TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w600)),
+              style:
+                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
           _SheetField(
               controller: _amountCtrl,
@@ -1636,8 +1633,8 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
 
           // kWh field
           Text('الاستهلاك الشهري (كيلوواط/ساعة)',
-              style: const TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w600)),
+              style:
+                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
           _SheetField(
               controller: _kwhCtrl,
@@ -1741,12 +1738,12 @@ class _AdminBillCard extends StatelessWidget {
         child: Column(
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CircleAvatar(
                   radius: 20,
                   backgroundColor: AppColors.primary.withOpacity(0.12),
-                  child: Text(
-                      _displayName.isNotEmpty ? _displayName[0] : '?',
+                  child: Text(_displayName.isNotEmpty ? _displayName[0] : '?',
                       style: const TextStyle(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w700)),
@@ -1757,9 +1754,14 @@ class _AdminBillCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(_displayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                               fontSize: 14, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 2),
                       Text('${bill.month} ${bill.year} • ₪${bill.amount}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                               fontSize: 12, color: AppColors.lightMuted)),
                     ],
@@ -1767,8 +1769,8 @@ class _AdminBillCard extends StatelessWidget {
                 ),
                 if (isHighlighted)
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     margin: const EdgeInsets.only(left: 6),
                     decoration: BoxDecoration(
                       color: AppColors.warning.withOpacity(0.15),
@@ -1823,8 +1825,7 @@ class _AdminBillCard extends StatelessWidget {
                         );
                       },
                       icon: const Icon(Icons.close, size: 16),
-                      label:
-                          const Text('رفض', style: TextStyle(fontSize: 13)),
+                      label: const Text('رفض', style: TextStyle(fontSize: 13)),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.error,
                         side: const BorderSide(color: AppColors.error),
@@ -1849,8 +1850,7 @@ class _AdminBillCard extends StatelessWidget {
                         );
                       },
                       icon: const Icon(Icons.check, size: 16),
-                      label:
-                          const Text('قبول', style: TextStyle(fontSize: 13)),
+                      label: const Text('قبول', style: TextStyle(fontSize: 13)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.success,
                         minimumSize: Size.zero,
@@ -1920,6 +1920,7 @@ class _MockAdminBillCardState extends State<_MockAdminBillCard> {
       child: Column(
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               CircleAvatar(
                 radius: 20,
@@ -1934,9 +1935,14 @@ class _MockAdminBillCardState extends State<_MockAdminBillCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(widget.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                             fontSize: 14, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 2),
                     Text('${widget.month} • ${widget.amount}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                             fontSize: 12, color: AppColors.lightMuted)),
                   ],
@@ -1962,11 +1968,9 @@ class _MockAdminBillCardState extends State<_MockAdminBillCard> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () =>
-                        setState(() => _localStatus = 'rejected'),
+                    onPressed: () => setState(() => _localStatus = 'rejected'),
                     icon: const Icon(Icons.close, size: 16),
-                    label:
-                        const Text('رفض', style: TextStyle(fontSize: 13)),
+                    label: const Text('رفض', style: TextStyle(fontSize: 13)),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.error,
                       side: const BorderSide(color: AppColors.error),
@@ -1979,11 +1983,9 @@ class _MockAdminBillCardState extends State<_MockAdminBillCard> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () =>
-                        setState(() => _localStatus = 'paid'),
+                    onPressed: () => setState(() => _localStatus = 'paid'),
                     icon: const Icon(Icons.check, size: 16),
-                    label:
-                        const Text('قبول', style: TextStyle(fontSize: 13)),
+                    label: const Text('قبول', style: TextStyle(fontSize: 13)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.success,
                       minimumSize: Size.zero,
@@ -2066,10 +2068,16 @@ class _ComplaintCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textColor = theme.colorScheme.onSurface;
+    final mutedColor = theme.brightness == Brightness.dark
+        ? AppColors.darkMuted
+        : AppColors.lightMuted;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
+        color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -2111,17 +2119,14 @@ class _ComplaintCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(item.text,
-              style: const TextStyle(
-                  fontSize: 13, color: AppColors.lightText, height: 1.4)),
+              style: TextStyle(fontSize: 13, color: textColor, height: 1.4)),
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.access_time,
-                  size: 13, color: AppColors.lightMuted),
+              Icon(Icons.access_time, size: 13, color: mutedColor),
               const SizedBox(width: 4),
               Text(_timeAgo(item.createdAt),
-                  style: const TextStyle(
-                      fontSize: 12, color: AppColors.lightMuted)),
+                  style: TextStyle(fontSize: 12, color: mutedColor)),
               const Spacer(),
               if (item.status != ComplaintStatus.resolved)
                 TextButton(
@@ -2164,8 +2169,8 @@ class _ComplaintCard extends StatelessWidget {
             decoration: InputDecoration(
               hintText: 'اكتب ردك هنا...',
               hintStyle: const TextStyle(color: AppColors.lightMuted),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10)),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               contentPadding: const EdgeInsets.all(12),
             ),
           ),
@@ -2187,14 +2192,14 @@ class _ComplaintCard extends StatelessWidget {
                 if (context.mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('تم إرسال الرد ✓',
-                          textAlign: TextAlign.right)));
+                      content:
+                          Text('تم إرسال الرد ✓', textAlign: TextAlign.right)));
                 }
               },
               style: ElevatedButton.styleFrom(
                   minimumSize: Size.zero,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 8)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
               child: const Text('إرسال الرد'),
             ),
           ],
@@ -2226,10 +2231,16 @@ class _MockComplaintCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textColor = theme.colorScheme.onSurface;
+    final mutedColor = theme.brightness == Brightness.dark
+        ? AppColors.darkMuted
+        : AppColors.lightMuted;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
+        color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
@@ -2271,17 +2282,13 @@ class _MockComplaintCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(text,
-              style: const TextStyle(
-                  fontSize: 13, color: AppColors.lightText, height: 1.4)),
+              style: TextStyle(fontSize: 13, color: textColor, height: 1.4)),
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.access_time,
-                  size: 13, color: AppColors.lightMuted),
+              Icon(Icons.access_time, size: 13, color: mutedColor),
               const SizedBox(width: 4),
-              Text(time,
-                  style: const TextStyle(
-                      fontSize: 12, color: AppColors.lightMuted)),
+              Text(time, style: TextStyle(fontSize: 12, color: mutedColor)),
               const Spacer(),
               if (status != 'resolved')
                 TextButton(
@@ -2317,8 +2324,8 @@ class _MockComplaintCard extends StatelessWidget {
             decoration: InputDecoration(
               hintText: 'اكتب ردك هنا...',
               hintStyle: const TextStyle(color: AppColors.lightMuted),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10)),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               contentPadding: const EdgeInsets.all(12),
             ),
           ),
@@ -2332,13 +2339,13 @@ class _MockComplaintCard extends StatelessWidget {
                 if (ctrl.text.trim().isEmpty) return;
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('تم إرسال الرد ✓',
-                        textAlign: TextAlign.right)));
+                    content:
+                        Text('تم إرسال الرد ✓', textAlign: TextAlign.right)));
               },
               style: ElevatedButton.styleFrom(
                   minimumSize: Size.zero,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 8)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
               child: const Text('إرسال الرد'),
             ),
           ],
@@ -2395,7 +2402,9 @@ class _AdminProfileTab extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                profile?.name.isNotEmpty == true ? profile!.name : 'صاحب المولد',
+                profile?.name.isNotEmpty == true
+                    ? profile!.name
+                    : 'صاحب المولد',
                 style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
@@ -2403,7 +2412,8 @@ class _AdminProfileTab extends ConsumerWidget {
               ),
               const SizedBox(height: 4),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(20),
@@ -2586,9 +2596,7 @@ class _AdminProfileTab extends ConsumerWidget {
                       ? null
                       : () async {
                           setS(() => saving = true);
-                          await ref
-                              .read(authProvider.notifier)
-                              .updateProfile(
+                          await ref.read(authProvider.notifier).updateProfile(
                                 name: nameCtrl.text.trim(),
                                 address: addressCtrl.text.trim(),
                               );
@@ -2644,12 +2652,12 @@ class _PendingUsersTab extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   const Text('لا توجد طلبات معلقة',
-                      style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w600)),
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   const Text('جميع الطلبات تمت معالجتها',
-                      style: TextStyle(
-                          fontSize: 13, color: AppColors.lightMuted)),
+                      style:
+                          TextStyle(fontSize: 13, color: AppColors.lightMuted)),
                 ],
               ),
             )
@@ -2792,8 +2800,8 @@ class _PendingUserCardState extends ConsumerState<_PendingUserCard> {
                       child: OutlinedButton.icon(
                         onPressed: () => _act(false),
                         icon: const Icon(Icons.close, size: 16),
-                        label: const Text('رفض',
-                            style: TextStyle(fontSize: 13)),
+                        label:
+                            const Text('رفض', style: TextStyle(fontSize: 13)),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.error,
                           side: const BorderSide(color: AppColors.error),
@@ -2863,8 +2871,7 @@ class _MockPendingUsersState extends State<_MockPendingUsers> {
             ),
             const SizedBox(height: 16),
             const Text('لا توجد طلبات معلقة',
-                style:
-                    TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           ],
         ),
       );
@@ -2893,8 +2900,7 @@ class _MockPendingUsersState extends State<_MockPendingUsers> {
                   children: [
                     CircleAvatar(
                       radius: 22,
-                      backgroundColor:
-                          AppColors.warning.withOpacity(0.15),
+                      backgroundColor: AppColors.warning.withOpacity(0.15),
                       child: Text(item.$1[0],
                           style: const TextStyle(
                               color: AppColors.warning,
@@ -2908,12 +2914,10 @@ class _MockPendingUsersState extends State<_MockPendingUsers> {
                         children: [
                           Text(item.$1,
                               style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700)),
+                                  fontSize: 14, fontWeight: FontWeight.w700)),
                           Text('رقم الهوية: ${item.$2}',
                               style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.lightMuted)),
+                                  fontSize: 12, color: AppColors.lightMuted)),
                         ],
                       ),
                     ),
@@ -2939,8 +2943,7 @@ class _MockPendingUsersState extends State<_MockPendingUsers> {
                     const SizedBox(width: 4),
                     Text(item.$3,
                         style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.lightMuted)),
+                            fontSize: 12, color: AppColors.lightMuted)),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -2950,8 +2953,8 @@ class _MockPendingUsersState extends State<_MockPendingUsers> {
                       child: OutlinedButton.icon(
                         onPressed: () {
                           setState(() => _done.add(i));
-                          ScaffoldMessenger.of(context)
-                              .showSnackBar(const SnackBar(
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
                                   content: Text('تم رفض الطلب',
                                       textAlign: TextAlign.right),
                                   backgroundColor: AppColors.error));
@@ -2972,8 +2975,8 @@ class _MockPendingUsersState extends State<_MockPendingUsers> {
                       child: ElevatedButton.icon(
                         onPressed: () {
                           setState(() => _done.add(i));
-                          ScaffoldMessenger.of(context)
-                              .showSnackBar(const SnackBar(
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
                                   content: Text('تمت الموافقة ✓',
                                       textAlign: TextAlign.right),
                                   backgroundColor: AppColors.success));
