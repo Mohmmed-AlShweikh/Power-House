@@ -15,18 +15,20 @@ class ConsumerShell extends ConsumerStatefulWidget {
 class _ConsumerShellState extends ConsumerState<ConsumerShell> {
   int _index = 0;
 
-  static const _tabs = [
-    HomeTab(),
-    UsageTab(),
-    BillsTab(),
-    AlertsTab(),
-    ProfileTab(),
-  ];
+  void _goToAlerts() => setState(() => _index = 3);
 
   @override
   Widget build(BuildContext context) {
+    final tabs = [
+      HomeTab(onNotificationTap: _goToAlerts),
+      const UsageTab(),
+      const BillsTab(),
+      const AlertsTab(),
+      const ProfileTab(),
+    ];
+
     return Scaffold(
-      body: IndexedStack(index: _index, children: _tabs),
+      body: IndexedStack(index: _index, children: tabs),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).cardTheme.color,

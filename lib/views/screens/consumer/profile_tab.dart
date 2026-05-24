@@ -16,6 +16,10 @@ class ProfileTab extends ConsumerWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    final initials = (profile?.name.isNotEmpty == true)
+        ? profile!.name[0].toUpperCase()
+        : '؟';
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -45,37 +49,30 @@ class ProfileTab extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const SizedBox(height: 16),
-                      Stack(
-                        children: [
-                          Container(
-                            width: 80,
-                            height: 80,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                  color: Colors.white.withOpacity(0.5),
-                                  width: 2),
-                            ),
-                            child:
-                                const Icon(Icons.person, size: 44, color: Colors.white),
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.25),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                              color: Colors.white.withOpacity(0.5), width: 2),
+                        ),
+                        child: Center(
+                          child: Text(
+                            initials,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 32,
+                                fontWeight: FontWeight.w700),
                           ),
-                          Positioned(
-                            bottom: 0,
-                            left: 0,
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: const BoxDecoration(
-                                  color: AppColors.success,
-                                  shape: BoxShape.circle),
-                              child: const Icon(Icons.camera_alt,
-                                  size: 13, color: Colors.white),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                       const SizedBox(height: 12),
-                      Text(profile?.name.isNotEmpty == true ? profile!.name : 'مستخدم',
+                      Text(
+                          profile?.name.isNotEmpty == true
+                              ? profile!.name
+                              : 'مستخدم',
                           style: const TextStyle(
                               color: Colors.white,
                               fontSize: 18,
@@ -286,6 +283,11 @@ class _InfoCard extends ConsumerWidget {
           const Divider(height: 20, color: AppColors.lightBorder),
           _InfoRow(Icons.location_on_outlined, 'العنوان',
               profile?.address?.isNotEmpty == true ? profile!.address : '—'),
+          const Divider(height: 20, color: AppColors.lightBorder),
+          _InfoRow(
+              Icons.badge_outlined,
+              'نوع الحساب',
+              profile?.role == UserRole.admin ? 'صاحب مولد' : 'مستهلك'),
           const Divider(height: 20, color: AppColors.lightBorder),
           _InfoRow(
               Icons.calendar_today,

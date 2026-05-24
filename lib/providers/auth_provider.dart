@@ -93,6 +93,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   StreamSubscription? _authSub;
   StreamSubscription? _profileSub;
   bool _seeding = false;
+  bool _registering = false;
 
   static String _toEmail(String id) =>
       '${id.trim()}@powershare.app';
@@ -112,7 +113,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     _seeding = false;
 
     _authSub = _auth.authStateChanges().listen((u) async {
-      if (_seeding) return;
+      if (_seeding || _registering) return;
       if (u == null) {
         state = state.copyWith(
             user: null,
@@ -274,6 +275,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String password,
     required UserRole role,
   }) async {
+    _registering = true;
     state = state.copyWith(loading: true, error: null);
     try {
       final cred = await _auth.createUserWithEmailAndPassword(
@@ -301,14 +303,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
         NotificationService().notifyAllAdminsNewConsumer();
       }
       state = state.copyWith(loading: false, error: null);
+      _registering = false;
       return null;
     } on FirebaseAuthException catch (e) {
       final msg = _friendlyError(e.code);
       state = state.copyWith(loading: false, error: msg);
+      _registering = false;
       return msg;
     } catch (_) {
       const msg = 'تعذّر إنشاء الحساب. حاول مجدداً.';
       state = state.copyWith(loading: false, error: msg);
+      _registering = false;
       return msg;
     }
   }

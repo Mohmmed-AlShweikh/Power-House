@@ -739,17 +739,6 @@ class _MockSubscribersState extends State<_MockSubscribers> {
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
-              ElevatedButton.icon(
-                onPressed: () => _showAddSheet(context),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('إضافة'),
-                style: ElevatedButton.styleFrom(
-                  minimumSize: Size.zero,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                ),
-              ),
             ],
           ),
         ),
@@ -1086,8 +1075,16 @@ class _AdminBillCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () => FirebaseService()
-                        .updateBillStatus(bill.id, BillStatus.rejected),
+                    onPressed: () async {
+                      await FirebaseService()
+                          .updateBillStatus(bill.id, BillStatus.rejected);
+                      await NotificationService().addAlert(
+                        userId: bill.userId,
+                        title: 'تم رفض الإيصال',
+                        body: 'تم رفض إيصال الدفع لفاتورة ${bill.month} ${bill.year}. يرجى التواصل مع المشرف.',
+                        type: 'receiptRejected',
+                      );
+                    },
                     icon: const Icon(Icons.close, size: 16),
                     label: const Text('رفض', style: TextStyle(fontSize: 13)),
                     style: OutlinedButton.styleFrom(
@@ -1102,8 +1099,16 @@ class _AdminBillCard extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () => FirebaseService()
-                        .updateBillStatus(bill.id, BillStatus.paid),
+                    onPressed: () async {
+                      await FirebaseService()
+                          .updateBillStatus(bill.id, BillStatus.paid);
+                      await NotificationService().addAlert(
+                        userId: bill.userId,
+                        title: 'تم قبول الإيصال ✓',
+                        body: 'تم قبول إيصال الدفع لفاتورة ${bill.month} ${bill.year} بنجاح.',
+                        type: 'receiptApproved',
+                      );
+                    },
                     icon: const Icon(Icons.check, size: 16),
                     label: const Text('قبول', style: TextStyle(fontSize: 13)),
                     style: ElevatedButton.styleFrom(
@@ -1432,6 +1437,12 @@ class _ComplaintCard extends StatelessWidget {
               onPressed: () async {
                 if (ctrl.text.trim().isEmpty) return;
                 await FirebaseService().resolveComplaint(complaintId);
+                await NotificationService().addAlert(
+                  userId: item.userId,
+                  title: 'تم الرد على شكواك',
+                  body: ctrl.text.trim(),
+                  type: 'complaint',
+                );
                 if (context.mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -1620,30 +1631,26 @@ class _AdminProfileTab extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(24, 40, 24, 32),
           child: Column(
             children: [
-              Stack(
-                children: [
-                  Container(
-                    width: 84,
-                    height: 84,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                          color: Colors.white.withOpacity(0.5), width: 2),
-                    ),
-                    child: const Icon(Icons.person, size: 46, color: Colors.white),
+              Container(
+                width: 84,
+                height: 84,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.25),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                      color: Colors.white.withOpacity(0.5), width: 2),
+                ),
+                child: Center(
+                  child: Text(
+                    (profile?.name.isNotEmpty == true)
+                        ? profile!.name[0].toUpperCase()
+                        : '؟',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 34,
+                        fontWeight: FontWeight.w700),
                   ),
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: const BoxDecoration(
-                          color: AppColors.success, shape: BoxShape.circle),
-                      child: const Icon(Icons.build, size: 13, color: Colors.white),
-                    ),
-                  ),
-                ],
+                ),
               ),
               const SizedBox(height: 12),
               Text(

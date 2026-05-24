@@ -7,7 +7,8 @@ import '../../../providers/theme_provider.dart';
 import '../../../config/colors.dart';
 
 class HomeTab extends ConsumerWidget {
-  const HomeTab({super.key});
+  final VoidCallback? onNotificationTap;
+  const HomeTab({super.key, this.onNotificationTap});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -59,8 +60,17 @@ class HomeTab extends ConsumerWidget {
                         color: Colors.white.withOpacity(0.2),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.person,
-                          color: Colors.white, size: 24),
+                      child: Center(
+                        child: Text(
+                          (profile?.name.isNotEmpty == true)
+                              ? profile!.name[0].toUpperCase()
+                              : '؟',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700),
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Column(
@@ -82,7 +92,7 @@ class HomeTab extends ConsumerWidget {
                         IconButton(
                           icon: const Icon(Icons.notifications_outlined,
                               color: Colors.white),
-                          onPressed: () {},
+                          onPressed: onNotificationTap,
                         ),
                         Positioned(
                           top: 8,
@@ -215,7 +225,7 @@ class _GeneratorStatusCard extends StatelessWidget {
               color: Colors.white.withOpacity(0.25),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.bolt, color: Colors.white, size: 32),
+            child: const Icon(Icons.bolt, color: Colors.white, size: 32),
           ).animate().fadeIn().scaleXY(
               begin: 0.8, end: 1, duration: 400.ms, curve: Curves.easeOutBack),
           const SizedBox(width: 16),
@@ -228,10 +238,11 @@ class _GeneratorStatusCard extends StatelessWidget {
                         color: Colors.white,
                         fontSize: 17,
                         fontWeight: FontWeight.w700)),
-                const SizedBox(height: 2),
-                Text(isOn ? 'يعمل منذ 3 ساعات' : 'اضغط لتشغيل المولد',
-                    style:
-                        const TextStyle(color: Colors.white70, fontSize: 12)),
+                if (isOn) ...[
+                  const SizedBox(height: 2),
+                  const Text('يعمل منذ 3 ساعات',
+                      style: TextStyle(color: Colors.white70, fontSize: 12)),
+                ],
               ],
             ),
           ),
@@ -243,7 +254,7 @@ class _GeneratorStatusCard extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(Icons.circle, size: 8, color: Colors.white),
+                const Icon(Icons.circle, size: 8, color: Colors.white),
                 const SizedBox(width: 5),
                 Text(isOn ? 'نشط' : 'موقف',
                     style: const TextStyle(

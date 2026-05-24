@@ -97,13 +97,6 @@ class SuperAdminScreen extends ConsumerWidget {
                           value: '$pendingCount',
                           color: AppColors.warning,
                         ),
-                        const SizedBox(width: 12),
-                        _StatChip(
-                          icon: Icons.bolt,
-                          label: 'نظام الطاقة',
-                          value: 'نشط',
-                          color: AppColors.success,
-                        ),
                       ],
                     ),
                   ],

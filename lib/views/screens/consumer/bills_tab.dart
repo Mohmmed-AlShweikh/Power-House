@@ -168,7 +168,7 @@ class _UploadReceiptSheetState extends ConsumerState<_UploadReceiptSheet> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('تم رفع الإيصال بنجاح ✓',
+              content: Text('تم ارسال الوصل بنجاح ✓',
                   textAlign: TextAlign.right)),
         );
       }
