@@ -4,11 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'config/router.dart';
 import 'providers/theme_provider.dart';
 import 'services/firebase_service.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await FirebaseService.initialize();
   runApp(const ProviderScope(child: GeneratorPortalApp()));
+  NotificationService().initialize();
 }
 
 class GeneratorPortalApp extends ConsumerWidget {

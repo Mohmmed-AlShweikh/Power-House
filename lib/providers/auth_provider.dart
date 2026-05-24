@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
+import '../services/notification_service.dart';
 
 class AuthState {
   final User? user;
@@ -233,10 +234,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<String?> login(String idNumber, String password) async {
     state = state.copyWith(loading: true, error: null);
     try {
-      await _auth.signInWithEmailAndPassword(
+      final cred = await _auth.signInWithEmailAndPassword(
         email: _toEmail(idNumber),
         password: password,
       );
+      if (cred.user != null) {
+        NotificationService().getAndSaveToken(cred.user!.uid);
+      }
       // _loadAndCheckProfile is triggered by the auth listener
       return null;
     } on FirebaseAuthException catch (e) {
@@ -247,6 +251,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
       const msg = 'تعذّر الاتصال بالخادم. تحقق من اتصالك.';
       state = state.copyWith(loading: false, error: msg);
       return msg;
+    }
+  }
+
+  Future<String?> sendPasswordReset(String idNumber) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: _toEmail(idNumber));
+      return null;
+    } on FirebaseAuthException catch (e) {
+      return _friendlyError(e.code);
+    } catch (_) {
+      return 'تعذّر الاتصال بالخادم. تحقق من اتصالك.';
     }
   }
 
@@ -277,7 +292,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
         'ampereLimit': 0,
         'createdAt': DateTime.now().millisecondsSinceEpoch,
       });
+      // Try to save FCM token before signing out
+      await NotificationService().getAndSaveToken(uid);
       await _auth.signOut();
+      // Send registration notification
+      if (role == UserRole.admin) {
+        NotificationService().notifySuperAdminNewOwner();
+      } else {
+        NotificationService().notifyAllAdminsNewConsumer();
+      }
       state = state.copyWith(loading: false, error: null);
       return null;
     } on FirebaseAuthException catch (e) {

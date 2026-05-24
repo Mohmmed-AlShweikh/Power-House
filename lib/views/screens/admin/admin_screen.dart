@@ -9,6 +9,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../providers/data_provider.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../services/firebase_service.dart';
+import '../../../services/notification_service.dart';
 import '../../../config/colors.dart';
 import '../../widgets/base64_image_viewer.dart';
 
@@ -1934,8 +1935,10 @@ class _PendingUserCardState extends ConsumerState<_PendingUserCard> {
     try {
       if (approve) {
         await FirebaseService().approveUser(widget.user.uid);
+        NotificationService().notifyUserApproved(widget.user.uid);
       } else {
         await FirebaseService().rejectUser(widget.user.uid);
+        NotificationService().notifyUserRejected(widget.user.uid);
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(

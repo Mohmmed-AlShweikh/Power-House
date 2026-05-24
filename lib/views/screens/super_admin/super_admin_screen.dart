@@ -7,6 +7,7 @@ import '../../../models/user_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/data_provider.dart';
 import '../../../services/firebase_service.dart';
+import '../../../services/notification_service.dart';
 
 class SuperAdminScreen extends ConsumerWidget {
   const SuperAdminScreen({super.key});
@@ -196,8 +197,10 @@ class _OwnerRequestCardState extends ConsumerState<_OwnerRequestCard> {
     try {
       if (approve) {
         await FirebaseService().approveUser(widget.owner.uid);
+        NotificationService().notifyUserApproved(widget.owner.uid);
       } else {
         await FirebaseService().rejectUser(widget.owner.uid);
+        NotificationService().notifyUserRejected(widget.owner.uid);
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(

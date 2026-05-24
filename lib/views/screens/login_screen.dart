@@ -22,10 +22,104 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   String? _errorMsg;
 
   @override
+  void initState() {
+    super.initState();
+    _idCtrl.addListener(() => setState(() {}));
+    _passCtrl.addListener(() => setState(() {}));
+  }
+
+  @override
   void dispose() {
     _idCtrl.dispose();
     _passCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _forgotPassword() async {
+    final id = _idCtrl.text.trim();
+    if (id.isEmpty) {
+      showDialog(
+        context: context,
+        builder: (_) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20)),
+            title: const Text('نسيت كلمة المرور؟'),
+            content: const Text('يرجى إدخال رقم هويتك أولاً في الحقل أعلاه.'),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('حسناً'),
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _loading = true);
+    final error =
+        await ref.read(authProvider.notifier).sendPasswordReset(id);
+    if (!mounted) return;
+    setState(() => _loading = false);
+
+    showDialog(
+      context: context,
+      builder: (_) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: (error == null ? AppColors.success : AppColors.error)
+                      .withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  error == null
+                      ? Icons.mark_email_read_outlined
+                      : Icons.error_outline,
+                  size: 40,
+                  color: error == null ? AppColors.success : AppColors.error,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                error == null ? 'تمت المعالجة' : 'تعذّر الإرسال',
+                style: const TextStyle(
+                    fontSize: 17, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                error ??
+                    'تم معالجة طلب إعادة تعيين كلمة المرور.\nيُرجى التواصل مع الدعم/الإدارة لإعادة تعيين كلمة المرور الخاصة بك.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.lightMuted,
+                    height: 1.5),
+              ),
+            ],
+          ),
+          actions: [
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('حسناً'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _submit() async {
@@ -208,10 +302,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ],
 
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton(
+                            onPressed: _loading ? null : _forgotPassword,
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: const Text(
+                              'نسيت كلمة المرور؟',
+                              style: TextStyle(
+                                  color: AppColors.primary,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: (_loading ||
-                                  _idCtrl.text.isEmpty ||
+                                  _idCtrl.text.trim().isEmpty ||
                                   _passCtrl.text.isEmpty)
                               ? null
                               : _submit,
