@@ -117,7 +117,7 @@ class AlertsTab extends ConsumerWidget {
                         ),
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
-                  error: (_, __) => const _MockAlerts(),
+                  error: (_, __) => const _EmptyAlerts(),
                 ),
                 const SizedBox(height: 20),
               ]),

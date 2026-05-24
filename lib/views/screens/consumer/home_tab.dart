@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../models/alert_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/data_provider.dart';
 import '../../../providers/theme_provider.dart';
@@ -13,13 +14,70 @@ class HomeTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(authProvider).profile;
+    final uid = profile?.uid ?? '';
     final theme = Theme.of(context);
+
     final genAsync = ref.watch(generatorProvider);
+    final isOn = genAsync.when(
+        data: (g) => g.isOn, loading: () => true, error: (_, __) => false);
+    final lastChanged = genAsync.when(
+        data: (g) => g.lastChanged, loading: () => null, error: (_, __) => null);
+
+    final billsAsync = ref.watch(billsProvider(uid));
+    final alertsAsync = ref.watch(alertsProvider(uid));
+    final subsAsync = ref.watch(subscribersProvider);
+
+    final currentMonth = currentMonthArabic();
+    final currentYear = DateTime.now().year;
+
+    final currentMonthBill = billsAsync.when(
+      data: (bills) {
+        final found = bills.where(
+            (b) => b.month == currentMonth && b.year == currentYear);
+        return found.isNotEmpty ? found.first : null;
+      },
+      loading: () => null,
+      error: (_, __) => null,
+    );
+
+    final totalKwh = currentMonthBill != null
+        ? '${currentMonthBill.kwh.toStringAsFixed(0)} kWh'
+        : billsAsync.when(
+            data: (_) => '— kWh',
+            loading: () => '… kWh',
+            error: (_, __) => '— kWh');
+
+    final billAmount = currentMonthBill != null
+        ? '₪ ${currentMonthBill.amount}'
+        : billsAsync.when(
+            data: (_) => '₪ —',
+            loading: () => '₪ …',
+            error: (_, __) => '₪ —');
+
+    final totalSubs = subsAsync.when(
+        data: (s) => '${s.length}',
+        loading: () => '…',
+        error: (_, __) => '—');
+
+    final ampereLimit = profile?.ampereLimit ?? 0;
+    final ampereStr = ampereLimit > 0 ? '$ampereLimit A' : '—';
+
+    final recentAlerts = alertsAsync.when(
+      data: (alerts) => alerts.take(3).toList(),
+      loading: () => <AppAlert>[],
+      error: (_, __) => <AppAlert>[],
+    );
+    final alertsLoading = alertsAsync.isLoading;
+
+    final unreadCount = alertsAsync.when(
+      data: (a) => a.where((x) => !x.read).length,
+      loading: () => 0,
+      error: (_, __) => 0,
+    );
 
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          // App bar with gradient
           SliverAppBar(
             expandedHeight: 160,
             pinned: true,
@@ -94,16 +152,18 @@ class HomeTab extends ConsumerWidget {
                               color: Colors.white),
                           onPressed: onNotificationTap,
                         ),
-                        Positioned(
-                          top: 8,
-                          left: 8,
-                          child: Container(
-                            width: 9,
-                            height: 9,
-                            decoration: const BoxDecoration(
-                                color: AppColors.error, shape: BoxShape.circle),
+                        if (unreadCount > 0)
+                          Positioned(
+                            top: 8,
+                            left: 8,
+                            child: Container(
+                              width: 9,
+                              height: 9,
+                              decoration: const BoxDecoration(
+                                  color: AppColors.error,
+                                  shape: BoxShape.circle),
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ],
@@ -116,27 +176,23 @@ class HomeTab extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                // Generator status card
-                genAsync.when(
-                  data: (gen) => _GeneratorStatusCard(isOn: gen.isOn),
-                  loading: () => const _GeneratorStatusCard(isOn: true),
-                  error: (_, __) => const _GeneratorStatusCard(isOn: false),
-                ),
+                _GeneratorStatusCard(isOn: isOn, lastChanged: lastChanged),
                 const SizedBox(height: 16),
 
-                Text('الاستهلاك الشهري', style: theme.textTheme.titleLarge),
+                Text('الاستهلاك الشهري ($currentMonth)',
+                    style: theme.textTheme.titleLarge),
                 const SizedBox(height: 12),
                 Row(
                   children: [
                     _StatCard(
                         label: 'هذا الشهر',
-                        value: '142 kWh',
+                        value: totalKwh,
                         icon: Icons.flash_on,
                         color: AppColors.primary),
                     const SizedBox(width: 12),
                     _StatCard(
                         label: 'الفاتورة',
-                        value: '₪ 284',
+                        value: billAmount,
                         icon: Icons.receipt_long,
                         color: AppColors.warning),
                   ],
@@ -145,42 +201,73 @@ class HomeTab extends ConsumerWidget {
                 Row(
                   children: [
                     _StatCard(
-                        label: 'الساعات',
-                        value: '8 ساعة',
-                        icon: Icons.timer_outlined,
+                        label: 'حد الأمبير',
+                        value: ampereStr,
+                        icon: Icons.electric_bolt_outlined,
                         color: AppColors.success),
                     const SizedBox(width: 12),
                     _StatCard(
                         label: 'المشتركون',
-                        value: '24',
+                        value: totalSubs,
                         icon: Icons.people_outline,
                         color: const Color(0xFF8B5CF6)),
                   ],
                 ),
                 const SizedBox(height: 20),
 
-                Text('آخر التنبيهات', style: theme.textTheme.titleLarge),
+                Row(
+                  children: [
+                    Text('آخر التنبيهات', style: theme.textTheme.titleLarge),
+                    const Spacer(),
+                    if (unreadCount > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                            color: AppColors.error,
+                            borderRadius: BorderRadius.circular(10)),
+                        child: Text('$unreadCount',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700)),
+                      ),
+                  ],
+                ),
                 const SizedBox(height: 12),
-                _AlertItem(
-                    icon: Icons.power,
-                    color: AppColors.success,
-                    title: 'تشغيل المولد',
-                    subtitle: 'تم تشغيل المولد',
-                    time: 'منذ ساعتين'),
-                const SizedBox(height: 8),
-                _AlertItem(
-                    icon: Icons.warning_amber,
-                    color: AppColors.warning,
-                    title: 'انتهاء وقود قريباً',
-                    subtitle: 'متبقي 20% من الوقود',
-                    time: 'منذ 5 ساعات'),
-                const SizedBox(height: 8),
-                _AlertItem(
-                    icon: Icons.receipt,
-                    color: AppColors.primary,
-                    title: 'فاتورة جديدة',
-                    subtitle: 'فاتورة يوليو ₪284',
-                    time: 'أمس'),
+
+                if (alertsLoading)
+                  const Center(
+                      child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: CircularProgressIndicator(),
+                  ))
+                else if (recentAlerts.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: theme.cardTheme.color,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.notifications_none,
+                            color: AppColors.lightMuted, size: 20),
+                        SizedBox(width: 10),
+                        Text('لا توجد تنبيهات',
+                            style: TextStyle(
+                                fontSize: 13, color: AppColors.lightMuted)),
+                      ],
+                    ),
+                  )
+                else
+                  ...recentAlerts
+                      .map((a) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: _AlertItem(alert: a),
+                          ))
+                      .toList(),
+
                 const SizedBox(height: 20),
               ]),
             ),
@@ -193,7 +280,21 @@ class HomeTab extends ConsumerWidget {
 
 class _GeneratorStatusCard extends StatelessWidget {
   final bool isOn;
-  const _GeneratorStatusCard({required this.isOn});
+  final DateTime? lastChanged;
+  const _GeneratorStatusCard({required this.isOn, this.lastChanged});
+
+  String _runningFor() {
+    if (!isOn) return '';
+    if (lastChanged == null) return 'يعمل الآن';
+    final diff = DateTime.now().difference(lastChanged!);
+    if (diff.inDays > 1) return 'يعمل منذ ${diff.inDays} أيام';
+    if (diff.inDays == 1) return 'يعمل منذ يوم واحد';
+    if (diff.inHours > 1) return 'يعمل منذ ${diff.inHours} ساعات';
+    if (diff.inHours == 1) return 'يعمل منذ ساعة واحدة';
+    if (diff.inMinutes > 1) return 'يعمل منذ ${diff.inMinutes} دقائق';
+    if (diff.inMinutes == 1) return 'يعمل منذ دقيقة';
+    return 'يعمل الآن';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -240,8 +341,9 @@ class _GeneratorStatusCard extends StatelessWidget {
                         fontWeight: FontWeight.w700)),
                 if (isOn) ...[
                   const SizedBox(height: 2),
-                  const Text('يعمل منذ 3 ساعات',
-                      style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  Text(_runningFor(),
+                      style: const TextStyle(
+                          color: Colors.white70, fontSize: 12)),
                 ],
               ],
             ),
@@ -322,23 +424,62 @@ class _StatCard extends StatelessWidget {
 }
 
 class _AlertItem extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String title, subtitle, time;
-  const _AlertItem(
-      {required this.icon,
-      required this.color,
-      required this.title,
-      required this.subtitle,
-      required this.time});
+  final AppAlert alert;
+  const _AlertItem({required this.alert});
+
+  Color get _color => switch (alert.type) {
+        AlertType.generatorOn => AppColors.success,
+        AlertType.generatorOff => AppColors.error,
+        AlertType.lowFuel => AppColors.warning,
+        AlertType.newBill => AppColors.primary,
+        AlertType.receiptApproved => AppColors.success,
+        AlertType.receiptRejected => AppColors.error,
+        AlertType.newSubscriber => AppColors.primary,
+        AlertType.complaint => AppColors.warning,
+        AlertType.newOwnerRequest => AppColors.primary,
+        AlertType.newConsumerRequest => AppColors.primary,
+        AlertType.requestApproved => AppColors.success,
+        AlertType.requestRejected => AppColors.error,
+        AlertType.passwordReset => AppColors.warning,
+      };
+
+  IconData get _icon => switch (alert.type) {
+        AlertType.generatorOn => Icons.power,
+        AlertType.generatorOff => Icons.power_off,
+        AlertType.lowFuel => Icons.local_gas_station,
+        AlertType.newBill => Icons.receipt,
+        AlertType.receiptApproved => Icons.check_circle,
+        AlertType.receiptRejected => Icons.cancel,
+        AlertType.newSubscriber => Icons.person_add,
+        AlertType.complaint => Icons.report,
+        AlertType.newOwnerRequest => Icons.person_add_alt_1,
+        AlertType.newConsumerRequest => Icons.person_add,
+        AlertType.requestApproved => Icons.check_circle,
+        AlertType.requestRejected => Icons.cancel,
+        AlertType.passwordReset => Icons.lock_reset,
+      };
+
+  String _timeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inDays > 1) return 'قبل ${diff.inDays} أيام';
+    if (diff.inDays == 1) return 'أمس';
+    if (diff.inHours > 1) return 'قبل ${diff.inHours} ساعات';
+    if (diff.inHours == 1) return 'قبل ساعة';
+    if (diff.inMinutes > 1) return 'قبل ${diff.inMinutes} دقائق';
+    return 'الآن';
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
+        color: alert.read
+            ? Theme.of(context).cardTheme.color
+            : _color.withOpacity(0.04),
         borderRadius: BorderRadius.circular(14),
+        border:
+            alert.read ? null : Border.all(color: _color.withOpacity(0.25)),
         boxShadow: [
           BoxShadow(
               color: Colors.black.withOpacity(0.04),
@@ -351,29 +492,31 @@ class _AlertItem extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(9),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: _color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, size: 18, color: color),
+            child: Icon(_icon, size: 18, color: _color),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: const TextStyle(
+                Text(alert.title,
+                    style: TextStyle(
                         fontSize: 14,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: alert.read
+                            ? FontWeight.w600
+                            : FontWeight.w700,
                         color: AppColors.lightText)),
                 const SizedBox(height: 2),
-                Text(subtitle,
+                Text(alert.body,
                     style: const TextStyle(
                         fontSize: 12, color: AppColors.lightMuted)),
               ],
             ),
           ),
-          Text(time,
+          Text(_timeAgo(alert.createdAt),
               style:
                   const TextStyle(fontSize: 11, color: AppColors.lightMuted)),
         ],

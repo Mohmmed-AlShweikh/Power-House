@@ -104,13 +104,6 @@ class ProfileTab extends ConsumerWidget {
               delegate: SliverChildListDelegate([
                 _InfoCard(),
                 const SizedBox(height: 16),
-                _SettingsGroup(title: 'الإعدادات', items: [
-                  _SettingsItem(Icons.security, 'الأمان والخصوصية',
-                      AppColors.primary, () => _showSecuritySheet(context)),
-                  _SettingsItem(Icons.help_outline, 'المساعدة والدعم',
-                      AppColors.primary, () => _showHelpSheet(context)),
-                ]),
-                const SizedBox(height: 12),
                 _SettingsGroup(title: 'الحساب', items: [
                   _SettingsItem(Icons.edit_outlined, 'تعديل البيانات',
                       AppColors.warning, () {
