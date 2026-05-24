@@ -764,6 +764,62 @@ class _SubscriberCard extends StatelessWidget {
   const _SubscriberCard(
       {required this.sub, required this.onToggle, required this.onJumpToBill});
 
+  Future<void> _editAmpere(BuildContext context) async {
+    final ctrl = TextEditingController(
+        text: sub.ampereLimit > 0 ? '${sub.ampereLimit}' : '');
+    final result = await showDialog<int>(
+      context: context,
+      builder: (_) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text('حد الأمبير — ${sub.name}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'أدخل الحد الأقصى للأمبير المسموح به لهذا المشترك',
+                style:
+                    TextStyle(fontSize: 13, color: AppColors.lightMuted),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: ctrl,
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: 'الأمبير',
+                  hintText: 'مثال: 10',
+                  suffixText: 'A',
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  prefixIcon:
+                      const Icon(Icons.electric_bolt, size: 20),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('إلغاء')),
+            ElevatedButton(
+              onPressed: () {
+                final v = int.tryParse(ctrl.text.trim());
+                if (v != null && v > 0) Navigator.pop(context, v);
+              },
+              child: const Text('حفظ'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (result != null) {
+      await FirebaseService().updateSubscriber(sub.uid, ampereLimit: result);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isActive = sub.subscriptionStatus == SubscriptionStatus.active;
@@ -833,17 +889,44 @@ class _SubscriberCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 2),
-                  Text('الأمبير: ${sub.ampereLimit}A',
-                      style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 4),
+                  GestureDetector(
+                    onTap: () => _editAmpere(context),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.electric_bolt,
+                            size: 12,
+                            color: sub.ampereLimit > 0
+                                ? AppColors.primary
+                                : AppColors.warning),
+                        const SizedBox(width: 3),
+                        Text(
+                          sub.ampereLimit > 0
+                              ? '${sub.ampereLimit} A'
+                              : 'اضغط لتحديد الأمبير',
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: sub.ampereLimit > 0
+                                  ? AppColors.primary
+                                  : AppColors.warning,
+                              fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(Icons.edit,
+                            size: 10,
+                            color: sub.ampereLimit > 0
+                                ? AppColors.lightMuted
+                                : AppColors.warning),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: (isActive ? AppColors.success : AppColors.error)
                     .withOpacity(0.1),
@@ -853,7 +936,8 @@ class _SubscriberCard extends StatelessWidget {
                   style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: isActive ? AppColors.success : AppColors.error)),
+                      color:
+                          isActive ? AppColors.success : AppColors.error)),
             ),
             const SizedBox(width: 8),
             Switch(
