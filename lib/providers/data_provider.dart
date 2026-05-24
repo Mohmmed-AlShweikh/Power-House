@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/bill_model.dart';
@@ -238,3 +239,79 @@ final usageProvider = Provider<List<UsageMonth>>((ref) => const [
       UsageMonth('يونيو', 155, 310),
       UsageMonth('يوليو', 142, 284),
     ]);
+
+// ── Recent Activity Feed ──────────────────────────────────────────────────────
+
+class ActivityItem {
+  final String name;
+  final String action;
+  final DateTime createdAt;
+  final Color color;
+  const ActivityItem({
+    required this.name,
+    required this.action,
+    required this.createdAt,
+    required this.color,
+  });
+}
+
+const Color _kActivityPrimary = Color(0xFF1E3A6E);
+const Color _kActivitySuccess = Color(0xFF16A34A);
+const Color _kActivityError = Color(0xFFDC2626);
+
+final recentActivitiesProvider = Provider<List<ActivityItem>>((ref) {
+  final bills = ref.watch(allBillsProvider).valueOrNull ?? [];
+  final complaints = ref.watch(complaintsProvider).valueOrNull ?? [];
+  final subscribers = ref.watch(subscribersProvider).valueOrNull ?? [];
+
+  final subsMap = {for (final s in subscribers) s.uid: s.name};
+
+  final activities = <ActivityItem>[];
+
+  for (final bill in bills) {
+    if (bill.status == BillStatus.pendingReview) {
+      final name = subsMap[bill.userId] ?? 'مشترك';
+      activities.add(ActivityItem(
+        name: name,
+        action: 'رفع إيصال ${bill.month}',
+        createdAt: bill.createdAt,
+        color: _kActivitySuccess,
+      ));
+    } else if (bill.status == BillStatus.paid) {
+      final name = subsMap[bill.userId] ?? 'مشترك';
+      activities.add(ActivityItem(
+        name: name,
+        action: 'تم دفع فاتورة ${bill.month}',
+        createdAt: bill.createdAt,
+        color: _kActivitySuccess,
+      ));
+    }
+  }
+
+  for (final complaint in complaints) {
+    final preview = complaint.text.length > 22
+        ? '${complaint.text.substring(0, 22)}...'
+        : complaint.text;
+    activities.add(ActivityItem(
+      name: complaint.userName,
+      action: 'شكوى: $preview',
+      createdAt: complaint.createdAt,
+      color: _kActivityError,
+    ));
+  }
+
+  final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
+  for (final sub in subscribers) {
+    if (sub.createdAt.isAfter(thirtyDaysAgo)) {
+      activities.add(ActivityItem(
+        name: sub.name,
+        action: 'مشترك جديد',
+        createdAt: sub.createdAt,
+        color: _kActivityPrimary,
+      ));
+    }
+  }
+
+  activities.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  return activities.take(10).toList();
+});

@@ -172,6 +172,10 @@ class _DashboardTab extends ConsumerWidget {
         data: (g) => g.isOn,
         loading: () => true,
         error: (_, __) => false);
+    final lastChanged = genAsync.when(
+        data: (g) => g.lastChanged,
+        loading: () => null,
+        error: (_, __) => null);
     final stats = ref.watch(monthlyBillStatsProvider);
     final subsAsync = ref.watch(subscribersProvider);
     final complaintsAsync = ref.watch(complaintsProvider);
@@ -198,7 +202,7 @@ class _DashboardTab extends ConsumerWidget {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          _GeneratorToggleCard(isOn: isOn, onToggle: onToggle),
+          _GeneratorToggleCard(isOn: isOn, lastChanged: lastChanged, onToggle: onToggle),
           const SizedBox(height: 16),
           Row(children: [
             _StatBox(
@@ -241,8 +245,23 @@ class _DashboardTab extends ConsumerWidget {
 
 class _GeneratorToggleCard extends StatelessWidget {
   final bool isOn;
+  final DateTime? lastChanged;
   final ValueChanged<bool> onToggle;
-  const _GeneratorToggleCard({required this.isOn, required this.onToggle});
+  const _GeneratorToggleCard(
+      {required this.isOn, this.lastChanged, required this.onToggle});
+
+  String _runningFor() {
+    if (!isOn) return 'اضغط لتشغيل المولد';
+    if (lastChanged == null) return 'يعمل الآن';
+    final diff = DateTime.now().difference(lastChanged!);
+    if (diff.inDays > 1) return 'يعمل منذ ${diff.inDays} أيام';
+    if (diff.inDays == 1) return 'يعمل منذ يوم واحد';
+    if (diff.inHours > 1) return 'يعمل منذ ${diff.inHours} ساعات';
+    if (diff.inHours == 1) return 'يعمل منذ ساعة واحدة';
+    if (diff.inMinutes > 1) return 'يعمل منذ ${diff.inMinutes} دقائق';
+    if (diff.inMinutes == 1) return 'يعمل منذ دقيقة';
+    return 'يعمل الآن';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -287,7 +306,7 @@ class _GeneratorToggleCard extends StatelessWidget {
                         fontSize: 18,
                         fontWeight: FontWeight.w700)),
                 const SizedBox(height: 2),
-                Text(isOn ? 'يعمل منذ 3 ساعات' : 'اضغط لتشغيل المولد',
+                Text(_runningFor(),
                     style:
                         const TextStyle(color: Colors.white70, fontSize: 12)),
               ],
@@ -395,17 +414,15 @@ class _StatBox extends StatelessWidget {
       );
 }
 
-class _RecentActivity extends StatelessWidget {
+class _RecentActivity extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
-    const items = [
-      ('محمد أحمد', 'رفع إيصال يوليو', 'منذ ساعة', AppColors.success),
-      ('سارة خالد', 'شكوى: انقطاع متكرر', 'منذ 3 ساعات', AppColors.error),
-      ('أحمد محمود', 'مشترك جديد', 'أمس', AppColors.primary),
-    ];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final items = ref.watch(recentActivitiesProvider);
+    final theme = Theme.of(context);
+
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
+        color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -418,31 +435,75 @@ class _RecentActivity extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-            child: Text('آخر النشاطات',
-                style: Theme.of(context).textTheme.titleMedium),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+            child: Row(
+              children: [
+                Text('آخر النشاطات', style: theme.textTheme.titleMedium),
+                const Spacer(),
+                if (items.isNotEmpty)
+                  Text('${items.length} نشاط',
+                      style: const TextStyle(
+                          fontSize: 11, color: AppColors.lightMuted)),
+              ],
+            ),
           ),
-          ...items.map((i) => ListTile(
-                leading: CircleAvatar(
-                  radius: 18,
-                  backgroundColor: i.$4.withOpacity(0.15),
-                  child: Text(i.$1[0],
-                      style:
-                          TextStyle(color: i.$4, fontWeight: FontWeight.w700)),
-                ),
-                title: Text(i.$1,
-                    style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600)),
-                subtitle: Text(i.$2,
-                    style: const TextStyle(
-                        fontSize: 12, color: AppColors.lightMuted)),
-                trailing: Text(i.$3,
-                    style: const TextStyle(
-                        fontSize: 11, color: AppColors.lightMuted)),
-              )),
+          if (items.isEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+              child: Row(
+                children: [
+                  Icon(Icons.inbox_outlined,
+                      size: 18,
+                      color: theme.brightness == Brightness.dark
+                          ? AppColors.darkMuted
+                          : AppColors.lightMuted),
+                  const SizedBox(width: 8),
+                  Text('لا توجد نشاطات حتى الآن',
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: theme.brightness == Brightness.dark
+                              ? AppColors.darkMuted
+                              : AppColors.lightMuted)),
+                ],
+              ),
+            )
+          else
+            ...items.map((item) => ListTile(
+                  dense: true,
+                  leading: CircleAvatar(
+                    radius: 18,
+                    backgroundColor: item.color.withOpacity(0.15),
+                    child: Text(
+                      item.name.isNotEmpty ? item.name[0] : '؟',
+                      style: TextStyle(
+                          color: item.color, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  title: Text(item.name,
+                      style: const TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w600)),
+                  subtitle: Text(item.action,
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColors.lightMuted)),
+                  trailing: Text(_timeAgo(item.createdAt),
+                      style: const TextStyle(
+                          fontSize: 11, color: AppColors.lightMuted)),
+                )),
+          const SizedBox(height: 4),
         ],
       ),
     ).animate().fadeIn();
+  }
+
+  String _timeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inDays > 1) return 'قبل ${diff.inDays} أيام';
+    if (diff.inDays == 1) return 'أمس';
+    if (diff.inHours > 1) return 'قبل ${diff.inHours} ساعات';
+    if (diff.inHours == 1) return 'قبل ساعة';
+    if (diff.inMinutes > 1) return 'قبل ${diff.inMinutes} دقائق';
+    if (diff.inMinutes == 1) return 'قبل دقيقة';
+    return 'الآن';
   }
 }
 
