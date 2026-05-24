@@ -1090,22 +1090,24 @@ class _BillsTabState extends ConsumerState<_BillsTab> {
 
     ref.listen<String?>(highlightedBillProvider, (prev, next) {
       if (next != null && next != prev) {
-        setState(() {
-          _filter = 'all';
-          _highlightedBillId = next;
-        });
+        // Defer setState to avoid "called during build" crash
         WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() {
+            _filter = 'all';
+            _highlightedBillId = next;
+          });
           if (_scrollController.hasClients) {
             _scrollController.animateTo(0,
                 duration: const Duration(milliseconds: 450),
                 curve: Curves.easeOut);
           }
-        });
-        Future.delayed(const Duration(seconds: 3), () {
-          if (mounted) {
-            setState(() => _highlightedBillId = null);
-            ref.read(highlightedBillProvider.notifier).state = null;
-          }
+          Future.delayed(const Duration(seconds: 3), () {
+            if (mounted) {
+              setState(() => _highlightedBillId = null);
+              ref.read(highlightedBillProvider.notifier).state = null;
+            }
+          });
         });
       }
     });
