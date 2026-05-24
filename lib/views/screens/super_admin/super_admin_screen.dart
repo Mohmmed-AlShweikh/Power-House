@@ -79,70 +79,71 @@ class SuperAdminScreen extends ConsumerWidget {
                             ],
                           ),
                         ),
-                        if (kDebugMode)
-                          IconButton(
-                            icon: const Icon(Icons.bug_report,
-                                color: Colors.white70),
-                            tooltip: 'Debug pending users',
-                            onPressed: () async {
-                              final db = FirebaseFirestore.instance;
-                              try {
-                                final snap = await db
-                                    .collection('users')
-                                    .where('status', isEqualTo: 'pending')
-                                    .get();
-                                final info = snap.docs.map((d) {
-                                  final data = d.data();
-                                  final role = (data['role'] ?? '').toString();
-                                  final name = (data['name'] ?? '').toString();
-                                  final idNumber =
-                                      (data['idNumber'] ?? '').toString();
-                                  final created =
-                                      data['createdAt']?.toString() ?? '';
-                                  return '${d.id}\nname: $name\nrole: $role\nidNumber: $idNumber\ncreatedAt: $created';
-                                }).join('\n\n');
-                                await showDialog(
-                                  context: context,
-                                  builder: (_) => Directionality(
-                                    textDirection: TextDirection.rtl,
-                                    child: AlertDialog(
-                                      title: const Text('DEBUG: Pending users'),
-                                      content: SingleChildScrollView(
-                                        child: Text(info.isEmpty
-                                            ? 'NO_PENDING_DOCS'
-                                            : info),
+                        IconButton(
+                          icon: const Icon(Icons.bug_report,
+                              color: Colors.white70),
+                          tooltip: 'استكشاف الطلبات',
+                          onPressed: () async {
+                            final db = FirebaseFirestore.instance;
+                            try {
+                              // جرب الـ query الجديد
+                              final snap = await db
+                                  .collection('users')
+                                  .where('role', isEqualTo: 'generator_owner')
+                                  .get();
+                              final info = snap.docs.map((d) {
+                                final data = d.data();
+                                final role = (data['role'] ?? '').toString();
+                                final name = (data['name'] ?? '').toString();
+                                final status = (data['status'] ?? '').toString();
+                                final idNumber =
+                                    (data['idNumber'] ?? '').toString();
+                                final created =
+                                    data['createdAt']?.toString() ?? '';
+                                return 'ID: ${d.id}\nname: $name\nrole: $role\nstatus: $status\nidNumber: $idNumber\ncreatedAt: $created';
+                              }).join('\n\n');
+                              await showDialog(
+                                context: context,
+                                builder: (_) => Directionality(
+                                  textDirection: TextDirection.rtl,
+                                  child: AlertDialog(
+                                    title: const Text('الطلبات في الفايرستور'),
+                                    content: SingleChildScrollView(
+                                      child: SelectableText(info.isEmpty
+                                          ? 'NO generator_owner DOCS FOUND'
+                                          : info),
+                                    ),
+                                    actions: [
+                                      ElevatedButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context),
+                                        child: const Text('حسناً'),
                                       ),
-                                      actions: [
-                                        ElevatedButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context),
-                                          child: const Text('حسناً'),
-                                        ),
-                                      ],
-                                    ),
+                                    ],
                                   ),
-                                );
-                              } catch (e) {
-                                await showDialog(
-                                  context: context,
-                                  builder: (_) => Directionality(
-                                    textDirection: TextDirection.rtl,
-                                    child: AlertDialog(
-                                      title: const Text('DEBUG Error'),
-                                      content: Text(e.toString()),
-                                      actions: [
-                                        ElevatedButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context),
-                                          child: const Text('حسناً'),
-                                        ),
-                                      ],
-                                    ),
+                                ),
+                              );
+                            } catch (e) {
+                              await showDialog(
+                                context: context,
+                                builder: (_) => Directionality(
+                                  textDirection: TextDirection.rtl,
+                                  child: AlertDialog(
+                                    title: const Text('خطأ بالاستكشاف'),
+                                    content: SelectableText(e.toString()),
+                                    actions: [
+                                      ElevatedButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context),
+                                        child: const Text('حسناً'),
+                                      ),
+                                    ],
                                   ),
-                                );
-                              }
-                            },
-                          ),
+                                ),
+                              );
+                            }
+                          },
+                        ),
                         IconButton(
                           icon: const Icon(Icons.logout, color: Colors.white70),
                           tooltip: 'تسجيل الخروج',
