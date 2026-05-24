@@ -1113,7 +1113,7 @@ class _BillsTabState extends ConsumerState<_BillsTab> {
     return billsAsync.when(
       data: (bills) {
         List<Bill> filtered = _filter == 'all'
-            ? bills
+            ? List<Bill>.from(bills)
             : bills.where((b) => b.status.name == _filter).toList();
 
         if (_highlightedBillId != null) {
@@ -1192,7 +1192,8 @@ class _FilterRow extends StatelessWidget {
 
   static const _filters = [
     ('الكل', 'all'),
-    ('بانتظار', 'pendingReview'),
+    ('غير مدفوعة', 'pending'),
+    ('قيد المراجعة', 'pendingReview'),
     ('مقبول', 'paid'),
     ('مرفوض', 'rejected'),
   ];
@@ -1657,15 +1658,17 @@ class _AdminBillCard extends StatelessWidget {
       this.isHighlighted = false});
 
   Color get _statusColor => switch (bill.status) {
+        BillStatus.pending => AppColors.primary,
         BillStatus.pendingReview => AppColors.warning,
         BillStatus.paid => AppColors.success,
-        _ => AppColors.error,
+        BillStatus.rejected => AppColors.error,
       };
 
   String get _statusLabel => switch (bill.status) {
+        BillStatus.pending => 'غير مدفوعة',
         BillStatus.pendingReview => 'بانتظار المراجعة',
         BillStatus.paid => 'مقبول',
-        _ => 'مرفوض',
+        BillStatus.rejected => 'مرفوض',
       };
 
   String get _displayName =>
