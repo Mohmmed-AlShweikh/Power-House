@@ -163,6 +163,27 @@ class _DashboardTab extends ConsumerWidget {
         data: (g) => g.isOn,
         loading: () => generatorOn,
         error: (_, __) => generatorOn);
+    final stats = ref.watch(monthlyBillStatsProvider);
+    final subsAsync = ref.watch(subscribersProvider);
+    final complaintsAsync = ref.watch(complaintsProvider);
+
+    final totalSubs = subsAsync.when(
+        data: (s) => s.length.toString(),
+        loading: () => '…',
+        error: (_, __) => '-');
+    final activeSubs = subsAsync.when(
+        data: (s) => s
+            .where((u) => u.subscriptionStatus == SubscriptionStatus.active)
+            .length
+            .toString(),
+        loading: () => '…',
+        error: (_, __) => '-');
+    final complaintsCount = complaintsAsync.when(
+        data: (c) =>
+            c.where((x) => x.status == ComplaintStatus.open).length.toString(),
+        loading: () => '…',
+        error: (_, __) => '-');
+    final currentMonth = currentMonthArabic();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -173,30 +194,35 @@ class _DashboardTab extends ConsumerWidget {
           Row(children: [
             _StatBox(
                 label: 'المشتركون',
-                value: '24',
+                value: totalSubs,
                 icon: Icons.people,
                 color: AppColors.primary),
             const SizedBox(width: 12),
             _StatBox(
                 label: 'نشطون',
-                value: '21',
+                value: activeSubs,
                 icon: Icons.check_circle,
                 color: AppColors.success),
           ]),
           const SizedBox(height: 12),
           Row(children: [
             _StatBox(
-                label: 'الإيرادات',
-                value: '₪6,820',
-                icon: Icons.payments,
-                color: const Color(0xFF8B5CF6)),
-            const SizedBox(width: 12),
-            _StatBox(
-                label: 'شكاوى',
-                value: '3',
+                label: 'شكاوى مفتوحة',
+                value: complaintsCount,
                 icon: Icons.report,
                 color: AppColors.warning),
+            const SizedBox(width: 12),
+            _StatBox(
+                label: 'كWh هذا الشهر',
+                value: stats.unpaidCount > 0 || stats.paidCount > 0
+                    ? '${(stats.unpaidCount + stats.paidCount)} فاتورة'
+                    : '-',
+                icon: Icons.bolt,
+                color: const Color(0xFF8B5CF6)),
           ]),
+          const SizedBox(height: 16),
+          _MonthlyBillStatsCard(
+              stats: stats, month: currentMonth),
           const SizedBox(height: 16),
           _RecentActivity(),
         ],
@@ -409,6 +435,125 @@ class _RecentActivity extends StatelessWidget {
         ],
       ),
     ).animate().fadeIn();
+  }
+}
+
+// ── Monthly Bill Stats Card ───────────────────────────────────────────────────
+
+class _MonthlyBillStatsCard extends StatelessWidget {
+  final MonthlyBillStats stats;
+  final String month;
+  const _MonthlyBillStatsCard({required this.stats, required this.month});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2))
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.bar_chart_rounded,
+                  color: AppColors.primary, size: 20),
+              const SizedBox(width: 8),
+              Text('ملخص فواتير $month',
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w700)),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _BillStatItem(
+                  label: 'الفواتير المستحقة',
+                  count: stats.unpaidCount,
+                  amount: stats.unpaidAmount,
+                  color: AppColors.error,
+                  icon: Icons.pending_actions,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _BillStatItem(
+                  label: 'الفواتير المدفوعة',
+                  count: stats.paidCount,
+                  amount: stats.paidAmount,
+                  color: AppColors.success,
+                  icon: Icons.check_circle_outline,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ).animate().fadeIn().slideY(begin: 0.1, end: 0, duration: 350.ms);
+  }
+}
+
+class _BillStatItem extends StatelessWidget {
+  final String label;
+  final int count;
+  final int amount;
+  final Color color;
+  final IconData icon;
+  const _BillStatItem(
+      {required this.label,
+      required this.count,
+      required this.amount,
+      required this.color,
+      required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: color),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(label,
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: color),
+                    overflow: TextOverflow.ellipsis),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text('$count فاتورة',
+              style: TextStyle(
+                  fontSize: 20, fontWeight: FontWeight.w800, color: color)),
+          const SizedBox(height: 2),
+          Text('₪$amount',
+              style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.lightMuted)),
+        ],
+      ),
+    );
   }
 }
 
@@ -877,11 +1022,16 @@ class _SheetField extends StatelessWidget {
   final String hint;
   final IconData icon;
   final TextEditingController? controller;
+  final TextInputType? keyboardType;
   const _SheetField(
-      {required this.hint, required this.icon, this.controller});
+      {required this.hint,
+      required this.icon,
+      this.controller,
+      this.keyboardType});
   @override
   Widget build(BuildContext context) => TextField(
         controller: controller,
+        keyboardType: keyboardType,
         style: const TextStyle(fontSize: 14),
         decoration: InputDecoration(
           hintText: hint,
@@ -978,6 +1128,8 @@ class _BillsTabState extends ConsumerState<_BillsTab> {
           controller: _scrollController,
           padding: const EdgeInsets.all(16),
           children: [
+            _AddBillHeader(onAdd: () => _showAddBillSheet(context)),
+            const SizedBox(height: 10),
             _FilterRow(
                 selected: _filter,
                 onSelect: (v) => setState(() => _filter = v)),
@@ -1002,6 +1154,8 @@ class _BillsTabState extends ConsumerState<_BillsTab> {
           controller: _scrollController,
           padding: const EdgeInsets.all(16),
           children: [
+            _AddBillHeader(onAdd: () => _showAddBillSheet(context)),
+            const SizedBox(height: 10),
             _FilterRow(
                 selected: _filter,
                 onSelect: (v) => setState(() => _filter = v)),
@@ -1014,6 +1168,19 @@ class _BillsTabState extends ConsumerState<_BillsTab> {
           ],
         );
       },
+    );
+  }
+
+  void _showAddBillSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (_) => const Directionality(
+        textDirection: TextDirection.rtl,
+        child: _AddBillSheet(),
+      ),
     );
   }
 }
@@ -1066,6 +1233,418 @@ class _FilterRow extends StatelessWidget {
               .toList(),
         ),
       );
+}
+
+// ── Add Bill Header ───────────────────────────────────────────────────────────
+
+class _AddBillHeader extends StatelessWidget {
+  final VoidCallback onAdd;
+  const _AddBillHeader({required this.onAdd});
+
+  @override
+  Widget build(BuildContext context) {
+    final month = currentMonthArabic();
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('الفواتير',
+                  style: Theme.of(context).textTheme.titleLarge),
+              Text('شهر $month ${DateTime.now().year}',
+                  style: const TextStyle(
+                      fontSize: 12, color: AppColors.lightMuted)),
+            ],
+          ),
+        ),
+        ElevatedButton.icon(
+          onPressed: onAdd,
+          icon: const Icon(Icons.add, size: 18),
+          label: const Text('إضافة فاتورة'),
+          style: ElevatedButton.styleFrom(
+            minimumSize: Size.zero,
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Add Bill Sheet ────────────────────────────────────────────────────────────
+
+class _AddBillSheet extends ConsumerStatefulWidget {
+  const _AddBillSheet();
+
+  @override
+  ConsumerState<_AddBillSheet> createState() => _AddBillSheetState();
+}
+
+class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
+  final _idCtrl = TextEditingController();
+  final _amountCtrl = TextEditingController();
+  final _kwhCtrl = TextEditingController();
+
+  // Validation state
+  bool _checking = false;
+  bool _idValid = false;
+  bool _idChecked = false;
+  String _resolvedName = '';
+  String? _resolvedUid;
+
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _idCtrl.dispose();
+    _amountCtrl.dispose();
+    _kwhCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _validateId() async {
+    final id = _idCtrl.text.trim();
+    if (id.isEmpty) return;
+    setState(() {
+      _checking = true;
+      _idChecked = false;
+      _idValid = false;
+      _resolvedName = '';
+      _resolvedUid = null;
+    });
+    try {
+      final uid = await FirebaseService().findUserByIdNumber(id);
+      if (!mounted) return;
+      if (uid != null) {
+        final name = await FirebaseService().getSubscriberName(uid);
+        if (!mounted) return;
+        setState(() {
+          _idValid = true;
+          _idChecked = true;
+          _resolvedUid = uid;
+          _resolvedName = name;
+        });
+      } else {
+        setState(() {
+          _idValid = false;
+          _idChecked = true;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _checking = false);
+    }
+  }
+
+  Future<void> _submit() async {
+    if (!_idValid || _resolvedUid == null) return;
+    final amount = int.tryParse(_amountCtrl.text.trim());
+    final kwh = double.tryParse(_kwhCtrl.text.trim());
+    if (amount == null || amount <= 0) {
+      _showError('أدخل قيمة فاتورة صحيحة');
+      return;
+    }
+    if (kwh == null || kwh <= 0) {
+      _showError('أدخل قراءة الاستهلاك صحيحة');
+      return;
+    }
+
+    setState(() => _submitting = true);
+    try {
+      final month = currentMonthArabic();
+      final year = DateTime.now().year;
+      await FirebaseService().createBillWithConsumption(
+        userId: _resolvedUid!,
+        amount: amount,
+        kwh: kwh,
+        month: month,
+        year: year,
+      );
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'تم إصدار فاتورة $month لـ $_resolvedName ✓',
+            textAlign: TextAlign.right,
+          ),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      if (mounted) _showError('فشل إصدار الفاتورة: ${e.toString()}');
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+          content: Text(msg, textAlign: TextAlign.right),
+          backgroundColor: AppColors.error),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final month = currentMonthArabic();
+    final year = DateTime.now().year;
+    final canSubmit =
+        _idValid && !_submitting && !_checking;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 28,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('إصدار فاتورة جديدة',
+                        style: Theme.of(context).textTheme.titleLarge),
+                    const SizedBox(height: 2),
+                    Text('$month $year — يتم الرصد تلقائياً',
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.lightMuted)),
+                  ],
+                ),
+              ),
+              IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context)),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // Auto month badge
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.calendar_month,
+                    size: 16, color: AppColors.primary),
+                const SizedBox(width: 6),
+                Text('الشهر: $month $year',
+                    style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary)),
+                const SizedBox(width: 6),
+                const Text('(تلقائي)',
+                    style: TextStyle(
+                        fontSize: 11, color: AppColors.lightMuted)),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // ID Number field with live validation
+          Text('رقم هوية المشترك',
+              style: const TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _idCtrl,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(fontSize: 14),
+                  decoration: InputDecoration(
+                    hintText: 'أدخل رقم الهوية',
+                    hintStyle:
+                        const TextStyle(color: AppColors.lightMuted),
+                    prefixIcon: const Icon(Icons.badge_outlined,
+                        size: 20, color: AppColors.lightMuted),
+                    suffixIcon: _checking
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2)))
+                        : _idChecked
+                            ? Icon(
+                                _idValid
+                                    ? Icons.check_circle
+                                    : Icons.cancel,
+                                color: _idValid
+                                    ? AppColors.success
+                                    : AppColors.error,
+                                size: 22)
+                            : null,
+                    filled: true,
+                    fillColor:
+                        Theme.of(context).scaffoldBackgroundColor,
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                            color: AppColors.lightBorder)),
+                    enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                            color: _idChecked
+                                ? (_idValid
+                                    ? AppColors.success
+                                    : AppColors.error)
+                                : AppColors.lightBorder,
+                            width: _idChecked ? 1.5 : 1)),
+                    focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                            color: AppColors.primary, width: 2)),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 14),
+                  ),
+                  onChanged: (_) {
+                    if (_idChecked) {
+                      setState(() {
+                        _idChecked = false;
+                        _idValid = false;
+                        _resolvedName = '';
+                        _resolvedUid = null;
+                      });
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _checking ? null : _validateId,
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size.zero,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 0),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('تحقق',
+                      style: TextStyle(fontSize: 13)),
+                ),
+              ),
+            ],
+          ),
+
+          // ID validation result message
+          if (_idChecked) ...[
+            const SizedBox(height: 6),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: (_idValid ? AppColors.success : AppColors.error)
+                    .withOpacity(0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                      _idValid
+                          ? Icons.person_pin
+                          : Icons.person_off_outlined,
+                      size: 16,
+                      color: _idValid
+                          ? AppColors.success
+                          : AppColors.error),
+                  const SizedBox(width: 8),
+                  Text(
+                    _idValid
+                        ? 'تم التحقق: $_resolvedName'
+                        : 'رقم الهوية غير موجود في النظام',
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: _idValid
+                            ? AppColors.success
+                            : AppColors.error),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 14),
+
+          // Amount field
+          Text('قيمة الفاتورة (₪)',
+              style: const TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          _SheetField(
+              controller: _amountCtrl,
+              hint: 'مثال: 280',
+              icon: Icons.payments_outlined,
+              keyboardType: TextInputType.number),
+
+          const SizedBox(height: 14),
+
+          // kWh field
+          Text('الاستهلاك الشهري (كيلوواط/ساعة)',
+              style: const TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          _SheetField(
+              controller: _kwhCtrl,
+              hint: 'مثال: 142.5',
+              icon: Icons.bolt_outlined,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true)),
+
+          const SizedBox(height: 22),
+
+          // Submit button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: canSubmit ? _submit : null,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+              ),
+              child: _submitting
+                  ? const SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2.5, color: Colors.white))
+                  : Text(
+                      canSubmit
+                          ? 'إصدار الفاتورة لـ $_resolvedName'
+                          : 'تحقق من رقم الهوية أولاً',
+                      style: const TextStyle(fontSize: 15)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _AdminBillCard extends StatelessWidget {

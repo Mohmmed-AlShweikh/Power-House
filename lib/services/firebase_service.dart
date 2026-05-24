@@ -172,7 +172,7 @@ class FirebaseService {
     });
   }
 
-  // Create bill
+  // Create bill (legacy — single document)
   Future<void> createBill(String userId, String month, int year, int amount,
       double kwh) async {
     await _db.collection('bills').add({
@@ -183,6 +183,87 @@ class FirebaseService {
       'kwh': kwh,
       'status': 'pending',
       'createdAt': DateTime.now().millisecondsSinceEpoch,
+    });
+  }
+
+  // Find a subscriber by their ID number (رقم الهوية)
+  // Returns the UserProfile UID if found, null otherwise.
+  Future<String?> findUserByIdNumber(String idNumber) async {
+    final trimmed = idNumber.trim();
+    if (trimmed.isEmpty) return null;
+    final snap = await _db
+        .collection('users')
+        .where('idNumber', isEqualTo: trimmed)
+        .limit(1)
+        .get();
+    if (snap.docs.isNotEmpty) return snap.docs.first.id;
+    // Fallback: email-based lookup ({idNumber}@powershare.app)
+    final emailSnap = await _db
+        .collection('users')
+        .where('email', isEqualTo: '$trimmed@powershare.app')
+        .limit(1)
+        .get();
+    if (emailSnap.docs.isNotEmpty) return emailSnap.docs.first.id;
+    return null;
+  }
+
+  // Resolve subscriber name from UID
+  Future<String> getSubscriberName(String uid) async {
+    final doc = await _db.collection('users').doc(uid).get();
+    if (!doc.exists) return '';
+    return (doc.data()?['name'] ?? '') as String;
+  }
+
+  // Create bill + update consumption + send alert (atomic batch)
+  Future<void> createBillWithConsumption({
+    required String userId,
+    required int amount,
+    required double kwh,
+    required String month,
+    required int year,
+  }) async {
+    final batch = _db.batch();
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    // 1. New bill document
+    final billRef = _db.collection('bills').doc();
+    batch.set(billRef, {
+      'userId': userId,
+      'month': month,
+      'year': year,
+      'amount': amount,
+      'kwh': kwh,
+      'status': 'pending',
+      'createdAt': now,
+    });
+
+    // 2. Upsert consumption document (doc ID = userId)
+    final consumptionRef = _db.collection('consumption').doc(userId);
+    final dailyUsage =
+        double.parse((kwh / 30).toStringAsFixed(2)); // approx daily
+    batch.set(
+      consumptionRef,
+      {
+        'userId': userId,
+        'monthlyUsage': kwh,
+        'dailyUsage': dailyUsage,
+        'month': month,
+        'updatedAt': now,
+      },
+      SetOptions(merge: true),
+    );
+
+    await batch.commit();
+
+    // 3. In-app alert for the subscriber
+    await _db.collection('alerts').add({
+      'userId': userId,
+      'title': 'فاتورة مستحقة جديدة 🧾',
+      'body':
+          'تم إصدار فاتورة جديدة لشهر $month، يرجى المراجعة والسداد.',
+      'type': 'newBill',
+      'read': false,
+      'createdAt': now,
     });
   }
 

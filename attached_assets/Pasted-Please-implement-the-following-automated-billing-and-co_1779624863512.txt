@@ -1,0 +1,44 @@
+Please implement the following automated billing and consumption workflows, ensuring real-time data synchronization across Firestore collections and push notifications:
+
+1. "Add New Bill" Workflow (Generator Owner Side)
+UI Form: Create a form for the Generator Owner with the following fields: [Subscriber ID Number], [Invoice Value / Amount], and [Current Consumption in kWh].
+
+Automated Month Field: The system must automatically detect the current calendar month (e.g., "May") and save it without requiring manual input from the owner.
+
+Database Actions (Firestore Multi-Document Write): When the owner submits the form, execute the following operations simultaneously:
+
+Create Bill Document: Save a new document in the bills collection containing: subscriber_id, amount, kwh_consumption, month, and status: "unpaid".
+
+Update/Create Consumption Document: In the consumption collection, update or create a document for that user structured exactly like this:
+
+JSON
+{
+  "userId": "dynamic_subscriber_id",
+  "dailyUsage": 15, 
+  "monthlyUsage": 430, // Map the entered kWh consumption here
+  "month": "Current_Month_Name"
+}
+(Note: Please ensure the dailyUsage and monthlyUsage logic is dynamically calculated or tracked based on the entered kWh).
+
+2. Real-Time Consumer Updates & Notifications (User Side)
+Immediate Visibility: As soon as the bill document is created in Firestore, it must immediately appear in the regular user's Invoices Screen without needing a manual refresh.
+
+Notification: Trigger an automated push notification via flutter app to the targeted user's device token right after the bill is created:
+
+Title: "فاتورة مستحقة جديدة 🧾"
+
+Body: "تم إصدار فاتورة جديدة لشهر الحالي، يرجى المراجعة والسداد."
+
+3. Generator Owner Dashboard Analytics (Home Screen)
+On the Generator Owner's main dashboard/home screen, display a real-time summary of the current month's financial metrics fetched from the bills collection:
+
+Due Invoices Counter (الفواتير المستحقة): The total count/amount of bills where month == current_month and status == "unpaid".
+
+Paid Invoices Counter (الفواتير المدفوعة): The total count/amount of bills where month == current_month and status == "paid".
+
+Please make sure all queries use optimized Firestore indexes so that I can easily seed mock data directly into the database for testing these interconnected features.
+
+Thank you!
+
+💡 نصيحة لك عند الفحص:
+بما أنك ذكرت أنك ستقوم بتجربة بيانات من عندك وتخزينها في الفايربيز للتأكد من الترابط، تأكد من المطور أن يمنحك هيكلية الجداول (Firestore Collections Structure) لكي تعرف كيف تضيف مستخدم تجريبي برقم هوية محدد، ثم تضيف له فاتورة وتلاحظ كيف تنعكس في الحسابين فوراً!
