@@ -141,8 +141,10 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
               controller: _tabs,
               children: [
                 _DashboardTab(
-                    generatorOn: _generatorOn,
-                    onToggle: (v) => setState(() => _generatorOn = v)),
+                    onToggle: (v) async {
+                      await FirebaseService().toggleGenerator(v);
+                      await NotificationService().notifyAllUsersGeneratorState(v);
+                    }),
                 const _PendingUsersTab(),
                 _SubscribersTab(onJumpToBill: _jumpToBillsTab),
                 const _BillsTab(),
@@ -160,17 +162,16 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
 // ── Dashboard Tab ─────────────────────────────────────────────────────────────
 
 class _DashboardTab extends ConsumerWidget {
-  final bool generatorOn;
   final ValueChanged<bool> onToggle;
-  const _DashboardTab({required this.generatorOn, required this.onToggle});
+  const _DashboardTab({required this.onToggle});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final genAsync = ref.watch(generatorProvider);
     final isOn = genAsync.when(
         data: (g) => g.isOn,
-        loading: () => generatorOn,
-        error: (_, __) => generatorOn);
+        loading: () => true,
+        error: (_, __) => false);
     final stats = ref.watch(monthlyBillStatsProvider);
     final subsAsync = ref.watch(subscribersProvider);
     final complaintsAsync = ref.watch(complaintsProvider);

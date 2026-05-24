@@ -87,4 +87,25 @@ class NotificationService {
       type: 'passwordReset',
     );
   }
+
+  // Notify all users when generator state changes
+  Future<void> notifyAllUsersGeneratorState(bool isOn) async {
+    try {
+      final snap = await _db
+          .collection('users')
+          .where('role', isEqualTo: 'user')
+          .where('status', isEqualTo: 'approved')
+          .get();
+      for (final doc in snap.docs) {
+        await addAlert(
+          userId: doc.id,
+          title: isOn ? 'تشغيل المولد ✅' : 'إيقاف المولد ⚠️',
+          body: isOn
+              ? 'تم تشغيل المولد. التيار الكهربائي متوفر الآن.'
+              : 'تم إيقاف المولد مؤقتاً. التيار الكهربائي مقطوع حالياً.',
+          type: isOn ? 'generatorOn' : 'generatorOff',
+        );
+      }
+    } catch (_) {}
+  }
 }
