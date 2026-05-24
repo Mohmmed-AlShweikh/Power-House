@@ -72,23 +72,32 @@ final allBillsProvider = StreamProvider<List<Bill>>((ref) {
   return _safelyHandlePermissionDenied(
     db
         .collection('bills')
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((s) => s.docs.map((d) => Bill.fromMap(d.id, d.data())).toList()),
+        .map((s) {
+      final list =
+          s.docs.map((d) => Bill.fromMap(d.id, d.data())).toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    }),
     const <Bill>[],
   );
 });
 
-// Alerts
+// Alerts — no orderBy to avoid composite index requirement; sort client-side
 final alertsProvider =
     StreamProvider.family<List<AppAlert>, String>((ref, userId) {
+  if (userId.isEmpty) return Stream.value(const <AppAlert>[]);
   final db = FirebaseFirestore.instance;
   return db
       .collection('alerts')
       .where('userId', isEqualTo: userId)
-      .orderBy('createdAt', descending: true)
       .snapshots()
-      .map((s) => s.docs.map((d) => AppAlert.fromMap(d.id, d.data())).toList());
+      .map((s) {
+    final list =
+        s.docs.map((d) => AppAlert.fromMap(d.id, d.data())).toList();
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
+  });
 });
 
 // Active subscribers (generator owner view)
@@ -139,15 +148,15 @@ final pendingGeneratorOwnersProvider = StreamProvider<List<UserProfile>>((ref) {
   });
 });
 
-// Complaints
+// Complaints — sort client-side to avoid index requirement
 final complaintsProvider = StreamProvider<List<Complaint>>((ref) {
   final db = FirebaseFirestore.instance;
-  return db
-      .collection('complaints')
-      .orderBy('createdAt', descending: true)
-      .snapshots()
-      .map(
-          (s) => s.docs.map((d) => Complaint.fromMap(d.id, d.data())).toList());
+  return db.collection('complaints').snapshots().map((s) {
+    final list =
+        s.docs.map((d) => Complaint.fromMap(d.id, d.data())).toList();
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
+  });
 });
 
 // Highlighted bill id (used to deep-link from subscriber details → bills tab)
