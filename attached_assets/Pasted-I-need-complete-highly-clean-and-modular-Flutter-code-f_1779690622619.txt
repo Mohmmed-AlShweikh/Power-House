@@ -1,0 +1,28 @@
+I need complete, highly clean, and modular Flutter code for a consumer application that integrates with Firebase Firestore. The app should listen to new invoices in real-time, trigger system-level local notifications using 'flutter_local_notifications', and manage an unread notification badge count over a bottom navigation bar tab icon.
+
+Please adhere to the following requirements and specifications:
+
+1. Packages to Use:
+- cloud_firestore (for real-time streaming of new invoices).
+- flutter_local_notifications (for displaying native local notifications).
+
+2. Notification Logic (Local Notification Service):
+- Create a dedicated helper class for notifications with an initialization method.
+- Configure Android notification channels correctly with High Importance so that notifications pop up on the screen (Heads-up notification).
+- Provide a method to display notifications manually, taking 'title' and 'body' as Strings.
+
+3. Real-Time Stream Listener Logic:
+- The app must listen to a Firestore collection named "invoices" where the "consumerId" field matches the current logged-in consumer's ID.
+- Preventing historical notifications: When the stream is initialized for the first time, it should NOT trigger notifications for existing historical invoices. Only new invoices (where DocumentChangeType is 'added' and the 'createdAt' timestamp is greater than the app's startup time (DateTime.now())) should trigger the local notification.
+
+4. Unread Notification Badge Management:
+- Use a simple ValueNotifier<int> or a lightweight ChangeNotifier to manage the global state of the unread count without using complex state management libraries.
+- When a new invoice is detected in the stream, increment the unread count by 1 (only if the user is not currently viewing the notification screen).
+- When the user taps the notifications/invoices tab, immediately reset the count to 0 and update the UI.
+
+5. User Interface (UI) Structure:
+- A main screen with a BottomNavigationBar containing at least two tabs: "Home" and "Invoices/Notifications".
+- The notification tab icon must be wrapped inside a Stack to display a red badge containing the unread count (the badge should only be visible when the count is greater than 0).
+- When the user taps the notification tab, trigger the reset function to set the badge count to 0, hiding the red circle.
+
+Please provide the fully functional code with clear instructions on how to structure the files in the project.

@@ -4,10 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'config/router.dart';
 import 'providers/theme_provider.dart';
 import 'services/firebase_service.dart';
+import 'services/local_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await FirebaseService.initialize();
+  await LocalNotificationService().init();
   ErrorWidget.builder = (FlutterErrorDetails details) {
     return Material(
       child: Container(

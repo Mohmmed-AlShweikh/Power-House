@@ -93,7 +93,7 @@ class NotificationService {
     try {
       final snap = await _db
           .collection('users')
-          .where('role', isEqualTo: 'user')
+          .where('role', isEqualTo: 'consumer')
           .where('status', isEqualTo: 'approved')
           .get();
       for (final doc in snap.docs) {
