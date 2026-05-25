@@ -133,15 +133,16 @@ class _EmptyAlerts extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 60),
+    final muted = AppColors.mutedFor(Theme.of(context).brightness);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 60),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.notifications_none, size: 52, color: AppColors.lightMuted),
-          SizedBox(height: 12),
+          Icon(Icons.notifications_none, size: 52, color: muted),
+          const SizedBox(height: 12),
           Text('لا توجد تنبيهات',
-              style: TextStyle(color: AppColors.lightMuted, fontSize: 15)),
+              style: TextStyle(color: muted, fontSize: 15)),
         ],
       ),
     );
@@ -208,7 +209,7 @@ class _AlertCard extends StatelessWidget {
                               fontWeight: alert.read
                                   ? FontWeight.w500
                                   : FontWeight.w700,
-                              color: AppColors.lightText)),
+                              )),
                     ),
                     if (!alert.read)
                       Container(
@@ -220,15 +221,18 @@ class _AlertCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(alert.body,
-                    style: const TextStyle(
-                        fontSize: 12, color: AppColors.lightMuted)),
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.mutedFor(
+                            Theme.of(context).brightness))),
               ],
             ),
           ),
           const SizedBox(width: 8),
           Text(_timeAgo(alert.createdAt),
-              style:
-                  const TextStyle(fontSize: 11, color: AppColors.lightMuted)),
+              style: TextStyle(
+                  fontSize: 11,
+                  color: AppColors.mutedFor(Theme.of(context).brightness))),
         ],
       ),
     ).animate().fadeIn();
@@ -333,16 +337,19 @@ class _MockAlerts extends StatelessWidget {
                             ),
                             const SizedBox(height: 2),
                             Text(i.$4,
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 12,
-                                    color: AppColors.lightMuted)),
+                                    color: AppColors.mutedFor(
+                                        Theme.of(context).brightness))),
                           ],
                         ),
                       ),
                       const SizedBox(width: 8),
                       Text(i.$5,
-                          style: const TextStyle(
-                              fontSize: 11, color: AppColors.lightMuted)),
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.mutedFor(
+                                  Theme.of(context).brightness))),
                     ],
                   ),
                 ),

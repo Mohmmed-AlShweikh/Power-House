@@ -263,7 +263,7 @@ class _Label extends StatelessWidget {
       style: Theme.of(context)
           .textTheme
           .titleMedium
-          ?.copyWith(color: AppColors.lightText));
+          ?.copyWith());
 }
 
 class _Field extends StatelessWidget {

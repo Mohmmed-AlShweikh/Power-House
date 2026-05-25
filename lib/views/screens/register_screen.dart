@@ -348,8 +348,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) => Text(
         text,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: AppColors.lightText,
-              fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w600,
             ),
       );
 }

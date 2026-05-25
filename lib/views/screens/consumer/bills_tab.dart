@@ -347,15 +347,16 @@ class _EmptyBills extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 40),
+    final muted = AppColors.mutedFor(Theme.of(context).brightness);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 40),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.receipt_long, size: 52, color: AppColors.lightMuted),
-          SizedBox(height: 12),
+          Icon(Icons.receipt_long, size: 52, color: muted),
+          const SizedBox(height: 12),
           Text('لا توجد فواتير بعد',
-              style: TextStyle(color: AppColors.lightMuted, fontSize: 15)),
+              style: TextStyle(color: muted, fontSize: 15)),
         ],
       ),
     );
@@ -435,8 +436,7 @@ class _BillCard extends StatelessWidget {
                   Text('${bill.month} ${bill.year}',
                       style: const TextStyle(
                           fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.lightText)),
+                          fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
                   Text(
                     statusLabel,
@@ -453,11 +453,13 @@ class _BillCard extends StatelessWidget {
                 style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.lightText)),
+                    )),
             const SizedBox(width: 8),
             Icon(
               isPending ? Icons.upload_file : Icons.chevron_left,
-              color: isPending ? AppColors.primary : AppColors.lightMuted,
+              color: isPending
+                  ? AppColors.primaryFor(Theme.of(context).brightness)
+                  : AppColors.mutedFor(Theme.of(context).brightness),
               size: 18,
             ),
           ],

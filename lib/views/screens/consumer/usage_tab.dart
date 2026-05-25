@@ -109,15 +109,16 @@ class _EmptyUsage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 60),
+    final muted = AppColors.mutedFor(Theme.of(context).brightness);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 60),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.bolt, size: 52, color: AppColors.lightMuted),
-          SizedBox(height: 12),
+          Icon(Icons.bolt, size: 52, color: muted),
+          const SizedBox(height: 12),
           Text('لا توجد بيانات استهلاك بعد',
-              style: TextStyle(color: AppColors.lightMuted, fontSize: 15)),
+              style: TextStyle(color: muted, fontSize: 15)),
         ],
       ),
     );
@@ -169,8 +170,10 @@ class _SummaryCard extends StatelessWidget {
                             color: color),
                         overflow: TextOverflow.ellipsis),
                     Text(label,
-                        style: const TextStyle(
-                            fontSize: 11, color: AppColors.lightMuted)),
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.mutedFor(
+                                Theme.of(context).brightness))),
                   ],
                 ),
               ),
@@ -244,8 +247,10 @@ class _ChartCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(b.month,
-                            style: const TextStyle(
-                                fontSize: 9, color: AppColors.lightMuted)),
+                            style: TextStyle(
+                                fontSize: 9,
+                                color: AppColors.mutedFor(
+                                    Theme.of(context).brightness))),
                       ],
                     ),
                   ),
@@ -287,30 +292,34 @@ class _MonthlyTable extends StatelessWidget {
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(16)),
             ),
-            child: const Row(
-              children: [
-                Expanded(
-                    child: Text('الشهر',
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.lightMuted))),
-                Expanded(
-                    child: Text('الاستهلاك',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.lightMuted))),
-                Expanded(
-                    child: Text('التكلفة',
-                        textAlign: TextAlign.end,
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.lightMuted))),
-              ],
-            ),
+            child: Builder(builder: (context) {
+              final muted =
+                  AppColors.mutedFor(Theme.of(context).brightness);
+              return Row(
+                children: [
+                  Expanded(
+                      child: Text('الشهر',
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: muted))),
+                  Expanded(
+                      child: Text('الاستهلاك',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: muted))),
+                  Expanded(
+                      child: Text('التكلفة',
+                          textAlign: TextAlign.end,
+                          style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: muted))),
+                ],
+              );
+            }),
           ),
           ...display.map((b) => Container(
                 padding: const EdgeInsets.symmetric(

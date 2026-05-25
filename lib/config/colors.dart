@@ -41,4 +41,12 @@ class AppColors {
   /// Returns the correct darker primary blue based on current brightness.
   static Color primaryDarkFor(Brightness b) =>
       b == Brightness.dark ? primaryDarkDM : primaryDark;
+
+  /// Returns the correct muted color based on current brightness.
+  static Color mutedFor(Brightness b) =>
+      b == Brightness.dark ? darkMuted : lightMuted;
+
+  /// Returns the correct body text color based on current brightness.
+  static Color textFor(Brightness b) =>
+      b == Brightness.dark ? darkText : lightText;
 }

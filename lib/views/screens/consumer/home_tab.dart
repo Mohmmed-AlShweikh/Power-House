@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../models/alert_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/data_provider.dart';
@@ -87,14 +88,28 @@ class HomeTab extends ConsumerWidget {
               Consumer(
                 builder: (_, ref, __) {
                   final themeMode = ref.watch(themeProvider);
-                  return IconButton(
-                    icon: Icon(
-                      themeMode == ThemeMode.dark
-                          ? Icons.light_mode
-                          : Icons.dark_mode,
-                      color: Colors.white,
-                    ),
-                    onPressed: () => ref.read(themeProvider.notifier).toggle(),
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          themeMode == ThemeMode.dark
+                              ? Icons.light_mode
+                              : Icons.dark_mode,
+                          color: Colors.white,
+                        ),
+                        onPressed: () =>
+                            ref.read(themeProvider.notifier).toggle(),
+                      ),
+                      IconButton(
+                        tooltip: 'تسجيل الخروج',
+                        icon: const Icon(Icons.logout, color: Colors.white),
+                        onPressed: () async {
+                          await ref.read(authProvider.notifier).signOut();
+                          if (context.mounted) context.go('/login');
+                        },
+                      ),
+                    ],
                   );
                 },
               ),
@@ -254,14 +269,18 @@ class HomeTab extends ConsumerWidget {
                       color: theme.cardTheme.color,
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
                         Icon(Icons.notifications_none,
-                            color: AppColors.lightMuted, size: 20),
-                        SizedBox(width: 10),
+                            color: AppColors.mutedFor(
+                                Theme.of(context).brightness),
+                            size: 20),
+                        const SizedBox(width: 10),
                         Text('لا توجد تنبيهات',
                             style: TextStyle(
-                                fontSize: 13, color: AppColors.lightMuted)),
+                                fontSize: 13,
+                                color: AppColors.mutedFor(
+                                    Theme.of(context).brightness))),
                       ],
                     ),
                   )
@@ -419,8 +438,10 @@ class _StatCard extends StatelessWidget {
                     fontSize: 17, fontWeight: FontWeight.w800, color: color)),
             const SizedBox(height: 2),
             Text(label,
-                style:
-                    const TextStyle(fontSize: 11, color: AppColors.lightMuted)),
+                style: TextStyle(
+                    fontSize: 11,
+                    color:
+                        AppColors.mutedFor(Theme.of(context).brightness))),
           ],
         ),
       ).animate().fadeIn().slideY(begin: 0.2, end: 0, duration: 300.ms),
@@ -513,17 +534,21 @@ class _AlertItem extends StatelessWidget {
                         fontWeight: alert.read
                             ? FontWeight.w600
                             : FontWeight.w700,
-                        color: AppColors.lightText)),
+                        )),
                 const SizedBox(height: 2),
                 Text(alert.body,
-                    style: const TextStyle(
-                        fontSize: 12, color: AppColors.lightMuted)),
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.mutedFor(
+                            Theme.of(context).brightness))),
               ],
             ),
           ),
           Text(_timeAgo(alert.createdAt),
-              style:
-                  const TextStyle(fontSize: 11, color: AppColors.lightMuted)),
+              style: TextStyle(
+                  fontSize: 11,
+                  color:
+                      AppColors.mutedFor(Theme.of(context).brightness))),
         ],
       ),
     ).animate().fadeIn().slideX(begin: 0.1, end: 0, duration: 300.ms);
