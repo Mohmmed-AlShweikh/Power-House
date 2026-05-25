@@ -2708,7 +2708,7 @@ class _AdminProfileTab extends ConsumerWidget {
               colors: [AppColors.primaryDark, AppColors.primary],
             ),
           ),
-          padding: const EdgeInsets.fromLTRB(24, 40, 24, 28),
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 18),
           child: Column(
             children: [
               // Avatar with glow ring
@@ -2725,22 +2725,22 @@ class _AdminProfileTab extends ConsumerWidget {
                   ],
                 ),
                 child: CircleAvatar(
-                  radius: 44,
+                  radius: 34,
                   backgroundColor: Colors.white.withOpacity(0.2),
                   child: Text(initials,
                       style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 36,
+                          fontSize: 28,
                           fontWeight: FontWeight.w700)),
                 ),
               ).animate().scaleXY(begin: 0.85, end: 1, duration: 400.ms, curve: Curves.easeOutBack),
-              const SizedBox(height: 14),
+              const SizedBox(height: 10),
               Text(
                 profile?.name.isNotEmpty == true ? profile!.name : 'صاحب المولد',
                 style: const TextStyle(
                     color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
               ).animate().fadeIn(delay: 100.ms),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -2779,7 +2779,7 @@ class _AdminProfileTab extends ConsumerWidget {
                   ),
                 ],
               ).animate().fadeIn(delay: 150.ms),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
 
               // ── Quick Stats ───────────────────────────────────────────────
               Row(
