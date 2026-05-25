@@ -85,7 +85,9 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
       body: Column(
         children: [
           // Header
-          Container(
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeInOut,
             decoration: BoxDecoration(
               color: AppColors.primaryDarkFor(theme.brightness),
               borderRadius: const BorderRadius.only(
@@ -2700,7 +2702,9 @@ class _AdminProfileTab extends ConsumerWidget {
       padding: EdgeInsets.zero,
       children: [
         // ── Header ────────────────────────────────────────────────────────
-        Container(
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOut,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topRight,

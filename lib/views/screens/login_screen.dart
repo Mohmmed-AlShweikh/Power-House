@@ -151,7 +151,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       body: Column(
         children: [
           // ── Header ───────────────────────────────────────────────────────
-          Container(
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeInOut,
             decoration: BoxDecoration(
               color: AppColors.primaryDarkFor(Theme.of(context).brightness),
               borderRadius: const BorderRadius.only(

@@ -136,7 +136,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     return Scaffold(
       body: Column(
         children: [
-          Container(
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeInOut,
             decoration: BoxDecoration(
               color: AppColors.primaryDarkFor(Theme.of(context).brightness),
               borderRadius: const BorderRadius.only(

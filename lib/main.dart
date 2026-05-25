@@ -56,6 +56,8 @@ class GeneratorPortalApp extends ConsumerWidget {
       themeMode: themeMode,
       theme: buildLightTheme(),
       darkTheme: buildDarkTheme(),
+      themeAnimationDuration: const Duration(milliseconds: 600),
+      themeAnimationCurve: Curves.easeInOut,
       routerConfig: router,
       builder: (context, child) => Directionality(
         textDirection: TextDirection.rtl,
