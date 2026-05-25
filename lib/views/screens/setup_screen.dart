@@ -57,9 +57,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         children: [
           // Header
           Container(
-            decoration: const BoxDecoration(
-              color: AppColors.primaryDark,
-              borderRadius: BorderRadius.only(
+            decoration: BoxDecoration(
+              color: AppColors.primaryDarkFor(Theme.of(context).brightness),
+              borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(28),
                 bottomRight: Radius.circular(28),
               ),

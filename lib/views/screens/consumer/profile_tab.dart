@@ -31,7 +31,6 @@ class ProfileTab extends ConsumerWidget {
           SliverAppBar(
             expandedHeight: 220,
             pinned: true,
-            backgroundColor: AppColors.primaryDark,
             automaticallyImplyLeading: false,
             actions: [
               IconButton(
@@ -51,11 +50,14 @@ class ProfileTab extends ConsumerWidget {
             ],
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topRight,
                     end: Alignment.bottomLeft,
-                    colors: [AppColors.primaryDark, AppColors.primary],
+                    colors: [
+                      AppColors.primaryDarkFor(Theme.of(context).brightness),
+                      AppColors.primaryFor(Theme.of(context).brightness),
+                    ],
                   ),
                 ),
                 child: SafeArea(

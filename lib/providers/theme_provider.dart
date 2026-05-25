@@ -104,7 +104,7 @@ ThemeData buildDarkTheme() {
     useMaterial3: true,
     brightness: Brightness.dark,
     colorScheme: const ColorScheme.dark(
-      primary: AppColors.primary,
+      primary: AppColors.primaryDM,
       secondary: AppColors.accent,
       surface: AppColors.darkSurface,
       background: AppColors.darkBackground,
@@ -122,7 +122,7 @@ ThemeData buildDarkTheme() {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     ),
     appBarTheme: const AppBarTheme(
-      backgroundColor: AppColors.primaryDark,
+      backgroundColor: AppColors.primaryDarkDM,
       foregroundColor: Colors.white,
       elevation: 0,
       centerTitle: true,
@@ -130,7 +130,7 @@ ThemeData buildDarkTheme() {
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.primaryDM,
         foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         minimumSize: const Size(double.infinity, 52),
@@ -151,7 +151,7 @@ ThemeData buildDarkTheme() {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        borderSide: const BorderSide(color: AppColors.primaryDM, width: 2),
       ),
     ),
     textTheme: const TextTheme(

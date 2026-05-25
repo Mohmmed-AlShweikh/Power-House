@@ -27,7 +27,6 @@ class SubscriberDetailsScreen extends ConsumerWidget {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: AppColors.primaryDark,
           foregroundColor: Colors.white,
           elevation: 0,
           title: Text(

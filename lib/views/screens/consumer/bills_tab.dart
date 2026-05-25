@@ -24,7 +24,6 @@ class BillsTab extends ConsumerWidget {
         slivers: [
           SliverAppBar(
             pinned: true,
-            backgroundColor: AppColors.primaryDark,
             automaticallyImplyLeading: false,
             title: Text('الفواتير',
                 style: theme.textTheme.titleLarge
@@ -87,8 +86,11 @@ class _PendingBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-            colors: [AppColors.primaryDark, AppColors.primary]),
+        gradient: LinearGradient(
+            colors: [
+              AppColors.primaryDarkFor(Theme.of(context).brightness),
+              AppColors.primaryFor(Theme.of(context).brightness),
+            ]),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(

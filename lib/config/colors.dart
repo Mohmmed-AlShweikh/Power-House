@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
+
 class AppColors {
-  // Primary palette
-  static const primary    = Color(0xFF1E56A0);
+  // Primary palette — light mode (deep navy)
+  static const primary     = Color(0xFF1E56A0);
   static const primaryDark = Color(0xFF1E3A6E);
+
+  // Primary palette — dark mode (bright blue)
+  static const primaryDM     = Color(0xFF3B82F6);
+  static const primaryDarkDM = Color(0xFF2563EB);
+
   static const accent     = Color(0xFF22C55E);
   static const accentDark = Color(0xFF16A34A);
 
@@ -27,4 +33,12 @@ class AppColors {
   static const darkMuted      = Color(0xFF94A3B8);
   static const darkText       = Color(0xFFF1F5F9);
   static const darkTextSecondary = Color(0xFFCBD5E1);
+
+  /// Returns the correct primary blue based on current brightness.
+  static Color primaryFor(Brightness b) =>
+      b == Brightness.dark ? primaryDM : primary;
+
+  /// Returns the correct darker primary blue based on current brightness.
+  static Color primaryDarkFor(Brightness b) =>
+      b == Brightness.dark ? primaryDarkDM : primaryDark;
 }

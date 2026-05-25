@@ -21,7 +21,6 @@ class UsageTab extends ConsumerWidget {
         slivers: [
           SliverAppBar(
             pinned: true,
-            backgroundColor: AppColors.primaryDark,
             automaticallyImplyLeading: false,
             title: Text('الاستهلاك',
                 style: theme.textTheme.titleLarge

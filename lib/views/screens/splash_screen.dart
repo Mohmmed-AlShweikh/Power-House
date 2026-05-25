@@ -41,7 +41,7 @@ class _SplashScreenState extends State<SplashScreen>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: isDark
-                ? [AppColors.primaryDark, AppColors.darkBackground]
+                ? [AppColors.primaryDarkDM, AppColors.darkBackground]
                 : [AppColors.primaryDark, AppColors.primary],
           ),
         ),

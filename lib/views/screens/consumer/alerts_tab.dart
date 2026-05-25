@@ -27,7 +27,6 @@ class AlertsTab extends ConsumerWidget {
         slivers: [
           SliverAppBar(
             pinned: true,
-            backgroundColor: AppColors.primaryDark,
             automaticallyImplyLeading: false,
             title: Row(
               children: [

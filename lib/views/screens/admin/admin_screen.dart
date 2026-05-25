@@ -86,9 +86,9 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
         children: [
           // Header
           Container(
-            decoration: const BoxDecoration(
-              color: AppColors.primaryDark,
-              borderRadius: BorderRadius.only(
+            decoration: BoxDecoration(
+              color: AppColors.primaryDarkFor(theme.brightness),
+              borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(24),
                 bottomRight: Radius.circular(24),
               ),
@@ -2701,11 +2701,14 @@ class _AdminProfileTab extends ConsumerWidget {
       children: [
         // ── Header ────────────────────────────────────────────────────────
         Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topRight,
               end: Alignment.bottomLeft,
-              colors: [AppColors.primaryDark, AppColors.primary],
+              colors: [
+                AppColors.primaryDarkFor(theme.brightness),
+                AppColors.primaryFor(theme.brightness),
+              ],
             ),
           ),
           padding: const EdgeInsets.fromLTRB(24, 20, 24, 18),

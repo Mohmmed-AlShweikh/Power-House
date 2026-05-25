@@ -82,7 +82,6 @@ class HomeTab extends ConsumerWidget {
           SliverAppBar(
             expandedHeight: 160,
             pinned: true,
-            backgroundColor: AppColors.primaryDark,
             automaticallyImplyLeading: false,
             actions: [
               Consumer(
@@ -102,11 +101,14 @@ class HomeTab extends ConsumerWidget {
             ],
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topRight,
                     end: Alignment.bottomLeft,
-                    colors: [AppColors.primaryDark, AppColors.primary],
+                    colors: [
+                      AppColors.primaryDarkFor(Theme.of(context).brightness),
+                      AppColors.primaryFor(Theme.of(context).brightness),
+                    ],
                   ),
                 ),
                 padding: const EdgeInsets.fromLTRB(20, 60, 20, 16),
