@@ -130,65 +130,86 @@ class HomeTab extends ConsumerWidget {
                     ],
                   ),
                 ),
-                padding: const EdgeInsets.fromLTRB(20, 60, 20, 16),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text(
-                          (profile?.name.isNotEmpty == true)
-                              ? profile!.name[0].toUpperCase()
-                              : '؟',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 48, 20, 16),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Text('مرحباً، ${profile?.name ?? 'زائر'}! 👋',
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700)),
-                        Text(profile?.address ?? '',
-                            style: const TextStyle(
-                                color: Colors.white60, fontSize: 13)),
-                      ],
-                    ),
-                    const Spacer(),
-                    Stack(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.notifications_outlined,
-                              color: Colors.white),
-                          onPressed: onNotificationTap,
-                        ),
-                        if (unreadCount > 0)
-                          Positioned(
-                            top: 8,
-                            left: 8,
-                            child: Container(
-                              width: 9,
-                              height: 9,
-                              decoration: const BoxDecoration(
-                                  color: AppColors.error,
-                                  shape: BoxShape.circle),
+                        // Avatar
+                        Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.18),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                                color: Colors.white.withOpacity(0.35),
+                                width: 1.5),
+                          ),
+                          child: Center(
+                            child: Text(
+                              (profile?.name.isNotEmpty == true)
+                                  ? profile!.name[0]
+                                  : '؟',
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700),
                             ),
                           ),
+                        ),
+                        const SizedBox(width: 14),
+                        // Greeting
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _greeting(),
+                                style: TextStyle(
+                                    color: Colors.white.withOpacity(0.75),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                profile?.name ?? 'زائر',
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w800,
+                                    height: 1.2),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if ((profile?.address ?? '').isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 3),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.location_on,
+                                          size: 11,
+                                          color: Colors.white.withOpacity(0.6)),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        profile!.address,
+                                        style: TextStyle(
+                                            color:
+                                                Colors.white.withOpacity(0.65),
+                                            fontSize: 12),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -302,6 +323,14 @@ class HomeTab extends ConsumerWidget {
       ),
     );
   }
+}
+
+String _greeting() {
+  final h = DateTime.now().hour;
+  if (h >= 5 && h < 12) return 'صباح الخير 🌤';
+  if (h >= 12 && h < 17) return 'مساء النور 🌞';
+  if (h >= 17 && h < 21) return 'مساء الخير 🌆';
+  return 'تصبح على خير 🌙';
 }
 
 class _GeneratorStatusCard extends StatelessWidget {
