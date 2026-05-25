@@ -4,6 +4,7 @@ const path = require('path');
 
 const PORT = 5000;
 const WEB_DIR = path.join(__dirname, 'build', 'web');
+const STATIC_DIR = path.join(__dirname, 'web');
 
 const MIME = {
   '.html': 'text/html',
@@ -22,6 +23,23 @@ const MIME = {
 
 http.createServer((req, res) => {
   let urlPath = req.url.split('?')[0];
+
+  // Portfolio page
+  if (urlPath === '/portfolio' || urlPath === '/portfolio.html') {
+    const portfolioPath = path.join(STATIC_DIR, 'portfolio.html');
+    fs.readFile(portfolioPath, (err, data) => {
+      if (err) {
+        res.writeHead(404); res.end('Not found'); return;
+      }
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      });
+      res.end(data);
+    });
+    return;
+  }
+
   if (urlPath === '/') urlPath = '/index.html';
 
   const filePath = path.join(WEB_DIR, urlPath);

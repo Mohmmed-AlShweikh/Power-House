@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>بوابة المولدات — Generator Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1E3A6E;
+      --primary-light: #2B5AA0;
+      --accent: #2E7D32;
+      --accent-light: #4CAF50;
+      --bg: #0F172A;
+      --card: #1E293B;
+      --text: #F8FAFC;
+      --text-muted: #94A3B8;
+      --border: #334155;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* Hero */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 40px 20px;
+      background:
+        radial-gradient(ellipse at 20% 80%, rgba(30,58,110,0.4) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(46,125,50,0.15) 0%, transparent 50%),
+        var(--bg);
+      position: relative;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50%; left: -50%;
+      width: 200%; height: 200%;
+      background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 40px,
+        rgba(30,58,110,0.03) 40px,
+        rgba(30,58,110,0.03) 41px
+      );
+      animation: grain 8s linear infinite;
+      pointer-events: none;
+    }
+    @keyframes grain {
+      0% { transform: translate(0,0); }
+      100% { transform: translate(40px,40px); }
+    }
+    .hero-content { position: relative; z-index: 1; max-width: 720px; }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border-radius: 100px;
+      background: rgba(30,58,110,0.3);
+      border: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+    }
+    .hero-badge span { color: var(--accent-light); font-weight: 700; }
+    .hero-icon {
+      width: 88px; height: 88px;
+      margin: 0 auto 24px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 20px 60px rgba(30,58,110,0.4);
+    }
+    .hero-icon svg { width: 44px; height: 44px; }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 900;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+    .hero h1 span { color: var(--primary-light); }
+    .hero-sub {
+      font-size: clamp(1rem, 2.5vw, 1.25rem);
+      color: var(--text-muted);
+      margin-bottom: 36px;
+      max-width: 520px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .hero-cta {
+      display: inline-flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .btn {
+      padding: 14px 32px;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      color: white;
+      box-shadow: 0 8px 30px rgba(30,58,110,0.35);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(30,58,110,0.5); }
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1.5px solid var(--border);
+    }
+    .btn-outline:hover { border-color: var(--primary-light); background: rgba(30,58,110,0.1); }
+
+    /* Sections */
+    section { padding: 80px 20px; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    .section-header { text-align: center; margin-bottom: 56px; }
+    .section-header h2 {
+      font-size: clamp(1.5rem, 4vw, 2.2rem);
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+    .section-header p { color: var(--text-muted); font-size: 1.05rem; max-width: 560px; margin: 0 auto; }
+
+    /* Roles */
+    .roles-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+    .role-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .role-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .role-card:hover::before { opacity: 1; }
+    .role-card:hover { transform: translateY(-4px); border-color: var(--primary-light); }
+    .role-icon {
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+    .role-card h3 { font-size: 1.3rem; font-weight: 800; margin-bottom: 8px; }
+    .role-card p { color: var(--text-muted); font-size: 14px; margin-bottom: 16px; }
+    .role-card ul { list-style: none; }
+    .role-card ul li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      font-size: 14px;
+      color: var(--text-muted);
+      border-bottom: 1px solid rgba(51,65,85,0.4);
+    }
+    .role-card ul li:last-child { border-bottom: none; }
+    .role-card ul li::before {
+      content: '✓';
+      color: var(--accent-light);
+      font-weight: 700;
+      font-size: 12px;
+      min-width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(76,175,80,0.12);
+      border-radius: 50%;
+    }
+
+    /* Features */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+    }
+    .feature {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      text-align: center;
+      transition: all 0.3s;
+    }
+    .feature:hover { border-color: var(--primary-light); transform: translateY(-3px); }
+    .feature-icon {
+      width: 56px; height: 56px;
+      border-radius: 16px;
+      background: rgba(30,58,110,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 26px;
+    }
+    .feature h4 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+    .feature p { font-size: 13px; color: var(--text-muted); }
+
+    /* Screenshots */
+    .screenshots {
+      display: flex;
+      gap: 20px;
+      overflow-x: auto;
+      padding: 20px 0;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+    }
+    .screenshots::-webkit-scrollbar { height: 6px; }
+    .screenshots::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .phone-mockup {
+      flex: 0 0 260px;
+      scroll-snap-align: center;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 32px;
+      padding: 10px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .phone-screen {
+      background: var(--bg);
+      border-radius: 24px;
+      overflow: hidden;
+      aspect-ratio: 9/19;
+      position: relative;
+    }
+    .phone-screen img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .phone-label {
+      text-align: center;
+      margin-top: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    /* Tech Stack */
+    .tech-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+    }
+    .tech-pill {
+      padding: 10px 20px;
+      border-radius: 10px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      transition: all 0.2s;
+    }
+    .tech-pill:hover { border-color: var(--primary-light); color: var(--text); }
+
+    /* Footer */
+    footer {
+      padding: 40px 20px;
+      text-align: center;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    footer a { color: var(--primary-light); text-decoration: none; }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      section { padding: 50px 16px; }
+      .role-card { padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <section class="hero">
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span>Flutter · Firebase</span> — تطبيق ويب وموبايل كامل
+      </div>
+      <div class="hero-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+        </svg>
+      </div>
+      <h1>بوابة <span>المولدات</span></h1>
+      <p class="hero-sub">نظام ذكي لإدارة اشتراكات المولدات الخاصة، متابعة الفواتير، والشكاوى بين المشتركين وأصحاب المولدات.</p>
+      <div class="hero-cta">
+        <a href="/" class="btn btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          جرّب التطبيق
+        </a>
+        <a href="#features" class="btn btn-outline">استكشاف الميزات</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="container">
+      <div class="section-header">
+        <h2>ميزات التطبيق</h2>
+        <p>حلول شاملة لتحويل إدارة الفواتير والاشتراكات للمولدات الخاصة</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature">
+          <div class="feature-icon">📱</div>
+          <h4>ويب وموبايل</h4>
+          <p>يعمل على الويب وأندرويد وiOS بتجربة متكاملة</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">🔗</div>
+          <h4>تسجيل دخول</h4>
+          <p>برقم الهوية وكلمة مرور مع نظام تصاريح آمن</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">📋</div>
+          <h4>فواتير آلية</h4>
+          <p>إصدار الفواتير ومتابعتها ورفع إيصالات الدفع</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">📊</div>
+          <h4>تتابع الاستهلاك</h4>
+          <p>رصد الكيلووات المستهلكة والاستهلاك اليومي لكل مشترك</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">📢</div>
+          <h4>إشعارات فورية</h4>
+          <p>إشعارات فورية داخلية وتنبيهات للفواتير الجديدة والشكاوى</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">🎭</div>
+          <h4>تحكم بالأدوار</h4>
+          <p>ثلاثة أدوار مختلفة: مشرف عام ، صاحب مولد ، مستهلك</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="roles">
+    <div class="container">
+      <div class="section-header">
+        <h2>الأدوار والصلاحيات</h2>
+        <p>كل دور له صلاحيات وإذن مخصص تسهل إدارته للمولد</p>
+      </div>
+      <div class="roles-grid">
+        <div class="role-card">
+          <div class="role-icon" style="background:rgba(76,175,80,0.12);">👤</div>
+          <h3>المشترك</h3>
+          <p>يستطيع رؤية الفواتير ودفعها ورفع الإيصالات وتقديم الشكاوى</p>
+          <ul>
+            <li>متابعة الفواتير المستحقة</li>
+            <li>رفع إيصال الدفع بصورة</li>
+            <li>رصد الاستهلاك اليومي</li>
+            <li>تقديم شكوى إلى الإدارة</li>
+            <li>الإشعارات والتنبيهات</li>
+          </ul>
+        </div>
+        <div class="role-card">
+          <div class="role-icon" style="background:rgba(30,58,110,0.2);">⚡</div>
+          <h3>صاحب المولد</h3>
+          <p>يدير المشتركين والفواتير ويراجع الإيصالات ويحل الشكاوى</p>
+          <ul>
+            <li>إدارة قائمة المشتركين</li>
+            <li>إصدار فواتير جديدة</li>
+            <li>مراجعة إيصالات الدفع</li>
+            <li>المتابعة الحيوية للشكاوى</li>
+            <li>إرسال إشعارات للمشتركين</li>
+          </ul>
+        </div>
+        <div class="role-card">
+          <div class="role-icon" style="background:rgba(156,39,176,0.15);">👑</div>
+          <h3>المشرف العام</h3>
+          <p>يراقب صاحبي المولدات ويوافق على تسجيلاتهم ويدير النظام بأسره</p>
+          <ul>
+            <li>مراجعة تسجيلات المولدات</li>
+            <li>الموافقة أو الرفض على الطلبات</li>
+            <li>المتابعة الحيوية للطلبات</li>
+            <li>إدارة النظام بشكل كامل</li>
+            <li>إشعارات فورية للمسجلين</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="screenshots">
+    <div class="container">
+      <div class="section-header">
+        <h2>لقطات التطبيق</h2>
+        <p>واجهات رئيسية من التطبيق على الويب والموبايل</p>
+      </div>
+      <div class="screenshots">
+        <div class="phone-mockup">
+          <div class="phone-screen">
+            <div style="width:100%;height:100%;background:linear-gradient(180deg,#1a237e 0%,#0d47a1 50%,#1565c0 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;">
+              <div style="width:60px;height:60px;background:rgba(255,255,255,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:20px;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              </div>
+              <div style="color:white;font-size:18px;font-weight:800;margin-bottom:6px;">بوابة المولدات</div>
+              <div style="color:rgba(255,255,255,0.6);font-size:11px;">Generator Portal</div>
+              <div style="position:absolute;bottom:40px;width:28px;height:28px;border:2px solid rgba(255,255,255,0.5);border-top-color:white;border-radius:50%;animation:spin 1s linear infinite;"></div>
+            </div>
+          </div>
+          <div class="phone-label">شاشة البدء</div>
+        </div>
+        <div class="phone-mockup">
+          <div class="phone-screen">
+            <div style="width:100%;height:100%;background:linear-gradient(180deg,#1a237e 0%,#1e3a6e 40%,#f8fafc 40%,#f8fafc 100%);">
+              <div style="padding:50px 20px 20px;color:white;">
+                <div style="font-size:16px;font-weight:700;margin-bottom:4px;">مرحباً، أحمد!</div>
+                <div style="font-size:12px;opacity:0.7;">النصر</div>
+              </div>
+              <div style="padding:16px;">
+                <div style="background:white;border-radius:16px;padding:16px;box-shadow:0 4px 20px rgba(0,0,0,0.08);margin-bottom:12px;">
+                  <div style="font-size:13px;font-weight:700;color:#1e3a6e;margin-bottom:8px;">الفواتير</div>
+                  <div style="display:flex;gap:8px;">
+                    <div style="flex:1;background:#e8f5e9;border-radius:10px;padding:12px;text-align:center;">
+                      <div style="font-size:20px;font-weight:800;color:#2e7d32;">2</div>
+                      <div style="font-size:10px;color:#666;">مدفوعة</div>
+                    </div>
+                    <div style="flex:1;background:#fff3e0;border-radius:10px;padding:12px;text-align:center;">
+                      <div style="font-size:20px;font-weight:800;color:#ef6c00;">1</div>
+                      <div style="font-size:10px;color:#666;">معلقة</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="phone-label">لوحة المستخدم</div>
+        </div>
+        <div class="phone-mockup">
+          <div class="phone-screen">
+            <div style="width:100%;height:100%;background:#f8fafc;padding-top:20px;">
+              <div style="background:linear-gradient(135deg,#1a237e,#0d47a1);margin:16px;border-radius:16px;padding:16px;color:white;">
+                <div style="font-size:13px;font-weight:700;margin-bottom:4px;">فاتورة يوليو 2026 غير مدفوعة</div>
+                <div style="font-size:11px;opacity:0.8;margin-bottom:12px;">المبلغ المستحق: ₪ 350</div>
+                <div style="display:inline-block;background:#4caf50;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;">ارسال وصل</div>
+              </div>
+              <div style="padding:0 16px;">
+                <div style="font-size:13px;font-weight:700;color:#1e3a6e;margin-bottom:12px;">سجل الفواتير</div>
+                <div style="background:white;border-radius:12px;padding:14px;margin-bottom:8px;display:flex;align-items:center;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+                  <div style="width:36px;height:36px;background:#e8f5e9;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-left:12px;">🟢
+                  </div>
+                  <div style="flex:1;">
+                    <div style="font-size:12px;font-weight:600;">يونيو 2026</div>
+                    <div style="font-size:10px;color:#4caf50;">مدفوعة</div>
+                  </div>
+                  <div style="font-size:14px;font-weight:800;">₪350</div>
+                </div>
+                <div style="background:white;border-radius:12px;padding:14px;display:flex;align-items:center;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+                  <div style="width:36px;height:36px;background:#ffebee;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-left:12px;">🔴
+                  </div>
+                  <div style="flex:1;">
+                    <div style="font-size:12px;font-weight:600;">مايو 2026</div>
+                    <div style="font-size:10px;color:#c62828;">غير مدفوعة</div>
+                  </div>
+                  <div style="font-size:14px;font-weight:800;">₪420</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="phone-label">الفواتير والدفع</div>
+        </div>
+        <div class="phone-mockup">
+          <div class="phone-screen">
+            <div style="width:100%;height:100%;background:#f8fafc;">
+              <div style="padding:16px;padding-top:40px;">
+                <div style="font-size:16px;font-weight:800;color:#1e3a6e;margin-bottom:16px;text-align:center;">تقديم شكوى</div>
+                <div style="background:white;border-radius:16px;padding:20px;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+                  <div style="font-size:12px;color:#666;margin-bottom:8px;">نوع الشكوى</div>
+                  <div style="background:#f1f5f9;border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px;color:#334155;">انقطاع كهربائي — مشكلة في التوصيل</div>
+                  <div style="font-size:12px;color:#666;margin-bottom:8px;">وصف المشكلة</div>
+                  <div style="background:#f1f5f9;border-radius:10px;padding:12px;margin-bottom:20px;font-size:13px;color:#334155;height:80px;">هناك انقطاع خفيف في التوصيل الكهربائي من ذو أمس...</div>
+                  <div style="background:#1e3a6e;color:white;text-align:center;padding:12px;border-radius:10px;font-size:14px;font-weight:700;">إرسال الشكوى</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="phone-label">الشكاوى</div>
+        </div>
+        <div class="phone-mockup">
+          <div class="phone-screen">
+            <div style="width:100%;height:100%;background:#f8fafc;">
+              <div style="padding:16px;padding-top:40px;">
+                <div style="text-align:center;margin-bottom:24px;">
+                  <div style="width:70px;height:70px;background:linear-gradient(135deg,#1a237e,#0d47a1);border-radius:50%;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;color:white;font-size:28px;font-weight:800;">أ</div>
+                  <div style="font-size:16px;font-weight:800;color:#1e3a6e;">أحمد النصر</div>
+                  <div style="font-size:12px;color:#666;">مستهلك</div>
+                </div>
+                <div style="background:white;border-radius:16px;padding:16px;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+                  <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f1f5f9;">
+                    <span style="font-size:12px;color:#666;">رقم الهاتف</span>
+                    <span style="font-size:13px;font-weight:600;">0599123456</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f1f5f9;">
+                    <span style="font-size:12px;color:#666;">العنوان</span>
+                    <span style="font-size:13px;font-weight:600;">رام الله</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;padding:10px 0;">
+                    <span style="font-size:12px;color:#666;">تاريخ التسجيل</span>
+                    <span style="font-size:13px;font-weight:600;">2026/01/15</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="phone-label">الملف الشخصي</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tech">
+    <div class="container">
+      <div class="section-header">
+        <h2>التقنيات المستخدمة</h2>
+        <p>بنيت التطبيق بأحدث التقنيات لأداء سريع وآمن</p>
+      </div>
+      <div class="tech-row">
+        <div class="tech-pill">Flutter 3.x</div>
+        <div class="tech-pill">Dart</div>
+        <div class="tech-pill">Firebase Auth</div>
+        <div class="tech-pill">Cloud Firestore</div>
+        <div class="tech-pill">Riverpod</div>
+        <div class="tech-pill">Go Router</div>
+        <div class="tech-pill">Shared Preferences</div>
+        <div class="tech-pill">Local Notifications</div>
+        <div class="tech-pill">Image Picker</div>
+        <div class="tech-pill">Material Design 3</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>بوابة المولدات — Generator Portal · <a href="/">افتح التطبيق</a></p>
+    <p style="margin-top:6px;opacity:0.6;">تطبيق Flutter متكامل لإدارة اشتراكات المولدات الخاصة</p>
+  </footer>
+
+</body>
+</html>
