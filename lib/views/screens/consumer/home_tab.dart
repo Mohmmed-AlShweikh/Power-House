@@ -7,6 +7,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../providers/data_provider.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../config/colors.dart';
+import '../../widgets/notification_bell.dart';
 
 class HomeTab extends ConsumerWidget {
   final VoidCallback? onNotificationTap;
@@ -101,6 +102,7 @@ class HomeTab extends ConsumerWidget {
                         onPressed: () =>
                             ref.read(themeProvider.notifier).toggle(),
                       ),
+                      const NotificationBell(),
                       IconButton(
                         tooltip: 'تسجيل الخروج',
                         icon: const Icon(Icons.logout, color: Colors.white),

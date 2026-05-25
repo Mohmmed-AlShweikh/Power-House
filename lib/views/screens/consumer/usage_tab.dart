@@ -6,6 +6,7 @@ import '../../../models/bill_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/data_provider.dart';
 import '../../../config/colors.dart';
+import '../../widgets/notification_bell.dart';
 
 enum _Period { daily, weekly, monthly }
 
@@ -69,6 +70,7 @@ class _UsageTabState extends ConsumerState<UsageTab>
                     .textTheme
                     .titleLarge
                     ?.copyWith(color: Colors.white)),
+            actions: const [NotificationBell()],
           ),
           SliverToBoxAdapter(
             child: billsAsync.when(

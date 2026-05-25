@@ -8,6 +8,7 @@ import '../../../providers/data_provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../services/firebase_service.dart';
 import '../../../config/colors.dart';
+import '../../widgets/notification_bell.dart';
 
 class BillsTab extends ConsumerWidget {
   const BillsTab({super.key});
@@ -28,6 +29,7 @@ class BillsTab extends ConsumerWidget {
             title: Text('الفواتير',
                 style: theme.textTheme.titleLarge
                     ?.copyWith(color: Colors.white)),
+            actions: const [NotificationBell()],
           ),
           SliverPadding(
             padding: const EdgeInsets.all(16),

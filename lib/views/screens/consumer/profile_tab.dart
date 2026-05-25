@@ -11,6 +11,7 @@ import '../../../models/complaint_model.dart';
 import '../../../services/firebase_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../config/colors.dart';
+import '../../widgets/notification_bell.dart';
 
 class ProfileTab extends ConsumerWidget {
   const ProfileTab({super.key});
@@ -33,6 +34,7 @@ class ProfileTab extends ConsumerWidget {
             pinned: true,
             automaticallyImplyLeading: false,
             actions: [
+              const NotificationBell(),
               IconButton(
                 tooltip: isDark ? 'وضع النهار' : 'وضع الليل',
                 icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode,
