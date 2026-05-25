@@ -36,5 +36,5 @@ externalPort = 80
 
 [deployment]
 deploymentTarget = "static"
-build = ["flutter", "build", "web", "--release"]
+build = ["bash", "-c", "flutter pub get && flutter build web --release"]
 publicDir = "build/web"
