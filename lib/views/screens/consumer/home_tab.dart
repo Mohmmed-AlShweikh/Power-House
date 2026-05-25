@@ -10,8 +10,7 @@ import '../../../config/colors.dart';
 import '../../widgets/notification_bell.dart';
 
 class HomeTab extends ConsumerWidget {
-  final VoidCallback? onNotificationTap;
-  const HomeTab({super.key, this.onNotificationTap});
+  const HomeTab({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
