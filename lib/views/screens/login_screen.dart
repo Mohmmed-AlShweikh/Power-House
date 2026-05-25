@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../config/colors.dart';
 
@@ -129,20 +128,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  Future<void> _demoLogin(UserRole role) async {
-    await ref.read(authProvider.notifier).demoLogin(role);
-    final path = switch (role) {
-      UserRole.superAdmin => '/super_admin',
-      UserRole.admin => '/admin',
-      _ => '/consumer',
-    };
-    context.go(path);
-  }
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     // Show error from provider (e.g. after status check redirect)
     final providerError = ref.watch(authProvider).error;
     final displayError = _errorMsg ?? providerError;
@@ -360,68 +347,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
 
                   const SizedBox(height: 20),
-
-                  // ── Demo Section ─────────────────────────────────────────
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.06),
-                      borderRadius: BorderRadius.circular(16),
-                      border:
-                          Border.all(color: AppColors.primary.withOpacity(0.2)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Text('🎭', style: TextStyle(fontSize: 16)),
-                            const SizedBox(width: 8),
-                            const Text('وضع المعاينة',
-                                style: TextStyle(
-                                    color: AppColors.primary,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700)),
-                            const Spacer(),
-                            Text('بدون Firebase',
-                                style: TextStyle(
-                                    color: AppColors.primary.withOpacity(0.6),
-                                    fontSize: 11)),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            _DemoBtn(
-                              label: 'مستخدم',
-                              icon: Icons.person,
-                              color: AppColors.success,
-                              onTap: () async =>
-                                  await _demoLogin(UserRole.consumer),
-                            ),
-                            const SizedBox(width: 8),
-                            _DemoBtn(
-                              label: 'صاحب مولد',
-                              icon: Icons.bolt,
-                              color: AppColors.primary,
-                              onTap: () async =>
-                                  await _demoLogin(UserRole.admin),
-                            ),
-                            const SizedBox(width: 8),
-                            _DemoBtn(
-                              label: 'مشرف عام',
-                              icon: Icons.admin_panel_settings,
-                              color: const Color(0xFF9c27b0),
-                              onTap: () async =>
-                                  await _demoLogin(UserRole.superAdmin),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ).animate().fadeIn(delay: 400.ms),
-
-                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -490,41 +415,3 @@ class _Label extends StatelessWidget {
   }
 }
 
-class _DemoBtn extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-  const _DemoBtn(
-      {required this.label,
-      required this.icon,
-      required this.color,
-      required this.onTap});
-
-  @override
-  Widget build(BuildContext context) => Expanded(
-        child: GestureDetector(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: color.withOpacity(0.3)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 20, color: color),
-                const SizedBox(height: 4),
-                Text(label,
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: color)),
-              ],
-            ),
-          ),
-        ),
-      );
-}
