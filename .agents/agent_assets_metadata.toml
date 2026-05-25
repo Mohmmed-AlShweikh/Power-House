@@ -1,0 +1,20 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "6xB6ZSd9Wo5lU-uYESxaH"
+uri = "file://attached_assets/promo_square.png"
+type = "image"
+title = "promo square instagram"
+
+[[generated]]
+id = "HVoCkXNPqo4EZ_uqDgm6u"
+uri = "file://attached_assets/promo_story.png"
+type = "image"
+title = "promo story vertical"
+
+[[generated]]
+id = "T62Hft4PGshSgCd-Y0C3U"
+uri = "file://attached_assets/promo_banner.png"
+type = "image"
+title = "promo banner wide"
