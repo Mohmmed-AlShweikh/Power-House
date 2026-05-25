@@ -172,6 +172,15 @@ class FirebaseService {
     });
   }
 
+  // Reply to complaint and mark as resolved
+  Future<void> replyToComplaint(String complaintId, String replyText) async {
+    await _db.collection('complaints').doc(complaintId).update({
+      'status': 'resolved',
+      'reply': replyText,
+      'replyAt': DateTime.now().millisecondsSinceEpoch,
+    });
+  }
+
   // Create bill (legacy — single document)
   Future<void> createBill(String userId, String month, int year, int amount,
       double kwh) async {

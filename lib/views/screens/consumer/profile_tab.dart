@@ -4,8 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/data_provider.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../models/user_model.dart';
+import '../../../models/complaint_model.dart';
+import '../../../services/firebase_service.dart';
+import '../../../services/notification_service.dart';
 import '../../../config/colors.dart';
 
 class ProfileTab extends ConsumerWidget {
@@ -114,6 +118,19 @@ class ProfileTab extends ConsumerWidget {
                     await ref.read(authProvider.notifier).signOut();
                     if (context.mounted) context.go('/login');
                   }),
+                ]),
+                const SizedBox(height: 16),
+                _SettingsGroup(title: 'الدعم', items: [
+                  _SettingsItem(
+                      Icons.report_problem_outlined,
+                      'إرسال شكوى',
+                      AppColors.error,
+                      () => _showComplaintSheet(context, ref)),
+                  _SettingsItem(
+                      Icons.history_outlined,
+                      'شكاواي',
+                      AppColors.primary,
+                      () => _showMyComplaintsSheet(context, ref)),
                 ]),
                 const SizedBox(height: 20),
                 Center(
@@ -244,6 +261,33 @@ class ProfileTab extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => const _HelpSheet(),
+    );
+  }
+
+  void _showComplaintSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (_) => ProviderScope(
+        parent: ProviderScope.containerOf(context),
+        child: const _ComplaintSheet(),
+      ),
+    );
+  }
+
+  void _showMyComplaintsSheet(BuildContext context, WidgetRef ref) {
+    final uid = ref.read(authProvider).profile?.uid ?? '';
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (_) => ProviderScope(
+        parent: ProviderScope.containerOf(context),
+        child: _MyComplaintsSheet(uid: uid),
+      ),
     );
   }
 }
@@ -807,4 +851,346 @@ class _SettingsItem {
   final Color color;
   final VoidCallback onTap;
   const _SettingsItem(this.icon, this.label, this.color, this.onTap);
+}
+
+// ── Complaint Submission Sheet ────────────────────────────────────────────────
+
+class _ComplaintSheet extends ConsumerStatefulWidget {
+  const _ComplaintSheet();
+
+  @override
+  ConsumerState<_ComplaintSheet> createState() => _ComplaintSheetState();
+}
+
+class _ComplaintSheetState extends ConsumerState<_ComplaintSheet> {
+  final _ctrl = TextEditingController();
+  bool _loading = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final text = _ctrl.text.trim();
+    if (text.isEmpty) {
+      setState(() => _error = 'يرجى كتابة نص الشكوى');
+      return;
+    }
+    setState(() { _loading = true; _error = null; });
+    try {
+      final profile = ref.read(authProvider).profile;
+      if (profile == null) throw Exception('no profile');
+      await FirebaseService().addComplaint(profile.uid, profile.name, text);
+      await NotificationService().notifyAdminNewComplaint(profile.name);
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('تم إرسال الشكوى ✓', textAlign: TextAlign.right)),
+        );
+      }
+    } catch (_) {
+      setState(() { _error = 'تعذّر إرسال الشكوى. حاول مجدداً.'; _loading = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 24,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.report_problem_outlined,
+                      color: AppColors.error, size: 20),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text('إرسال شكوى',
+                      style: TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w700)),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'صِف مشكلتك بوضوح وسيتم الرد عليك في أقرب وقت.',
+              style: TextStyle(fontSize: 13, color: AppColors.lightMuted),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _ctrl,
+              maxLines: 5,
+              autofocus: true,
+              textDirection: TextDirection.rtl,
+              decoration: InputDecoration(
+                hintText: 'اكتب شكواك هنا...',
+                hintStyle: const TextStyle(color: AppColors.lightMuted),
+                filled: true,
+                fillColor: Theme.of(context).scaffoldBackgroundColor,
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        const BorderSide(color: AppColors.lightBorder)),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        const BorderSide(color: AppColors.lightBorder)),
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        const BorderSide(color: AppColors.primary, width: 2)),
+                contentPadding: const EdgeInsets.all(14),
+              ),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Text(_error!,
+                  style: const TextStyle(
+                      color: AppColors.error, fontSize: 13)),
+            ],
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _loading ? null : _submit,
+                icon: _loading
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2.5, color: Colors.white))
+                    : const Icon(Icons.send_outlined, size: 18),
+                label: Text(_loading ? 'جارٍ الإرسال...' : 'إرسال الشكوى'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.error,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── My Complaints Sheet ───────────────────────────────────────────────────────
+
+class _MyComplaintsSheet extends ConsumerWidget {
+  final String uid;
+  const _MyComplaintsSheet({required this.uid});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final complaintsAsync = ref.watch(consumerComplaintsProvider(uid));
+
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.4,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (_, scrollCtrl) => Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.lightBorder,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.history_outlined,
+                        color: AppColors.primary, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text('شكاواي',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w700)),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: complaintsAsync.when(
+                loading: () =>
+                    const Center(child: CircularProgressIndicator()),
+                error: (_, __) => const Center(
+                    child: Text('تعذّر تحميل الشكاوى')),
+                data: (complaints) => complaints.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.check_circle_outline,
+                                size: 52,
+                                color:
+                                    AppColors.success.withOpacity(0.7)),
+                            const SizedBox(height: 12),
+                            const Text('لا توجد شكاوى مقدَّمة',
+                                style: TextStyle(
+                                    fontSize: 15,
+                                    color: AppColors.lightMuted)),
+                          ],
+                        ),
+                      )
+                    : ListView.separated(
+                        controller: scrollCtrl,
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                        itemCount: complaints.length,
+                        separatorBuilder: (_, __) =>
+                            const SizedBox(height: 12),
+                        itemBuilder: (_, i) =>
+                            _ConsumerComplaintCard(complaint: complaints[i]),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ConsumerComplaintCard extends StatelessWidget {
+  final Complaint complaint;
+  const _ConsumerComplaintCard({required this.complaint});
+
+  Color get _statusColor => switch (complaint.status) {
+        ComplaintStatus.open => AppColors.error,
+        ComplaintStatus.inProgress => AppColors.warning,
+        _ => AppColors.success,
+      };
+
+  String get _statusLabel => switch (complaint.status) {
+        ComplaintStatus.open => 'مفتوح',
+        ComplaintStatus.inProgress => 'قيد المعالجة',
+        _ => 'تمت المعالجة',
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hasReply =
+        complaint.reply != null && complaint.reply!.isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.cardTheme.color,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 6,
+              offset: const Offset(0, 2))
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${complaint.createdAt.day}/${complaint.createdAt.month}/${complaint.createdAt.year}',
+                  style: const TextStyle(
+                      fontSize: 12, color: AppColors.lightMuted),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                    color: _statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20)),
+                child: Text(_statusLabel,
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: _statusColor)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(complaint.text,
+              style: const TextStyle(fontSize: 14, height: 1.4)),
+          if (hasReply) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.success.withOpacity(0.07),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                    color: AppColors.success.withOpacity(0.25)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: const [
+                      Icon(Icons.reply_outlined,
+                          size: 15, color: AppColors.success),
+                      SizedBox(width: 6),
+                      Text('رد المولد',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.success)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(complaint.reply!,
+                      style: const TextStyle(
+                          fontSize: 13, height: 1.4)),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }

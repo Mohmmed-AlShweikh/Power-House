@@ -7,6 +7,8 @@ class Complaint {
   final String text;
   final ComplaintStatus status;
   final DateTime createdAt;
+  final String? reply;
+  final DateTime? replyAt;
 
   const Complaint({
     required this.id,
@@ -15,6 +17,8 @@ class Complaint {
     required this.text,
     required this.status,
     required this.createdAt,
+    this.reply,
+    this.replyAt,
   });
 
   factory Complaint.fromMap(String id, Map<String, dynamic> map) {
@@ -24,7 +28,12 @@ class Complaint {
       userName: map['userName'] ?? '',
       text: map['text'] ?? '',
       status: _parseStatus(map['status']),
-      createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? DateTime.now().millisecondsSinceEpoch),
+      createdAt: DateTime.fromMillisecondsSinceEpoch(
+          map['createdAt'] ?? DateTime.now().millisecondsSinceEpoch),
+      reply: map['reply'] as String?,
+      replyAt: map['replyAt'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(map['replyAt'] as int)
+          : null,
     );
   }
 

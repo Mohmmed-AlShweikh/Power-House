@@ -148,6 +148,23 @@ final pendingGeneratorOwnersProvider = StreamProvider<List<UserProfile>>((ref) {
   });
 });
 
+// Complaints for a specific consumer (their own submissions)
+final consumerComplaintsProvider =
+    StreamProvider.family<List<Complaint>, String>((ref, userId) {
+  if (userId.isEmpty) return Stream.value(const <Complaint>[]);
+  final db = FirebaseFirestore.instance;
+  return db
+      .collection('complaints')
+      .where('userId', isEqualTo: userId)
+      .snapshots()
+      .map((s) {
+    final list =
+        s.docs.map((d) => Complaint.fromMap(d.id, d.data())).toList();
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
+  });
+});
+
 // Complaints — sort client-side to avoid index requirement
 final complaintsProvider = StreamProvider<List<Complaint>>((ref) {
   final db = FirebaseFirestore.instance;

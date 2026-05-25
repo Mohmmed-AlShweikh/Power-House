@@ -88,6 +88,25 @@ class NotificationService {
     );
   }
 
+  // Notify all generator owners when a consumer submits a new complaint
+  Future<void> notifyAdminNewComplaint(String consumerName) async {
+    try {
+      final snap = await _db
+          .collection('users')
+          .where('role', isEqualTo: 'generator_owner')
+          .where('status', isEqualTo: 'approved')
+          .get();
+      for (final doc in snap.docs) {
+        await addAlert(
+          userId: doc.id,
+          title: 'شكوى جديدة 📢',
+          body: 'قام $consumerName بتقديم شكوى جديدة، يرجى المراجعة.',
+          type: 'complaint',
+        );
+      }
+    } catch (_) {}
+  }
+
   // Notify all users when generator state changes
   Future<void> notifyAllUsersGeneratorState(bool isOn) async {
     try {

@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +12,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../providers/data_provider.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../services/firebase_service.dart';
+import '../../../services/local_notification_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../config/colors.dart';
 import '../../widgets/base64_image_viewer.dart';
@@ -24,15 +28,46 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabs;
   bool _generatorOn = true;
+  StreamSubscription<QuerySnapshot>? _alertsSub;
+  final DateTime _startTime = DateTime.now();
+  final Set<String> _seenAlertIds = {};
 
   @override
   void initState() {
     super.initState();
     _tabs = TabController(length: 6, vsync: this);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startListening());
+  }
+
+  void _startListening() {
+    final uid = ref.read(authProvider).profile?.uid ?? '';
+    if (uid.isEmpty) return;
+    _alertsSub = FirebaseFirestore.instance
+        .collection('alerts')
+        .where('userId', isEqualTo: uid)
+        .snapshots()
+        .listen((snapshot) {
+      for (final change in snapshot.docChanges) {
+        if (change.type != DocumentChangeType.added) continue;
+        final docId = change.doc.id;
+        if (_seenAlertIds.contains(docId)) continue;
+        _seenAlertIds.add(docId);
+        final data = change.doc.data() as Map<String, dynamic>?;
+        if (data == null) continue;
+        final createdAt = DateTime.fromMillisecondsSinceEpoch(
+            (data['createdAt'] as int?) ?? 0);
+        if (createdAt.isBefore(_startTime)) continue;
+        LocalNotificationService().show(
+          (data['title'] as String?) ?? 'تنبيه',
+          (data['body'] as String?) ?? '',
+        );
+      }
+    });
   }
 
   @override
   void dispose() {
+    _alertsSub?.cancel();
     _tabs.dispose();
     super.dispose();
   }
@@ -2295,6 +2330,7 @@ class _ComplaintCard extends StatelessWidget {
     final mutedColor = theme.brightness == Brightness.dark
         ? AppColors.darkMuted
         : AppColors.lightMuted;
+    final hasReply = item.reply != null && item.reply!.isNotEmpty;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -2342,6 +2378,38 @@ class _ComplaintCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(item.text,
               style: TextStyle(fontSize: 13, color: textColor, height: 1.4)),
+          if (hasReply) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.success.withOpacity(0.07),
+                borderRadius: BorderRadius.circular(10),
+                border:
+                    Border.all(color: AppColors.success.withOpacity(0.25)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: const [
+                      Icon(Icons.reply_outlined,
+                          size: 14, color: AppColors.success),
+                      SizedBox(width: 6),
+                      Text('ردك',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.success)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(item.reply!,
+                      style: TextStyle(fontSize: 13, color: textColor, height: 1.4)),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
           Row(
             children: [
@@ -2371,7 +2439,7 @@ class _ComplaintCard extends StatelessWidget {
     final diff = DateTime.now().difference(dt);
     if (diff.inDays > 0) return 'قبل ${diff.inDays} يوم';
     if (diff.inHours > 0) return 'قبل ${diff.inHours} ساعة';
-    return 'آمس';
+    return 'الآن';
   }
 
   void _showReplyDialog(BuildContext context, String complaintId) {
@@ -2403,19 +2471,21 @@ class _ComplaintCard extends StatelessWidget {
             ),
             ElevatedButton(
               onPressed: () async {
-                if (ctrl.text.trim().isEmpty) return;
-                await FirebaseService().resolveComplaint(complaintId);
+                final replyText = ctrl.text.trim();
+                if (replyText.isEmpty) return;
+                await FirebaseService()
+                    .replyToComplaint(complaintId, replyText);
                 await NotificationService().addAlert(
                   userId: item.userId,
-                  title: 'تم الرد على شكواك',
-                  body: ctrl.text.trim(),
+                  title: 'تم الرد على شكواك 💬',
+                  body: replyText,
                   type: 'complaint',
                 );
                 if (context.mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content:
-                          Text('تم إرسال الرد ✓', textAlign: TextAlign.right)));
+                      content: Text('تم إرسال الرد ✓',
+                          textAlign: TextAlign.right)));
                 }
               },
               style: ElevatedButton.styleFrom(
