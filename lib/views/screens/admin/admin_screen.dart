@@ -134,12 +134,31 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
                         Consumer(
                           builder: (_, ref, __) {
                             final isDark = theme.brightness == Brightness.dark;
-                            return IconButton(
-                              icon: Icon(
-                                  isDark ? Icons.light_mode : Icons.dark_mode,
-                                  color: Colors.white),
-                              onPressed: () =>
-                                  ref.read(themeProvider.notifier).toggle(),
+                            return Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  tooltip: isDark ? 'وضع النهار' : 'وضع الليل',
+                                  icon: Icon(
+                                      isDark
+                                          ? Icons.light_mode
+                                          : Icons.dark_mode,
+                                      color: Colors.white),
+                                  onPressed: () =>
+                                      ref.read(themeProvider.notifier).toggle(),
+                                ),
+                                IconButton(
+                                  tooltip: 'تسجيل الخروج',
+                                  icon: const Icon(Icons.logout,
+                                      color: Colors.white),
+                                  onPressed: () async {
+                                    await ref
+                                        .read(authProvider.notifier)
+                                        .signOut();
+                                    if (context.mounted) context.go('/login');
+                                  },
+                                ),
+                              ],
                             );
                           },
                         ),
@@ -2656,10 +2675,17 @@ class _AdminProfileTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(authProvider).profile;
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final complaintsAsync = ref.watch(complaintsProvider);
+
+    final initials = (profile?.name.isNotEmpty == true)
+        ? profile!.name[0].toUpperCase()
+        : '؟';
 
     return ListView(
       padding: EdgeInsets.zero,
       children: [
+        // ── Header gradient ────────────────────────────────────────────────
         Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -2682,9 +2708,7 @@ class _AdminProfileTab extends ConsumerWidget {
                 ),
                 child: Center(
                   child: Text(
-                    (profile?.name.isNotEmpty == true)
-                        ? profile!.name[0].toUpperCase()
-                        : '؟',
+                    initials,
                     style: const TextStyle(
                         color: Colors.white,
                         fontSize: 34,
@@ -2716,11 +2740,13 @@ class _AdminProfileTab extends ConsumerWidget {
             ],
           ),
         ),
+
         Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ── Info card ────────────────────────────────────────────────
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -2754,14 +2780,9 @@ class _AdminProfileTab extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 8, right: 4),
-                child: Text('الإعدادات',
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.lightMuted)),
-              ),
+
+              // ── الحساب ───────────────────────────────────────────────────
+              const _SectionLabel('الحساب'),
               Container(
                 decoration: BoxDecoration(
                   color: theme.cardTheme.color,
@@ -2773,58 +2794,150 @@ class _AdminProfileTab extends ConsumerWidget {
                         offset: const Offset(0, 2))
                   ],
                 ),
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: Container(
-                        padding: const EdgeInsets.all(7),
-                        decoration: BoxDecoration(
-                          color: AppColors.warning.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.edit_outlined,
-                            size: 18, color: AppColors.warning),
-                      ),
-                      title: const Text('تعديل البيانات',
-                          style: TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w500)),
-                      trailing: const Icon(Icons.chevron_left,
-                          color: AppColors.lightMuted, size: 18),
-                      onTap: () => _showEditSheet(context, ref),
+                child: ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    const Divider(
-                        height: 1, indent: 56, color: AppColors.lightBorder),
-                    ListTile(
-                      leading: Container(
-                        padding: const EdgeInsets.all(7),
-                        decoration: BoxDecoration(
-                          color: AppColors.error.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.logout,
-                            size: 18, color: AppColors.error),
-                      ),
-                      title: const Text('تسجيل الخروج',
-                          style: TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w500)),
-                      trailing: const Icon(Icons.chevron_left,
-                          color: AppColors.lightMuted, size: 18),
-                      onTap: () async {
-                        await ref.read(authProvider.notifier).signOut();
-                        if (context.mounted) context.go('/login');
-                      },
-                    ),
-                  ],
+                    child: const Icon(Icons.edit_outlined,
+                        size: 18, color: AppColors.warning),
+                  ),
+                  title: const Text('تعديل البيانات',
+                      style:
+                          TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                  trailing: const Icon(Icons.chevron_left,
+                      color: AppColors.lightMuted, size: 18),
+                  onTap: () => _showEditSheet(context, ref),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
+
+              // ── المظهر ───────────────────────────────────────────────────
+              const _SectionLabel('المظهر'),
+              Container(
+                decoration: BoxDecoration(
+                  color: theme.cardTheme.color,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2))
+                  ],
+                ),
+                child: ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      isDark ? Icons.dark_mode : Icons.light_mode,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  title: Text(
+                    isDark ? 'الوضع الداكن' : 'الوضع الفاتح',
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                  subtitle: Text(
+                    isDark
+                        ? 'اضغط للتبديل للوضع الفاتح'
+                        : 'اضغط للتبديل للوضع الداكن',
+                    style: const TextStyle(
+                        fontSize: 11, color: AppColors.lightMuted),
+                  ),
+                  trailing: Switch(
+                    value: isDark,
+                    onChanged: (_) =>
+                        ref.read(themeProvider.notifier).toggle(),
+                    activeColor: AppColors.primary,
+                  ),
+                  onTap: () => ref.read(themeProvider.notifier).toggle(),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // ── الشكاوى ──────────────────────────────────────────────────
+              const _SectionLabel('الشكاوى'),
+              complaintsAsync.when(
+                data: (complaints) => complaints.isEmpty
+                    ? Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: theme.cardTheme.color,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2))
+                          ],
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.check_circle_outline,
+                                color: AppColors.success, size: 20),
+                            SizedBox(width: 8),
+                            Text('لا توجد شكاوى معلقة',
+                                style: TextStyle(
+                                    fontSize: 13, color: AppColors.lightMuted)),
+                          ],
+                        ),
+                      )
+                    : Column(
+                        children: complaints
+                            .map((c) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: _ComplaintCard(item: c),
+                                ))
+                            .toList(),
+                      ),
+                loading: () =>
+                    const Center(child: CircularProgressIndicator()),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+              const SizedBox(height: 24),
+
+              // ── تسجيل الخروج ─────────────────────────────────────────────
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    await ref.read(authProvider.notifier).signOut();
+                    if (context.mounted) context.go('/login');
+                  },
+                  icon: const Icon(Icons.logout,
+                      size: 18, color: AppColors.error),
+                  label: const Text('تسجيل الخروج',
+                      style: TextStyle(
+                          color: AppColors.error,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15)),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side:
+                        const BorderSide(color: AppColors.error, width: 1.5),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
               Center(
                 child: Text('بوابة المولدات v1.0.0',
                     style: TextStyle(
                         fontSize: 12,
                         color: AppColors.lightMuted.withOpacity(0.6))),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -3329,6 +3442,21 @@ class _MockPendingUsersState extends State<_MockPendingUsers> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 8, right: 4),
+        child: Text(text,
+            style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.lightMuted)),
+      );
+}
 
 class _PRow extends StatelessWidget {
   final IconData icon;
