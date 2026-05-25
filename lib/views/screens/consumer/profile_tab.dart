@@ -35,9 +35,18 @@ class ProfileTab extends ConsumerWidget {
             automaticallyImplyLeading: false,
             actions: [
               IconButton(
+                tooltip: isDark ? 'وضع النهار' : 'وضع الليل',
                 icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode,
                     color: Colors.white),
                 onPressed: () => ref.read(themeProvider.notifier).toggle(),
+              ),
+              IconButton(
+                tooltip: 'تسجيل الخروج',
+                icon: const Icon(Icons.logout, color: Colors.white),
+                onPressed: () async {
+                  await ref.read(authProvider.notifier).signOut();
+                  if (context.mounted) context.go('/login');
+                },
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(
@@ -91,7 +100,9 @@ class ProfileTab extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          profile?.role == UserRole.admin ? 'صاحب مولد' : 'مستهلك',
+                          profile?.role == UserRole.admin
+                              ? 'صاحب مولد'
+                              : 'مستهلك',
                           style: const TextStyle(
                               color: Colors.white70, fontSize: 12),
                         ),
@@ -108,18 +119,21 @@ class ProfileTab extends ConsumerWidget {
               delegate: SliverChildListDelegate([
                 _InfoCard(),
                 const SizedBox(height: 16),
+
+                // ── الحساب ──────────────────────────────────────────────────
                 _SettingsGroup(title: 'الحساب', items: [
                   _SettingsItem(Icons.edit_outlined, 'تعديل البيانات',
                       AppColors.warning, () {
                     _showEditSheet(context, ref);
                   }),
-                  _SettingsItem(Icons.logout, 'تسجيل الخروج', AppColors.error,
-                      () async {
-                    await ref.read(authProvider.notifier).signOut();
-                    if (context.mounted) context.go('/login');
-                  }),
                 ]),
                 const SizedBox(height: 16),
+
+                // ── المظهر ───────────────────────────────────────────────────
+                _ThemeToggleCard(isDark: isDark, ref: ref),
+                const SizedBox(height: 16),
+
+                // ── الدعم ────────────────────────────────────────────────────
                 _SettingsGroup(title: 'الدعم', items: [
                   _SettingsItem(
                       Icons.report_problem_outlined,
@@ -132,14 +146,19 @@ class ProfileTab extends ConsumerWidget {
                       AppColors.primary,
                       () => _showMyComplaintsSheet(context, ref)),
                 ]),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
+
+                // ── تسجيل الخروج ─────────────────────────────────────────────
+                _LogoutButton(ref: ref, context: context),
+                const SizedBox(height: 24),
+
                 Center(
                   child: Text('بوابة المولدات v1.0.0',
                       style: TextStyle(
                           fontSize: 12,
                           color: AppColors.lightMuted.withOpacity(0.6))),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
               ]),
             ),
           ),
@@ -851,6 +870,105 @@ class _SettingsItem {
   final Color color;
   final VoidCallback onTap;
   const _SettingsItem(this.icon, this.label, this.color, this.onTap);
+}
+
+// ── Theme Toggle Card ─────────────────────────────────────────────────────────
+
+class _ThemeToggleCard extends StatelessWidget {
+  final bool isDark;
+  final WidgetRef ref;
+  const _ThemeToggleCard({required this.isDark, required this.ref});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(bottom: 8, right: 4),
+          child: Text('المظهر',
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.lightMuted)),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardTheme.color,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2))
+            ],
+          ),
+          child: ListTile(
+            leading: Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                isDark ? Icons.dark_mode : Icons.light_mode,
+                size: 18,
+                color: AppColors.primary,
+              ),
+            ),
+            title: Text(
+              isDark ? 'الوضع الداكن' : 'الوضع الفاتح',
+              style: const TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.w500),
+            ),
+            subtitle: Text(
+              isDark ? 'اضغط للتبديل للوضع الفاتح' : 'اضغط للتبديل للوضع الداكن',
+              style: const TextStyle(fontSize: 11, color: AppColors.lightMuted),
+            ),
+            trailing: Switch(
+              value: isDark,
+              onChanged: (_) => ref.read(themeProvider.notifier).toggle(),
+              activeColor: AppColors.primary,
+            ),
+            onTap: () => ref.read(themeProvider.notifier).toggle(),
+          ),
+        ),
+      ],
+    ).animate().fadeIn();
+  }
+}
+
+// ── Logout Button ─────────────────────────────────────────────────────────────
+
+class _LogoutButton extends StatelessWidget {
+  final WidgetRef ref;
+  final BuildContext context;
+  const _LogoutButton({required this.ref, required this.context});
+
+  @override
+  Widget build(BuildContext buildContext) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () async {
+          await ref.read(authProvider.notifier).signOut();
+          if (context.mounted) context.go('/login');
+        },
+        icon: const Icon(Icons.logout, size: 18, color: AppColors.error),
+        label: const Text('تسجيل الخروج',
+            style: TextStyle(
+                color: AppColors.error,
+                fontWeight: FontWeight.w600,
+                fontSize: 15)),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          side: const BorderSide(color: AppColors.error, width: 1.5),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+      ),
+    ).animate().fadeIn();
+  }
 }
 
 // ── Complaint Submission Sheet ────────────────────────────────────────────────
