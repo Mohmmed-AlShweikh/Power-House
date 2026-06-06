@@ -20,10 +20,15 @@ Stream<T> _safelyHandlePermissionDenied<T>(Stream<T> stream, T fallbackValue) {
   ));
 }
 
-// Generator status
+// Generator status and system configuration
 class GeneratorState {
   final bool isOn;
   final DateTime? lastChanged;
+  final DateTime? lastOnAt;
+  final DateTime? lastOffAt;
+  final DateTime? scheduledOnAt;
+  final DateTime? scheduledOffAt;
+  final double pricePerKwh;
   final int activeSubscribers;
   final double totalRevenue;
   final int complaints;
@@ -31,6 +36,11 @@ class GeneratorState {
   const GeneratorState({
     this.isOn = false,
     this.lastChanged,
+    this.lastOnAt,
+    this.lastOffAt,
+    this.scheduledOnAt,
+    this.scheduledOffAt,
+    this.pricePerKwh = 2.0,
     this.activeSubscribers = 0,
     this.totalRevenue = 0,
     this.complaints = 0,
@@ -42,13 +52,30 @@ final generatorProvider = StreamProvider<GeneratorState>((ref) {
   return db.collection('system').doc('generator').snapshots().map((s) {
     if (!s.exists) return const GeneratorState();
     final d = s.data()!;
+    DateTime? parseTimestamp(dynamic value) {
+      if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+      return null;
+    }
+
     return GeneratorState(
       isOn: d['isOn'] ?? false,
-      lastChanged: d['lastChanged'] != null
-          ? DateTime.fromMillisecondsSinceEpoch(d['lastChanged'])
-          : null,
+      lastChanged: parseTimestamp(d['lastChanged']),
+      lastOnAt: parseTimestamp(d['lastOnAt']),
+      lastOffAt: parseTimestamp(d['lastOffAt']),
+      scheduledOnAt: parseTimestamp(d['scheduledOnAt']),
+      scheduledOffAt: parseTimestamp(d['scheduledOffAt']),
+      pricePerKwh: (d['pricePerKwh'] ?? 2.0).toDouble(),
     );
   });
+});
+
+final currentPriceProvider = Provider<double>((ref) {
+  final state = ref.watch(generatorProvider);
+  return state.when(
+    data: (g) => g.pricePerKwh,
+    loading: () => 2.0,
+    error: (_, __) => 2.0,
+  );
 });
 
 // Bills — no orderBy to avoid composite index requirement; sort client-side
@@ -60,8 +87,7 @@ final billsProvider = StreamProvider.family<List<Bill>, String>((ref, userId) {
       .where('userId', isEqualTo: userId)
       .snapshots()
       .map((s) {
-    final list =
-        s.docs.map((d) => Bill.fromMap(d.id, d.data())).toList();
+    final list = s.docs.map((d) => Bill.fromMap(d.id, d.data())).toList();
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return list;
   });
@@ -70,12 +96,8 @@ final billsProvider = StreamProvider.family<List<Bill>, String>((ref, userId) {
 final allBillsProvider = StreamProvider<List<Bill>>((ref) {
   final db = FirebaseFirestore.instance;
   return _safelyHandlePermissionDenied(
-    db
-        .collection('bills')
-        .snapshots()
-        .map((s) {
-      final list =
-          s.docs.map((d) => Bill.fromMap(d.id, d.data())).toList();
+    db.collection('bills').snapshots().map((s) {
+      final list = s.docs.map((d) => Bill.fromMap(d.id, d.data())).toList();
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return list;
     }),
@@ -93,8 +115,7 @@ final alertsProvider =
       .where('userId', isEqualTo: userId)
       .snapshots()
       .map((s) {
-    final list =
-        s.docs.map((d) => AppAlert.fromMap(d.id, d.data())).toList();
+    final list = s.docs.map((d) => AppAlert.fromMap(d.id, d.data())).toList();
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return list;
   });
@@ -158,8 +179,7 @@ final consumerComplaintsProvider =
       .where('userId', isEqualTo: userId)
       .snapshots()
       .map((s) {
-    final list =
-        s.docs.map((d) => Complaint.fromMap(d.id, d.data())).toList();
+    final list = s.docs.map((d) => Complaint.fromMap(d.id, d.data())).toList();
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return list;
   });
@@ -169,8 +189,7 @@ final consumerComplaintsProvider =
 final complaintsProvider = StreamProvider<List<Complaint>>((ref) {
   final db = FirebaseFirestore.instance;
   return db.collection('complaints').snapshots().map((s) {
-    final list =
-        s.docs.map((d) => Complaint.fromMap(d.id, d.data())).toList();
+    final list = s.docs.map((d) => Complaint.fromMap(d.id, d.data())).toList();
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return list;
   });
@@ -281,23 +300,154 @@ final consumptionProvider =
   });
 });
 
-// Usage data
-class UsageMonth {
-  final String month;
+class DailyUsagePoint {
+  final String label;
   final double kwh;
   final int cost;
-  const UsageMonth(this.month, this.kwh, this.cost);
+  const DailyUsagePoint({
+    required this.label,
+    required this.kwh,
+    required this.cost,
+  });
 }
 
-final usageProvider = Provider<List<UsageMonth>>((ref) => const [
-      UsageMonth('يناير', 118, 236),
-      UsageMonth('فبراير', 132, 264),
-      UsageMonth('مارس', 105, 210),
-      UsageMonth('أبريل', 148, 296),
-      UsageMonth('مايو', 127, 254),
-      UsageMonth('يونيو', 155, 310),
-      UsageMonth('يوليو', 142, 284),
-    ]);
+class WeeklyUsagePoint {
+  final String label;
+  final String month;
+  final int weekNumber;
+  final double kwh;
+  final int cost;
+  const WeeklyUsagePoint({
+    required this.label,
+    required this.month,
+    required this.weekNumber,
+    required this.kwh,
+    required this.cost,
+  });
+}
+
+class MonthlyUsagePoint {
+  final String label;
+  final double kwh;
+  final int cost;
+  const MonthlyUsagePoint({
+    required this.label,
+    required this.kwh,
+    required this.cost,
+  });
+}
+
+class ConsumptionHistory {
+  final List<DailyUsagePoint> daily;
+  final List<WeeklyUsagePoint> weekly;
+  final List<MonthlyUsagePoint> monthly;
+  const ConsumptionHistory({
+    this.daily = const [],
+    this.weekly = const [],
+    this.monthly = const [],
+  });
+}
+
+List<DailyUsagePoint> _buildDailyUsagePoints(
+    ConsumptionData consumption, double pricePerKwh) {
+  const dayLabels = [
+    'الأحد',
+    'الاثنين',
+    'الثلاثاء',
+    'الأربعاء',
+    'الخميس',
+    'الجمعة',
+    'السبت',
+  ];
+
+  final avgKwh = consumption.dailyUsage > 0
+      ? consumption.dailyUsage
+      : (consumption.monthlyUsage > 0 ? consumption.monthlyUsage / 30 : 0.0);
+  final dayFactors = [0.92, 1.08, 0.96, 1.02, 0.89, 1.12, 1.00];
+
+  return List.generate(7, (i) {
+    final value = avgKwh * dayFactors[i];
+    return DailyUsagePoint(
+      label: dayLabels[i],
+      kwh: double.parse(value.toStringAsFixed(1)),
+      cost: (value * pricePerKwh).round(),
+    );
+  });
+}
+
+List<WeeklyUsagePoint> _buildWeeklyUsagePoints(
+    List<Bill> bills, double pricePerKwh) {
+  final weeklyBills = bills.where((b) => b.weekNumber != null).toList();
+  if (weeklyBills.isNotEmpty) {
+    weeklyBills.sort((a, b) {
+      final monthCompare = a.year.compareTo(b.year);
+      if (monthCompare != 0) return monthCompare;
+      final monthIndex = a.weekNumber!.compareTo(b.weekNumber!);
+      return monthIndex;
+    });
+    return weeklyBills.map((bill) {
+      final label = '${bill.month} - الأسبوع ${bill.weekNumber}';
+      return WeeklyUsagePoint(
+        label: label,
+        month: bill.month,
+        weekNumber: bill.weekNumber ?? 0,
+        kwh: bill.kwh,
+        cost: (bill.kwh * pricePerKwh).round(),
+      );
+    }).toList();
+  }
+
+  final fallback = [...bills];
+  fallback.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  return fallback
+      .take(4)
+      .map((bill) {
+        final label = '${bill.month} ${bill.year}';
+        return WeeklyUsagePoint(
+          label: label,
+          month: bill.month,
+          weekNumber: bill.weekNumber ?? 0,
+          kwh: bill.kwh,
+          cost: (bill.kwh * pricePerKwh).round(),
+        );
+      })
+      .toList()
+      .reversed
+      .toList();
+}
+
+List<MonthlyUsagePoint> _buildMonthlyUsagePoints(
+    List<Bill> bills, double pricePerKwh) {
+  final grouped = <String, double>{};
+  final ordered = <String>[];
+
+  for (final bill in bills) {
+    final key = '${bill.month} ${bill.year}';
+    if (!grouped.containsKey(key)) ordered.add(key);
+    grouped[key] = (grouped[key] ?? 0) + bill.kwh;
+  }
+
+  return ordered
+      .map((key) => MonthlyUsagePoint(
+            label: key,
+            kwh: grouped[key] ?? 0,
+            cost: ((grouped[key] ?? 0) * pricePerKwh).round(),
+          ))
+      .toList();
+}
+
+final consumptionHistoryProvider =
+    Provider.family<ConsumptionHistory, String>((ref, userId) {
+  final bills = ref.watch(billsProvider(userId)).valueOrNull ?? const <Bill>[];
+  final consumption = ref.watch(consumptionProvider(userId)).valueOrNull ??
+      const ConsumptionData();
+  final price = ref.watch(currentPriceProvider);
+  return ConsumptionHistory(
+    daily: _buildDailyUsagePoints(consumption, price),
+    weekly: _buildWeeklyUsagePoints(bills, price),
+    monthly: _buildMonthlyUsagePoints(bills, price),
+  );
+});
 
 // ── Recent Activity Feed ──────────────────────────────────────────────────────
 

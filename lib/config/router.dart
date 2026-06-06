@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
 import '../models/user_model.dart';
-import '../views/screens/splash_screen.dart';
 import '../views/screens/login_screen.dart';
 import '../views/screens/register_screen.dart';
 import '../views/screens/consumer/consumer_shell.dart';
@@ -24,9 +23,6 @@ class _RouterNotifier extends ChangeNotifier {
     final isLoading = authState.loading;
     final path = state.uri.path;
 
-    // Allow splash to show during initial load
-    if (isLoading && path == '/splash') return null;
-
     final loggedIn = isDemo || authState.user != null;
     final profile = authState.profile;
 
@@ -38,9 +34,7 @@ class _RouterNotifier extends ChangeNotifier {
         UserRole.consumer => '/consumer',
       };
 
-      if (path == '/login' ||
-          path == '/register' ||
-          path == '/splash') {
+      if (path == '/login' || path == '/register') {
         return correctPath;
       }
 
@@ -56,9 +50,7 @@ class _RouterNotifier extends ChangeNotifier {
       }
     } else if (!isLoading) {
       // Not logged in
-      if (path != '/login' &&
-          path != '/register' &&
-          path != '/splash') {
+      if (path != '/login' && path != '/register') {
         return '/login';
       }
     }
@@ -75,11 +67,10 @@ final routerProvider = Provider<GoRouter>((ref) {
   final notifier = ref.watch(_routerNotifierProvider);
 
   return GoRouter(
-    initialLocation: '/splash',
+    initialLocation: '/login',
     refreshListenable: notifier,
     redirect: notifier.redirect,
     routes: [
-      GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
       GoRoute(

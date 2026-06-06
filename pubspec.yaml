@@ -35,14 +35,21 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^4.0.0
   flutter_native_splash: ^2.3.0
+  flutter_launcher_icons: ^0.14.0
 
-flutter_native_splash:
-  color: "#1E3A6E"
+flutter_icons:
   android: true
   ios: true
-  web: false
-  android_gravity: center
-  ios_content_mode: center
+  image_path: assets/logo.jpg
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/logo.jpg
+
+flutter_native_splash:
+  color: "#0d47a1"
+  image: assets/logo.jpg
+  android: true
+  ios: true
+  web: false

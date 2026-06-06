@@ -5,6 +5,7 @@ class Bill {
   final String userId;
   final String month;
   final int year;
+  final int? weekNumber;
   final int amount;
   final double kwh;
   final BillStatus status;
@@ -16,6 +17,7 @@ class Bill {
     required this.userId,
     required this.month,
     required this.year,
+    this.weekNumber,
     required this.amount,
     required this.kwh,
     required this.status,
@@ -24,11 +26,15 @@ class Bill {
   });
 
   factory Bill.fromMap(String id, Map<String, dynamic> map) {
+    final weekValue = map['weekNumber'];
     return Bill(
       id: id,
       userId: map['userId'] ?? '',
       month: map['month'] ?? '',
       year: map['year'] ?? 2024,
+      weekNumber: weekValue is int
+          ? weekValue
+          : (weekValue is num ? weekValue.toInt() : null),
       amount: map['amount'] ?? 0,
       kwh: (map['kwh'] ?? 0).toDouble(),
       status: _parseStatus(map['status']),
@@ -37,16 +43,25 @@ class Bill {
     );
   }
 
-  Map<String, dynamic> toMap() => {
-    'userId': userId,
-    'month': month,
-    'year': year,
-    'amount': amount,
-    'kwh': kwh,
-    'status': status.name,
-    'receiptBase64': receiptBase64,
-    'createdAt': createdAt.millisecondsSinceEpoch,
-  };
+  Map<String, dynamic> toMap() {
+    final data = {
+      'userId': userId,
+      'month': month,
+      'year': year,
+      'amount': amount,
+      'kwh': kwh,
+      'status': status.name,
+      'receiptBase64': receiptBase64,
+      'createdAt': createdAt.millisecondsSinceEpoch,
+    };
+    if (weekNumber != null) {
+      data['weekNumber'] = weekNumber;
+      data['billingPeriod'] = 'weekly';
+    } else {
+      data['billingPeriod'] = 'monthly';
+    }
+    return data;
+  }
 
   static BillStatus _parseStatus(dynamic v) {
     if (v == 'paid') return BillStatus.paid;

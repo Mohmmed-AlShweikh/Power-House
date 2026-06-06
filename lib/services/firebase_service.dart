@@ -25,11 +25,36 @@ class FirebaseService {
     );
   }
 
-  // Toggle generator
+  // Toggle generator and record the last ON/OFF timestamp
   Future<void> toggleGenerator(bool isOn) async {
-    await _db.collection('system').doc('generator').set({
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final payload = {
       'isOn': isOn,
-      'lastChanged': DateTime.now().millisecondsSinceEpoch,
+      'lastChanged': now,
+      if (isOn) 'lastOnAt': now,
+      if (!isOn) 'lastOffAt': now,
+    };
+    await _db
+        .collection('system')
+        .doc('generator')
+        .set(payload, SetOptions(merge: true));
+  }
+
+  // Update current price per kWh for the system
+  Future<void> updatePricePerKwh(double pricePerKwh) async {
+    await _db.collection('system').doc('generator').set({
+      'pricePerKwh': pricePerKwh,
+    }, SetOptions(merge: true));
+  }
+
+  // Update the generator ON/OFF schedule times
+  Future<void> updateGeneratorSchedule({
+    required int scheduledOnMillis,
+    required int scheduledOffMillis,
+  }) async {
+    await _db.collection('system').doc('generator').set({
+      'scheduledOnAt': scheduledOnMillis,
+      'scheduledOffAt': scheduledOffMillis,
     }, SetOptions(merge: true));
   }
 
@@ -143,10 +168,8 @@ class FirebaseService {
   // Delete all alerts for a user
   Future<void> deleteAllAlerts(String userId) async {
     final batch = _db.batch();
-    final snap = await _db
-        .collection('alerts')
-        .where('userId', isEqualTo: userId)
-        .get();
+    final snap =
+        await _db.collection('alerts').where('userId', isEqualTo: userId).get();
     for (final doc in snap.docs) {
       batch.delete(doc.reference);
     }
@@ -154,8 +177,7 @@ class FirebaseService {
   }
 
   // File complaint
-  Future<void> addComplaint(
-      String userId, String userName, String text) async {
+  Future<void> addComplaint(String userId, String userName, String text) async {
     await _db.collection('complaints').add({
       'userId': userId,
       'userName': userName,
@@ -182,8 +204,8 @@ class FirebaseService {
   }
 
   // Create bill (legacy — single document)
-  Future<void> createBill(String userId, String month, int year, int amount,
-      double kwh) async {
+  Future<void> createBill(
+      String userId, String month, int year, int amount, double kwh) async {
     await _db.collection('bills').add({
       'userId': userId,
       'month': month,
@@ -230,6 +252,7 @@ class FirebaseService {
     required double kwh,
     required String month,
     required int year,
+    int? weekNumber,
   }) async {
     final batch = _db.batch();
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -240,27 +263,39 @@ class FirebaseService {
       'userId': userId,
       'month': month,
       'year': year,
+      if (weekNumber != null) 'weekNumber': weekNumber,
       'amount': amount,
       'kwh': kwh,
       'status': 'pending',
       'createdAt': now,
+      'billingPeriod': weekNumber != null ? 'weekly' : 'monthly',
     });
 
     // 2. Upsert consumption document (doc ID = userId)
     final consumptionRef = _db.collection('consumption').doc(userId);
-    final dailyUsage =
-        double.parse((kwh / 30).toStringAsFixed(2)); // approx daily
-    batch.set(
-      consumptionRef,
-      {
-        'userId': userId,
-        'monthlyUsage': kwh,
-        'dailyUsage': dailyUsage,
-        'month': month,
-        'updatedAt': now,
-      },
-      SetOptions(merge: true),
-    );
+    final dailyUsage = double.parse((kwh / 30).toStringAsFixed(2));
+    final payload = {
+      'userId': userId,
+      'monthlyUsage': kwh,
+      'dailyUsage': dailyUsage,
+      'month': month,
+      'updatedAt': now,
+    };
+
+    if (weekNumber != null) {
+      payload['weeklyUsage'] = FieldValue.arrayUnion([
+        {
+          'month': month,
+          'year': year,
+          'weekNumber': weekNumber,
+          'kwh': kwh,
+          'amount': amount,
+          'createdAt': now,
+        }
+      ]);
+    }
+
+    batch.set(consumptionRef, payload, SetOptions(merge: true));
 
     await batch.commit();
 
@@ -268,8 +303,7 @@ class FirebaseService {
     await _db.collection('alerts').add({
       'userId': userId,
       'title': 'فاتورة مستحقة جديدة 🧾',
-      'body':
-          'تم إصدار فاتورة جديدة لشهر $month، يرجى المراجعة والسداد.',
+      'body': 'تم إصدار فاتورة جديدة لشهر $month، يرجى المراجعة والسداد.',
       'type': 'newBill',
       'read': false,
       'createdAt': now,

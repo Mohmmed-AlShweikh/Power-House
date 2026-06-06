@@ -22,7 +22,19 @@ class HomeTab extends ConsumerWidget {
     final isOn = genAsync.when(
         data: (g) => g.isOn, loading: () => true, error: (_, __) => false);
     final lastChanged = genAsync.when(
-        data: (g) => g.lastChanged, loading: () => null, error: (_, __) => null);
+        data: (g) => g.lastChanged,
+        loading: () => null,
+        error: (_, __) => null);
+    final currentPrice = genAsync.when(
+        data: (g) => g.pricePerKwh, loading: () => 2.0, error: (_, __) => 2.0);
+    final scheduledOnAt = genAsync.when(
+        data: (g) => g.scheduledOnAt,
+        loading: () => null,
+        error: (_, __) => null);
+    final scheduledOffAt = genAsync.when(
+        data: (g) => g.scheduledOffAt,
+        loading: () => null,
+        error: (_, __) => null);
 
     final billsAsync = ref.watch(billsProvider(uid));
     final alertsAsync = ref.watch(alertsProvider(uid));
@@ -33,8 +45,8 @@ class HomeTab extends ConsumerWidget {
 
     final currentMonthBill = billsAsync.when(
       data: (bills) {
-        final found = bills.where(
-            (b) => b.month == currentMonth && b.year == currentYear);
+        final found = bills
+            .where((b) => b.month == currentMonth && b.year == currentYear);
         return found.isNotEmpty ? found.first : null;
       },
       loading: () => null,
@@ -51,13 +63,12 @@ class HomeTab extends ConsumerWidget {
     final billAmount = currentMonthBill != null
         ? '₪ ${currentMonthBill.amount}'
         : billsAsync.when(
-            data: (_) => '₪ —',
-            loading: () => '₪ …',
-            error: (_, __) => '₪ —');
+            data: (_) => '₪ —', loading: () => '₪ …', error: (_, __) => '₪ —');
 
     final dailyKwh = consumptionAsync.when(
-        data: (c) =>
-            c.dailyUsage > 0 ? '${c.dailyUsage.toStringAsFixed(1)} kWh' : '— kWh',
+        data: (c) => c.dailyUsage > 0
+            ? '${c.dailyUsage.toStringAsFixed(1)} kWh'
+            : '— kWh',
         loading: () => '… kWh',
         error: (_, __) => '— kWh');
 
@@ -213,14 +224,16 @@ class HomeTab extends ConsumerWidget {
               ),
             ),
           ),
-
           SliverPadding(
             padding: const EdgeInsets.all(16),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                _GeneratorStatusCard(isOn: isOn, lastChanged: lastChanged),
+                _GeneratorStatusCard(
+                    isOn: isOn,
+                    lastChanged: lastChanged,
+                    scheduledOnAt: scheduledOnAt,
+                    scheduledOffAt: scheduledOffAt),
                 const SizedBox(height: 16),
-
                 Text('الاستهلاك الشهري ($currentMonth)',
                     style: theme.textTheme.titleLarge),
                 const SizedBox(height: 12),
@@ -249,6 +262,16 @@ class HomeTab extends ConsumerWidget {
                         color: AppColors.success),
                     const SizedBox(width: 12),
                     _StatCard(
+                        label: 'سعر kWh',
+                        value: '₪ ${currentPrice.toStringAsFixed(2)}',
+                        icon: Icons.attach_money,
+                        color: const Color(0xFFf59e0b)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    _StatCard(
                         label: 'الاستهلاك اليومي',
                         value: dailyKwh,
                         icon: Icons.today_outlined,
@@ -256,7 +279,6 @@ class HomeTab extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 20),
-
                 Row(
                   children: [
                     Text('آخر التنبيهات', style: theme.textTheme.titleLarge),
@@ -277,7 +299,6 @@ class HomeTab extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
-
                 if (alertsLoading)
                   const Center(
                       child: Padding(
@@ -313,7 +334,6 @@ class HomeTab extends ConsumerWidget {
                             child: _AlertItem(alert: a),
                           ))
                       .toList(),
-
                 const SizedBox(height: 20),
               ]),
             ),
@@ -335,7 +355,14 @@ String _greeting() {
 class _GeneratorStatusCard extends StatelessWidget {
   final bool isOn;
   final DateTime? lastChanged;
-  const _GeneratorStatusCard({required this.isOn, this.lastChanged});
+  final DateTime? scheduledOnAt;
+  final DateTime? scheduledOffAt;
+  const _GeneratorStatusCard({
+    required this.isOn,
+    this.lastChanged,
+    this.scheduledOnAt,
+    this.scheduledOffAt,
+  });
 
   String _runningFor() {
     if (!isOn) return '';
@@ -348,6 +375,12 @@ class _GeneratorStatusCard extends StatelessWidget {
     if (diff.inMinutes > 1) return 'يعمل منذ ${diff.inMinutes} دقائق';
     if (diff.inMinutes == 1) return 'يعمل منذ دقيقة';
     return 'يعمل الآن';
+  }
+
+  String _formatTime(DateTime dateTime) {
+    final hour = dateTime.hour.toString().padLeft(2, '0');
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
   }
 
   @override
@@ -396,8 +429,15 @@ class _GeneratorStatusCard extends StatelessWidget {
                 if (isOn) ...[
                   const SizedBox(height: 2),
                   Text(_runningFor(),
-                      style: const TextStyle(
-                          color: Colors.white70, fontSize: 12)),
+                      style:
+                          const TextStyle(color: Colors.white70, fontSize: 12)),
+                ],
+                if (scheduledOnAt != null || scheduledOffAt != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'الجدول: ${scheduledOnAt != null ? _formatTime(scheduledOnAt!) : 'غير محدد'} - ${scheduledOffAt != null ? _formatTime(scheduledOffAt!) : 'غير محدد'}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
                 ],
               ],
             ),
@@ -470,8 +510,7 @@ class _StatCard extends StatelessWidget {
             Text(label,
                 style: TextStyle(
                     fontSize: 11,
-                    color:
-                        AppColors.mutedFor(Theme.of(context).brightness))),
+                    color: AppColors.mutedFor(Theme.of(context).brightness))),
           ],
         ),
       ).animate().fadeIn().slideY(begin: 0.2, end: 0, duration: 300.ms),
@@ -534,8 +573,7 @@ class _AlertItem extends StatelessWidget {
             ? Theme.of(context).cardTheme.color
             : _color.withOpacity(0.04),
         borderRadius: BorderRadius.circular(14),
-        border:
-            alert.read ? null : Border.all(color: _color.withOpacity(0.25)),
+        border: alert.read ? null : Border.all(color: _color.withOpacity(0.25)),
         boxShadow: [
           BoxShadow(
               color: Colors.black.withOpacity(0.04),
@@ -560,25 +598,23 @@ class _AlertItem extends StatelessWidget {
               children: [
                 Text(alert.title,
                     style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: alert.read
-                            ? FontWeight.w600
-                            : FontWeight.w700,
-                        )),
+                      fontSize: 14,
+                      fontWeight:
+                          alert.read ? FontWeight.w600 : FontWeight.w700,
+                    )),
                 const SizedBox(height: 2),
                 Text(alert.body,
                     style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.mutedFor(
-                            Theme.of(context).brightness))),
+                        color:
+                            AppColors.mutedFor(Theme.of(context).brightness))),
               ],
             ),
           ),
           Text(_timeAgo(alert.createdAt),
               style: TextStyle(
                   fontSize: 11,
-                  color:
-                      AppColors.mutedFor(Theme.of(context).brightness))),
+                  color: AppColors.mutedFor(Theme.of(context).brightness))),
         ],
       ),
     ).animate().fadeIn().slideX(begin: 0.1, end: 0, duration: 300.ms);

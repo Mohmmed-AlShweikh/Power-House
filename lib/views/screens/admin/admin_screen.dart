@@ -196,11 +196,10 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
             child: TabBarView(
               controller: _tabs,
               children: [
-                _DashboardTab(
-                    onToggle: (v) async {
-                      await FirebaseService().toggleGenerator(v);
-                      await NotificationService().notifyAllUsersGeneratorState(v);
-                    }),
+                _DashboardTab(onToggle: (v) async {
+                  await FirebaseService().toggleGenerator(v);
+                  await NotificationService().notifyAllUsersGeneratorState(v);
+                }),
                 const _PendingUsersTab(),
                 _SubscribersTab(onJumpToBill: _jumpToBillsTab),
                 const _BillsTab(),
@@ -225,11 +224,19 @@ class _DashboardTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final genAsync = ref.watch(generatorProvider);
     final isOn = genAsync.when(
-        data: (g) => g.isOn,
-        loading: () => true,
-        error: (_, __) => false);
+        data: (g) => g.isOn, loading: () => true, error: (_, __) => false);
     final lastChanged = genAsync.when(
         data: (g) => g.lastChanged,
+        loading: () => null,
+        error: (_, __) => null);
+    final currentPrice = genAsync.when(
+        data: (g) => g.pricePerKwh, loading: () => 2.0, error: (_, __) => 2.0);
+    final scheduledOnAt = genAsync.when(
+        data: (g) => g.scheduledOnAt,
+        loading: () => null,
+        error: (_, __) => null);
+    final scheduledOffAt = genAsync.when(
+        data: (g) => g.scheduledOffAt,
         loading: () => null,
         error: (_, __) => null);
     final stats = ref.watch(monthlyBillStatsProvider);
@@ -258,7 +265,20 @@ class _DashboardTab extends ConsumerWidget {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          _GeneratorToggleCard(isOn: isOn, lastChanged: lastChanged, onToggle: onToggle),
+          _GeneratorToggleCard(
+            isOn: isOn,
+            lastChanged: lastChanged,
+            pricePerKwh: currentPrice,
+            scheduledOnAt: scheduledOnAt,
+            scheduledOffAt: scheduledOffAt,
+            onToggle: onToggle,
+            onEdit: () => _showGeneratorSettingsSheet(
+              context,
+              currentPrice,
+              scheduledOnAt,
+              scheduledOffAt,
+            ),
+          ),
           const SizedBox(height: 16),
           Row(children: [
             _StatBox(
@@ -297,14 +317,197 @@ class _DashboardTab extends ConsumerWidget {
       ),
     );
   }
+
+  void _showGeneratorSettingsSheet(
+    BuildContext context,
+    double currentPrice,
+    DateTime? scheduledOnAt,
+    DateTime? scheduledOffAt,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) {
+        final priceController =
+            TextEditingController(text: currentPrice.toStringAsFixed(2));
+        var onTime = scheduledOnAt != null
+            ? TimeOfDay.fromDateTime(scheduledOnAt)
+            : const TimeOfDay(hour: 8, minute: 0);
+        var offTime = scheduledOffAt != null
+            ? TimeOfDay.fromDateTime(scheduledOffAt)
+            : const TimeOfDay(hour: 20, minute: 0);
+
+        Future<void> pickTime(bool isOnTime) async {
+          final result = await showTimePicker(
+            context: context,
+            initialTime: isOnTime ? onTime : offTime,
+          );
+          if (result == null) return;
+          if (isOnTime) {
+            onTime = result;
+          } else {
+            offTime = result;
+          }
+        }
+
+        String formatTime(TimeOfDay time) {
+          final hour = time.hour.toString().padLeft(2, '0');
+          final minute = time.minute.toString().padLeft(2, '0');
+          return '$hour:$minute';
+        }
+
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          child: StatefulBuilder(builder: (context, setState) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text('السعر وجدول التشغيل',
+                          style: Theme.of(context).textTheme.titleLarge),
+                    ),
+                    IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text('السعر الحالي لكل كيلوواط/ساعة',
+                    style: const TextStyle(fontSize: 13)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: priceController,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    hintText: 'مثال: 2.50',
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                    filled: true,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text('توقيت تشغيل المولد',
+                    style: const TextStyle(fontSize: 13)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          await pickTime(true);
+                          setState(() {});
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                        ),
+                        child: Text('تشغيل ${formatTime(onTime)}'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          await pickTime(false);
+                          setState(() {});
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.warning,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                        ),
+                        child: Text('إيقاف ${formatTime(offTime)}'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final price = double.tryParse(
+                          priceController.text.trim().replaceAll(',', '.'));
+                      if (price == null || price <= 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('أدخل سعرًا صالحًا.')),
+                        );
+                        return;
+                      }
+                      try {
+                        final now = DateTime.now();
+                        await FirebaseService().updatePricePerKwh(price);
+                        await FirebaseService().updateGeneratorSchedule(
+                          scheduledOnMillis: DateTime(now.year, now.month,
+                                  now.day, onTime.hour, onTime.minute)
+                              .millisecondsSinceEpoch,
+                          scheduledOffMillis: DateTime(now.year, now.month,
+                                  now.day, offTime.hour, offTime.minute)
+                              .millisecondsSinceEpoch,
+                        );
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('تم تحديث السعر والجدول بنجاح.')),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                                content: Text('فشل التحديث: ${e.toString()}')),
+                          );
+                        }
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: const Text('حفظ التعديلات'),
+                  ),
+                ),
+              ],
+            );
+          }),
+        );
+      },
+    );
+  }
 }
 
 class _GeneratorToggleCard extends StatelessWidget {
   final bool isOn;
   final DateTime? lastChanged;
+  final double pricePerKwh;
+  final DateTime? scheduledOnAt;
+  final DateTime? scheduledOffAt;
   final ValueChanged<bool> onToggle;
-  const _GeneratorToggleCard(
-      {required this.isOn, this.lastChanged, required this.onToggle});
+  final VoidCallback onEdit;
+
+  const _GeneratorToggleCard({
+    required this.isOn,
+    this.lastChanged,
+    required this.pricePerKwh,
+    this.scheduledOnAt,
+    this.scheduledOffAt,
+    required this.onToggle,
+    required this.onEdit,
+  });
 
   String _runningFor() {
     if (!isOn) return 'اضغط لتشغيل المولد';
@@ -317,6 +520,13 @@ class _GeneratorToggleCard extends StatelessWidget {
     if (diff.inMinutes > 1) return 'يعمل منذ ${diff.inMinutes} دقائق';
     if (diff.inMinutes == 1) return 'يعمل منذ دقيقة';
     return 'يعمل الآن';
+  }
+
+  String _formatTime(DateTime? dt) {
+    if (dt == null) return 'غير محدد';
+    final hour = dt.hour.toString().padLeft(2, '0');
+    final minute = dt.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
   }
 
   @override
@@ -356,15 +566,52 @@ class _GeneratorToggleCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(isOn ? 'المولد يعمل' : 'المولد متوقف',
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700)),
-                const SizedBox(height: 2),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Text(isOn ? 'المولد يعمل' : 'المولد متوقف',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700)),
+                    ),
+                    IconButton(
+                      onPressed: onEdit,
+                      icon: const Icon(Icons.settings,
+                          color: Colors.white, size: 20),
+                      tooltip: 'تحديث السعر والجدول',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
                 Text(_runningFor(),
                     style:
                         const TextStyle(color: Colors.white70, fontSize: 12)),
+                const SizedBox(height: 12),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.14),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('سعر kWh: ₪${pricePerKwh.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 6),
+                      Text(
+                          'تشغيل مجدول: ${_formatTime(scheduledOnAt)} • إيقاف مجدول: ${_formatTime(scheduledOffAt)}',
+                          style: const TextStyle(
+                              color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -836,8 +1083,7 @@ class _SubscriberCard extends StatelessWidget {
             children: [
               const Text(
                 'أدخل الحد الأقصى للأمبير المسموح به لهذا المشترك',
-                style:
-                    TextStyle(fontSize: 13, color: AppColors.lightMuted),
+                style: TextStyle(fontSize: 13, color: AppColors.lightMuted),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -850,8 +1096,7 @@ class _SubscriberCard extends StatelessWidget {
                   suffixText: 'A',
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10)),
-                  prefixIcon:
-                      const Icon(Icons.electric_bolt, size: 20),
+                  prefixIcon: const Icon(Icons.electric_bolt, size: 20),
                 ),
               ),
             ],
@@ -981,8 +1226,7 @@ class _SubscriberCard extends StatelessWidget {
               ),
             ),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: (isActive ? AppColors.success : AppColors.error)
                     .withOpacity(0.1),
@@ -992,8 +1236,7 @@ class _SubscriberCard extends StatelessWidget {
                   style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color:
-                          isActive ? AppColors.success : AppColors.error)),
+                      color: isActive ? AppColors.success : AppColors.error)),
             ),
             const SizedBox(width: 8),
             Switch(
@@ -1579,6 +1822,23 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
     }
   }
 
+  void _calculateAmount() {
+    final kwh = double.tryParse(_kwhCtrl.text.trim());
+    if (kwh != null && kwh > 0) {
+      final currentPrice = ref.read(generatorProvider).when(
+            data: (g) => g.pricePerKwh,
+            loading: () => 2.0,
+            error: (_, __) => 2.0,
+          );
+      final calculated = (kwh * currentPrice).round();
+      _amountCtrl.text = calculated.toString();
+      setState(() {});
+    } else {
+      _amountCtrl.clear();
+      setState(() {});
+    }
+  }
+
   Future<void> _submit() async {
     if (!_idValid || _resolvedUid == null) return;
     final amount = int.tryParse(_amountCtrl.text.trim());
@@ -1596,12 +1856,15 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
     try {
       final month = currentMonthArabic();
       final year = DateTime.now().year;
+      final now = DateTime.now();
+      final weekNumber = ((now.day - 1) ~/ 7) + 1;
       await FirebaseService().createBillWithConsumption(
         userId: _resolvedUid!,
         amount: amount,
         kwh: kwh,
         month: month,
         year: year,
+        weekNumber: weekNumber,
       );
       if (!mounted) return;
       Navigator.pop(context);
@@ -1647,231 +1910,280 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-          // Header
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            // Header
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('إصدار فاتورة جديدة',
+                          style: Theme.of(context).textTheme.titleLarge),
+                      const SizedBox(height: 2),
+                      Text('$month $year — يتم الرصد تلقائياً',
+                          style: const TextStyle(
+                              fontSize: 12, color: AppColors.lightMuted)),
+                    ],
+                  ),
+                ),
+                IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context)),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            // Auto month badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.calendar_month,
+                      size: 16, color: AppColors.primary),
+                  const SizedBox(width: 6),
+                  Text('الشهر: $month $year',
+                      style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary)),
+                  const SizedBox(width: 6),
+                  const Text('(تلقائي)',
+                      style:
+                          TextStyle(fontSize: 11, color: AppColors.lightMuted)),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // ID Number field with live validation
+            Text('رقم هوية المشترك',
+                style:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _idCtrl,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: 'أدخل رقم الهوية',
+                      hintStyle: const TextStyle(color: AppColors.lightMuted),
+                      prefixIcon: const Icon(Icons.badge_outlined,
+                          size: 20, color: AppColors.lightMuted),
+                      suffixIcon: _checking
+                          ? const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2)))
+                          : _idChecked
+                              ? Icon(
+                                  _idValid ? Icons.check_circle : Icons.cancel,
+                                  color: _idValid
+                                      ? AppColors.success
+                                      : AppColors.error,
+                                  size: 22)
+                              : null,
+                      filled: true,
+                      fillColor: Theme.of(context).scaffoldBackgroundColor,
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              const BorderSide(color: AppColors.lightBorder)),
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                              color: _idChecked
+                                  ? (_idValid
+                                      ? AppColors.success
+                                      : AppColors.error)
+                                  : AppColors.lightBorder,
+                              width: _idChecked ? 1.5 : 1)),
+                      focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                              color: AppColors.primary, width: 2)),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 14),
+                    ),
+                    onChanged: (_) {
+                      if (_idChecked) {
+                        setState(() {
+                          _idChecked = false;
+                          _idValid = false;
+                          _resolvedName = '';
+                          _resolvedUid = null;
+                        });
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _checking ? null : _validateId,
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: Size.zero,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 0),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('تحقق', style: TextStyle(fontSize: 13)),
+                  ),
+                ),
+              ],
+            ),
+
+            // ID validation result message
+            if (_idChecked) ...[
+              const SizedBox(height: 6),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: (_idValid ? AppColors.success : AppColors.error)
+                      .withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
                   children: [
-                    Text('إصدار فاتورة جديدة',
-                        style: Theme.of(context).textTheme.titleLarge),
-                    const SizedBox(height: 2),
-                    Text('$month $year — يتم الرصد تلقائياً',
-                        style: const TextStyle(
-                            fontSize: 12, color: AppColors.lightMuted)),
+                    Icon(
+                        _idValid ? Icons.person_pin : Icons.person_off_outlined,
+                        size: 16,
+                        color: _idValid ? AppColors.success : AppColors.error),
+                    const SizedBox(width: 8),
+                    Text(
+                      _idValid
+                          ? 'تم التحقق: $_resolvedName'
+                          : 'رقم الهوية غير موجود في النظام',
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color:
+                              _idValid ? AppColors.success : AppColors.error),
+                    ),
                   ],
                 ),
               ),
-              IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context)),
             ],
-          ),
 
-          const SizedBox(height: 20),
+            const SizedBox(height: 14),
 
-          // Auto month badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.primary.withOpacity(0.2)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.calendar_month,
-                    size: 16, color: AppColors.primary),
-                const SizedBox(width: 6),
-                Text('الشهر: $month $year',
-                    style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary)),
-                const SizedBox(width: 6),
-                const Text('(تلقائي)',
-                    style:
-                        TextStyle(fontSize: 11, color: AppColors.lightMuted)),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // ID Number field with live validation
-          Text('رقم هوية المشترك',
-              style:
-                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 6),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _idCtrl,
-                  keyboardType: TextInputType.number,
-                  style: const TextStyle(fontSize: 14),
-                  decoration: InputDecoration(
-                    hintText: 'أدخل رقم الهوية',
-                    hintStyle: const TextStyle(color: AppColors.lightMuted),
-                    prefixIcon: const Icon(Icons.badge_outlined,
-                        size: 20, color: AppColors.lightMuted),
-                    suffixIcon: _checking
-                        ? const Padding(
-                            padding: EdgeInsets.all(12),
-                            child: SizedBox(
-                                width: 18,
-                                height: 18,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2)))
-                        : _idChecked
-                            ? Icon(_idValid ? Icons.check_circle : Icons.cancel,
-                                color: _idValid
-                                    ? AppColors.success
-                                    : AppColors.error,
-                                size: 22)
-                            : null,
-                    filled: true,
-                    fillColor: Theme.of(context).scaffoldBackgroundColor,
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            const BorderSide(color: AppColors.lightBorder)),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                            color: _idChecked
-                                ? (_idValid
-                                    ? AppColors.success
-                                    : AppColors.error)
-                                : AppColors.lightBorder,
-                            width: _idChecked ? 1.5 : 1)),
-                    focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                            color: AppColors.primary, width: 2)),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 14),
-                  ),
-                  onChanged: (_) {
-                    if (_idChecked) {
-                      setState(() {
-                        _idChecked = false;
-                        _idValid = false;
-                        _resolvedName = '';
-                        _resolvedUid = null;
-                      });
-                    }
-                  },
-                ),
-              ),
-              const SizedBox(width: 8),
-              SizedBox(
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _checking ? null : _validateId,
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: Size.zero,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('تحقق', style: TextStyle(fontSize: 13)),
-                ),
-              ),
-            ],
-          ),
-
-          // ID validation result message
-          if (_idChecked) ...[
+            // Amount field
+            Text('قيمة الفاتورة (₪)',
+                style:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            _SheetField(
+                controller: _amountCtrl,
+                hint: 'مثال: 280',
+                icon: Icons.payments_outlined,
+                keyboardType: TextInputType.number),
+
+            const SizedBox(height: 14),
+
+            // kWh field
+            Text('الاستهلاك الأسبوعي (كيلوواط/ساعة)',
+                style:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _kwhCtrl,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              onChanged: (_) => _calculateAmount(),
+              style: const TextStyle(fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'مثال: 142.5',
+                hintStyle: const TextStyle(color: AppColors.lightMuted),
+                prefixIcon: const Icon(Icons.bolt_outlined,
+                    size: 20, color: AppColors.lightMuted),
+                filled: true,
+                fillColor: Theme.of(context).scaffoldBackgroundColor,
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.lightBorder)),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.lightBorder)),
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        const BorderSide(color: AppColors.primary, width: 2)),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: (_idValid ? AppColors.success : AppColors.error)
-                    .withOpacity(0.08),
-                borderRadius: BorderRadius.circular(8),
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(_idValid ? Icons.person_pin : Icons.person_off_outlined,
-                      size: 16,
-                      color: _idValid ? AppColors.success : AppColors.error),
-                  const SizedBox(width: 8),
+                  const Text('المبلغ المحسوب:',
+                      style:
+                          TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                   Text(
-                    _idValid
-                        ? 'تم التحقق: $_resolvedName'
-                        : 'رقم الهوية غير موجود في النظام',
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: _idValid ? AppColors.success : AppColors.error),
+                    _amountCtrl.text.isEmpty ? '₪ 0' : '₪ ${_amountCtrl.text}',
+                    style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary),
                   ),
                 ],
               ),
             ),
-          ],
 
-          const SizedBox(height: 14),
+            const SizedBox(height: 22),
 
-          // Amount field
-          Text('قيمة الفاتورة (₪)',
-              style:
-                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 6),
-          _SheetField(
-              controller: _amountCtrl,
-              hint: 'مثال: 280',
-              icon: Icons.payments_outlined,
-              keyboardType: TextInputType.number),
-
-          const SizedBox(height: 14),
-
-          // kWh field
-          Text('الاستهلاك الشهري (كيلوواط/ساعة)',
-              style:
-                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 6),
-          _SheetField(
-              controller: _kwhCtrl,
-              hint: 'مثال: 142.5',
-              icon: Icons.bolt_outlined,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true)),
-
-          const SizedBox(height: 22),
-
-          // Submit button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: canSubmit ? _submit : null,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
+            // Submit button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: canSubmit ? _submit : null,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                ),
+                child: _submitting
+                    ? const SizedBox(
+                        height: 22,
+                        width: 22,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2.5, color: Colors.white))
+                    : Text(
+                        canSubmit
+                            ? 'إصدار الفاتورة لـ $_resolvedName'
+                            : 'تحقق من رقم الهوية أولاً',
+                        style: const TextStyle(fontSize: 15)),
               ),
-              child: _submitting
-                  ? const SizedBox(
-                      height: 22,
-                      width: 22,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2.5, color: Colors.white))
-                  : Text(
-                      canSubmit
-                          ? 'إصدار الفاتورة لـ $_resolvedName'
-                          : 'تحقق من رقم الهوية أولاً',
-                      style: const TextStyle(fontSize: 15)),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
+    );
   }
 }
 
@@ -2301,8 +2613,7 @@ class _EmptyComplaints extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.primary.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                    color: AppColors.primary.withOpacity(0.2)),
+                border: Border.all(color: AppColors.primary.withOpacity(0.2)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -2406,8 +2717,7 @@ class _ComplaintCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.success.withOpacity(0.07),
                 borderRadius: BorderRadius.circular(10),
-                border:
-                    Border.all(color: AppColors.success.withOpacity(0.25)),
+                border: Border.all(color: AppColors.success.withOpacity(0.25)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -2426,7 +2736,8 @@ class _ComplaintCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(item.reply!,
-                      style: TextStyle(fontSize: 13, color: textColor, height: 1.4)),
+                      style: TextStyle(
+                          fontSize: 13, color: textColor, height: 1.4)),
                 ],
               ),
             ),
@@ -2505,8 +2816,8 @@ class _ComplaintCard extends StatelessWidget {
                 if (context.mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('تم إرسال الرد ✓',
-                          textAlign: TextAlign.right)));
+                      content:
+                          Text('تم إرسال الرد ✓', textAlign: TextAlign.right)));
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -2688,8 +2999,9 @@ class _AdminProfileTab extends ConsumerWidget {
     final totalSubs = subsAsync.when(
         data: (s) => s.length, loading: () => 0, error: (_, __) => 0);
     final activeSubs = subsAsync.when(
-        data: (s) =>
-            s.where((u) => u.subscriptionStatus == SubscriptionStatus.active).length,
+        data: (s) => s
+            .where((u) => u.subscriptionStatus == SubscriptionStatus.active)
+            .length,
         loading: () => 0,
         error: (_, __) => 0);
     final totalBills = billsStats.paidCount + billsStats.unpaidCount;
@@ -2723,7 +3035,8 @@ class _AdminProfileTab extends ConsumerWidget {
                 padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
+                  border: Border.all(
+                      color: Colors.white.withOpacity(0.5), width: 2),
                   boxShadow: [
                     BoxShadow(
                         color: Colors.black.withOpacity(0.2),
@@ -2740,19 +3053,28 @@ class _AdminProfileTab extends ConsumerWidget {
                           fontSize: 28,
                           fontWeight: FontWeight.w700)),
                 ),
-              ).animate().scaleXY(begin: 0.85, end: 1, duration: 400.ms, curve: Curves.easeOutBack),
+              ).animate().scaleXY(
+                  begin: 0.85,
+                  end: 1,
+                  duration: 400.ms,
+                  curve: Curves.easeOutBack),
               const SizedBox(height: 10),
               Text(
-                profile?.name.isNotEmpty == true ? profile!.name : 'صاحب المولد',
+                profile?.name.isNotEmpty == true
+                    ? profile!.name
+                    : 'صاحب المولد',
                 style: const TextStyle(
-                    color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700),
               ).animate().fadeIn(delay: 100.ms),
               const SizedBox(height: 4),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(20),
@@ -2763,13 +3085,15 @@ class _AdminProfileTab extends ConsumerWidget {
                         const Icon(Icons.bolt, color: Colors.white70, size: 13),
                         const SizedBox(width: 4),
                         const Text('صاحب مولد',
-                            style: TextStyle(color: Colors.white70, fontSize: 12)),
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 12)),
                       ],
                     ),
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
@@ -2777,10 +3101,15 @@ class _AdminProfileTab extends ConsumerWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.phone, color: Colors.white54, size: 12),
+                        const Icon(Icons.phone,
+                            color: Colors.white54, size: 12),
                         const SizedBox(width: 4),
-                        Text(profile?.phone.isNotEmpty == true ? profile!.phone : '—',
-                            style: const TextStyle(color: Colors.white60, fontSize: 11)),
+                        Text(
+                            profile?.phone.isNotEmpty == true
+                                ? profile!.phone
+                                : '—',
+                            style: const TextStyle(
+                                color: Colors.white60, fontSize: 11)),
                       ],
                     ),
                   ),
@@ -2809,7 +3138,10 @@ class _AdminProfileTab extends ConsumerWidget {
                     icon: Icons.receipt_long_outlined,
                   ),
                 ],
-              ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0, duration: 350.ms),
+              )
+                  .animate()
+                  .fadeIn(delay: 200.ms)
+                  .slideY(begin: 0.2, end: 0, duration: 350.ms),
             ],
           ),
         ),
@@ -2840,14 +3172,18 @@ class _AdminProfileTab extends ConsumerWidget {
                       icon: Icons.phone_outlined,
                       iconColor: AppColors.primary,
                       label: 'رقم الهاتف',
-                      value: profile?.phone.isNotEmpty == true ? profile!.phone : '—',
+                      value: profile?.phone.isNotEmpty == true
+                          ? profile!.phone
+                          : '—',
                     ),
                     _Separator(),
                     _InfoTile(
                       icon: Icons.location_on_outlined,
                       iconColor: AppColors.success,
                       label: 'العنوان',
-                      value: profile?.address?.isNotEmpty == true ? profile!.address! : '—',
+                      value: profile?.address?.isNotEmpty == true
+                          ? profile!.address!
+                          : '—',
                     ),
                     _Separator(),
                     _InfoTile(
@@ -2858,7 +3194,10 @@ class _AdminProfileTab extends ConsumerWidget {
                     ),
                   ],
                 ),
-              ).animate().fadeIn().slideY(begin: 0.15, end: 0, duration: 300.ms),
+              )
+                  .animate()
+                  .fadeIn()
+                  .slideY(begin: 0.15, end: 0, duration: 300.ms),
               const SizedBox(height: 20),
 
               // ── إعدادات الحساب ────────────────────────────────────────────
@@ -2885,20 +3224,28 @@ class _AdminProfileTab extends ConsumerWidget {
                     ),
                     _Separator(),
                     _ActionTile(
-                      icon: isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+                      icon: isDark
+                          ? Icons.dark_mode_outlined
+                          : Icons.light_mode_outlined,
                       iconColor: AppColors.primary,
                       title: isDark ? 'الوضع الداكن' : 'الوضع الفاتح',
-                      subtitle: isDark ? 'اضغط للتبديل للوضع الفاتح' : 'اضغط للتبديل للوضع الداكن',
+                      subtitle: isDark
+                          ? 'اضغط للتبديل للوضع الفاتح'
+                          : 'اضغط للتبديل للوضع الداكن',
                       trailing: Switch(
                         value: isDark,
-                        onChanged: (_) => ref.read(themeProvider.notifier).toggle(),
+                        onChanged: (_) =>
+                            ref.read(themeProvider.notifier).toggle(),
                         activeColor: AppColors.primary,
                       ),
                       onTap: () => ref.read(themeProvider.notifier).toggle(),
                     ),
                   ],
                 ),
-              ).animate().fadeIn(delay: 50.ms).slideY(begin: 0.15, end: 0, duration: 300.ms),
+              )
+                  .animate()
+                  .fadeIn(delay: 50.ms)
+                  .slideY(begin: 0.15, end: 0, duration: 300.ms),
               const SizedBox(height: 28),
 
               // ── تسجيل الخروج ─────────────────────────────────────────────
@@ -2931,7 +3278,8 @@ class _AdminProfileTab extends ConsumerWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.logout_rounded, color: Colors.white, size: 20),
+                          Icon(Icons.logout_rounded,
+                              color: Colors.white, size: 20),
                           SizedBox(width: 8),
                           Text('تسجيل الخروج',
                               style: TextStyle(
@@ -3025,9 +3373,7 @@ class _AdminProfileTab extends ConsumerWidget {
                         ? null
                         : () async {
                             setS(() => saving = true);
-                            await ref
-                                .read(authProvider.notifier)
-                                .updateProfile(
+                            await ref.read(authProvider.notifier).updateProfile(
                                   name: nameCtrl.text.trim(),
                                   address: addressCtrl.text.trim(),
                                   phone: phoneCtrl.text.trim(),
@@ -3109,14 +3455,16 @@ class _PendingUsersTab extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: AppColors.warning),
+              const Icon(Icons.error_outline,
+                  size: 48, color: AppColors.warning),
               const SizedBox(height: 16),
               const Text('تعذّر تحميل الطلبات المعلقة',
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               Text(err.toString(),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 11, color: AppColors.lightMuted)),
+                  style: const TextStyle(
+                      fontSize: 11, color: AppColors.lightMuted)),
             ],
           ),
         ),
@@ -3514,8 +3862,7 @@ class _ProfileStatChip extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.12),
             borderRadius: BorderRadius.circular(14),
-            border:
-                Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+            border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
           ),
           child: Column(
             children: [
@@ -3528,8 +3875,7 @@ class _ProfileStatChip extends StatelessWidget {
                       fontWeight: FontWeight.w800)),
               const SizedBox(height: 2),
               Text(label,
-                  style: const TextStyle(
-                      color: Colors.white60, fontSize: 10)),
+                  style: const TextStyle(color: Colors.white60, fontSize: 10)),
             ],
           ),
         ),

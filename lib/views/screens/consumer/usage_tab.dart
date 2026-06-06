@@ -51,6 +51,7 @@ class _UsageTabState extends ConsumerState<UsageTab>
     final profile = ref.watch(authProvider).profile;
     final uid = profile?.uid ?? '';
     final billsAsync = ref.watch(billsProvider(uid));
+    final history = ref.watch(consumptionHistoryProvider(uid));
     final brightness = Theme.of(context).brightness;
     final primary = AppColors.primaryFor(brightness);
     final bg = brightness == Brightness.dark
@@ -78,6 +79,7 @@ class _UsageTabState extends ConsumerState<UsageTab>
                 if (bills.isEmpty) return const _EmptyUsage();
                 return _UsageBody(
                   bills: bills,
+                  history: history,
                   period: _period,
                   anim: _anim,
                   onPeriodChanged: _selectPeriod,
@@ -102,6 +104,7 @@ class _UsageTabState extends ConsumerState<UsageTab>
 
 class _UsageBody extends StatelessWidget {
   final List<Bill> bills;
+  final ConsumptionHistory history;
   final _Period period;
   final Animation<double> anim;
   final void Function(_Period) onPeriodChanged;
@@ -110,6 +113,7 @@ class _UsageBody extends StatelessWidget {
 
   const _UsageBody({
     required this.bills,
+    required this.history,
     required this.period,
     required this.anim,
     required this.onPeriodChanged,
@@ -118,40 +122,30 @@ class _UsageBody extends StatelessWidget {
   });
 
   List<_DataPoint> _buildPoints() {
-    final sorted = [...bills]
-      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
-
-    if (period == _Period.monthly) {
-      return sorted.take(7).map((b) {
-        return _DataPoint(label: b.month, value: b.kwh, cost: b.amount);
-      }).toList();
+    if (period == _Period.daily) {
+      return history.daily
+          .map((p) => _DataPoint(
+                label: p.label,
+                value: p.kwh,
+                cost: p.cost,
+                isToday: false,
+              ))
+          .toList();
     }
 
     if (period == _Period.weekly) {
-      final base = sorted.isNotEmpty ? sorted.last.kwh : 120.0;
-      const labels = ['الأسبوع 4', 'الأسبوع 3', 'الأسبوع 2', 'هذا الأسبوع'];
-      const factors = [0.82, 0.95, 0.88, 1.0];
-      return List.generate(4, (i) {
-        final kwh = (base / 4) * factors[i];
-        return _DataPoint(
-            label: labels[i], value: kwh, cost: (kwh * 2).toInt());
-      });
+      return history.weekly
+          .map((p) => _DataPoint(
+                label: p.label,
+                value: p.kwh,
+                cost: p.cost,
+              ))
+          .toList();
     }
 
-    // daily
-    final baseDaily = sorted.isNotEmpty ? sorted.last.kwh / 30 : 4.0;
-    const dayNames = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-    final today = DateTime.now().weekday % 7;
-    const dayFactors = [0.9, 1.1, 0.85, 1.05, 0.95, 1.2, 0.8];
-    return List.generate(7, (i) {
-      final dayIdx = (today - 6 + i + 7) % 7;
-      final kwh = baseDaily * dayFactors[i];
-      return _DataPoint(
-          label: dayNames[dayIdx],
-          value: kwh,
-          cost: (kwh * 2).toInt(),
-          isToday: i == 6);
-    });
+    return history.monthly
+        .map((p) => _DataPoint(label: p.label, value: p.kwh, cost: p.cost))
+        .toList();
   }
 
   @override
@@ -163,13 +157,15 @@ class _UsageBody extends StatelessWidget {
     final avgVal = points.isEmpty ? 0.0 : totalVal / points.length;
 
     final muted = AppColors.mutedFor(brightness);
-    final surface = brightness == Brightness.dark
-        ? AppColors.darkSurface
-        : Colors.white;
+    final surface =
+        brightness == Brightness.dark ? AppColors.darkSurface : Colors.white;
 
     String unit = period == _Period.daily ? 'kWh/يوم' : 'kWh';
-    String totalLabel =
-        period == _Period.daily ? 'آخر ٧ أيام' : period == _Period.weekly ? 'آخر ٤ أسابيع' : 'إجمالي';
+    String totalLabel = period == _Period.daily
+        ? 'آخر ٧ أيام'
+        : period == _Period.weekly
+            ? 'آخر ٤ أسابيع'
+            : 'إجمالي';
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -208,8 +204,8 @@ class _UsageBody extends StatelessWidget {
                         color: Colors.white.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.bolt,
-                          color: Colors.white, size: 20),
+                      child:
+                          const Icon(Icons.bolt, color: Colors.white, size: 20),
                     ),
                     const SizedBox(width: 10),
                     Text('الاستهلاك الكلي',
@@ -386,8 +382,7 @@ class _HeaderStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.15),
           borderRadius: BorderRadius.circular(10),
@@ -442,7 +437,9 @@ class _PillButton extends StatelessWidget {
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 13,
-                  color: selected ? Colors.white : AppColors.mutedFor(Theme.of(context).brightness),
+                  color: selected
+                      ? Colors.white
+                      : AppColors.mutedFor(Theme.of(context).brightness),
                 ),
               ),
             ),
@@ -511,9 +508,8 @@ class _LineChart extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 10,
                           color: p.isToday ? primary : muted,
-                          fontWeight: p.isToday
-                              ? FontWeight.w700
-                              : FontWeight.normal,
+                          fontWeight:
+                              p.isToday ? FontWeight.w700 : FontWeight.normal,
                         ),
                       ),
                     ))
@@ -596,23 +592,17 @@ class _LinePainter extends CustomPainter {
     // Dots
     for (int i = 0; i < pts.length; i++) {
       final isToday = points[i].isToday;
-      canvas.drawCircle(
-          pts[i],
-          isToday ? 6.0 : 4.0,
+      canvas.drawCircle(pts[i], isToday ? 6.0 : 4.0,
           Paint()..color = isToday ? primary : primary.withOpacity(0.5));
       canvas.drawCircle(
-          pts[i],
-          isToday ? 3.5 : 2.0,
-          Paint()..color = Colors.white);
+          pts[i], isToday ? 3.5 : 2.0, Paint()..color = Colors.white);
 
       if (isToday) {
         final tp = TextPainter(
           text: TextSpan(
             text: '${points[i].value.toStringAsFixed(1)}',
             style: TextStyle(
-                color: primary,
-                fontSize: 10,
-                fontWeight: FontWeight.w700),
+                color: primary, fontSize: 10, fontWeight: FontWeight.w700),
           ),
           textDirection: TextDirection.rtl,
         )..layout();
@@ -671,8 +661,7 @@ class _HorizontalBarChart extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     color: isLast ? primary : muted,
-                    fontWeight:
-                        isLast ? FontWeight.w700 : FontWeight.normal,
+                    fontWeight: isLast ? FontWeight.w700 : FontWeight.normal,
                   ),
                   textAlign: TextAlign.start,
                 ),
@@ -818,8 +807,7 @@ class _VerticalBarChart extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 10,
                     color: isLast ? primary : muted,
-                    fontWeight:
-                        isLast ? FontWeight.w700 : FontWeight.normal,
+                    fontWeight: isLast ? FontWeight.w700 : FontWeight.normal,
                   ),
                 ),
               );
