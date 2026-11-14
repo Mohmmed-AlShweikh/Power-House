@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" role="img" aria-labelledby="title"><title id="title">c-plug black</title><defs><mask id="cut"><rect width="96" height="96" fill="white"/>
+    <path d="M44 44H56L48 56H60L44 72H36L44 60H32Z" fill="black"/>
+    </mask></defs><path d="M4 72V40L16 28L28 40V72Z M68 72V40L80 28L92 40V72Z" fill="#000000"/>
+    <g fill="#000000" mask="url(#cut)"><rect x="24" y="36" width="48" height="44" rx="8"/>
+    <rect x="32" y="12" width="8" height="28" rx="2"/><rect x="56" y="12" width="8" height="28" rx="2"/>
+    <rect x="40" y="76" width="16" height="16" rx="2"/></g></svg>

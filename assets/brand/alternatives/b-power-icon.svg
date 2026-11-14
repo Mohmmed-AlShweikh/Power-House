@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108" role="img" aria-labelledby="title"><title id="title">b-power — أيقونة مقترحة</title><rect width="108" height="108" fill="#F4F6F3"/><g transform="translate(14 14) scale(.833333)"><defs><mask id="cut"><rect width="96" height="96" fill="white"/>
+        <path d="M34 44A20 20 0 1 0 62 44" fill="none" stroke="black" stroke-width="8" stroke-linecap="butt"/>
+        <rect x="44" y="30" width="8" height="24" fill="black"/>
+        </mask></defs><path d="M8 40V24L18 14L28 24V40Z M36 32V16L48 4L60 16V32Z M68 40V24L78 14L88 24V40Z" fill="#173E43"/>
+        <circle cx="48" cy="56" r="36" fill="#14756B" mask="url(#cut)"/></g></svg>

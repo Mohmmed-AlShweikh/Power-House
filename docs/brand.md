@@ -1,6 +1,6 @@
 # بوابة المولدات — «وصلة الحي»
 
-Status: Step 1 identity proposal. Awaiting owner approval before Step 2. Nothing in the running Flutter UI, routes, providers, services, models, permissions or Firebase has been changed.
+Status: Step 1 identity proposal. **The original symbol is not approved.** See [revision 02 and three energy-first alternatives](identity/logo-review.md), [comparison screenshot](identity/logo-alternatives.png) and [main-logo/icon loading proof](identity/logo-and-icon.png). The unchanged bilingual wordmark is retained in every candidate. Awaiting owner's symbol choice before Step 2. Nothing in the running Flutter UI, routes, providers, services, models, permissions or Firebase has been changed.
 
 ## Concept
 
