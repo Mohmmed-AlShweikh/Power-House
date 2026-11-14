@@ -1,3 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" role="img" aria-labelledby="title"><title id="title">بوابة المولدات — رمز وصلة الحي</title><g fill="none" stroke="#173E43" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M10 73V47L23 37L36 47V60 M35 60V29L48 19L61 29V60 M60 60V47L73 37L86 47V73 M10 73H86 M48 43V73"/>
-    </g><circle cx="48" cy="73" r="8" fill="#14756B"/><circle cx="48" cy="73" r="3" fill="#173E43"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" role="img" aria-labelledby="title"><title id="title">بوابة المولدات — تطوير البديل A</title><defs>
+    <mask id="houses"><rect width="96" height="96" fill="white"/><path d="M20 32H28V40H20Z M60 32H68V40H60Z" fill="black"/></mask>
+    <mask id="engine"><rect width="96" height="96" fill="white"/>
+    <path d="M36 56H48L40 64H52L36 80H24L32 68H20Z" fill="black"/>
+    <path d="M64 56H80V64H64Z M64 72H80V80H64Z" fill="black"/></mask></defs>
+    <path fill="#173E43" mask="url(#houses)" d="M8 30L24 14L40 30H32V40H16V30Z M48 20L64 4L80 20H72V40H56V20Z"/>
+    <g fill="#14756B" mask="url(#engine)"><path d="M80 48V24H96V32H88V56Z"/>
+    <rect x="8" y="48" width="80" height="40" rx="8"/>
+    <path d="M16 84H32V96H16Z M64 84H80V96H64Z"/></g></svg>

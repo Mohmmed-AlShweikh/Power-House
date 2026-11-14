@@ -1,0 +1,121 @@
+{
+  "adaptive-icon-preview": {
+    "images": [
+      {
+        "loaded": true,
+        "width": 192,
+        "height": 192
+      },
+      {
+        "loaded": true,
+        "width": 96,
+        "height": 96
+      },
+      {
+        "loaded": true,
+        "width": 48,
+        "height": 48
+      },
+      {
+        "loaded": true,
+        "width": 96,
+        "height": 96
+      },
+      {
+        "loaded": true,
+        "width": 96,
+        "height": 96
+      },
+      {
+        "loaded": true,
+        "width": 192,
+        "height": 192
+      },
+      {
+        "loaded": true,
+        "width": 96,
+        "height": 96
+      },
+      {
+        "loaded": true,
+        "width": 48,
+        "height": 48
+      },
+      {
+        "loaded": true,
+        "width": 96,
+        "height": 96
+      },
+      {
+        "loaded": true,
+        "width": 96,
+        "height": 96
+      },
+      {
+        "loaded": true,
+        "width": 162,
+        "height": 162
+      }
+    ]
+  },
+  "theme-preview": {
+    "images": [
+      {
+        "loaded": true,
+        "width": 410,
+        "height": 100
+      },
+      {
+        "loaded": true,
+        "width": 566,
+        "height": 138
+      },
+      {
+        "loaded": true,
+        "width": 108,
+        "height": 108
+      },
+      {
+        "loaded": true,
+        "width": 56,
+        "height": 56
+      }
+    ]
+  },
+  "status": [
+    {
+      "text": "حالة التشغيل\nالمولد يعمل الآن\n\nيعمل منذ ساعتين · نشط ✓\n\n⏻",
+      "borderRight": "1px",
+      "bg": "rgb(233, 243, 237)",
+      "fg": "rgb(36, 107, 76)"
+    },
+    {
+      "text": "حالة التشغيل · مثال بديل\nالمولد متوقف\n\nمتوقف · رمز الإيقاف مع النص\n\n⏻",
+      "borderRight": "1px",
+      "bg": "rgb(237, 241, 239)",
+      "fg": "rgb(83, 105, 109)"
+    },
+    {
+      "text": "حالة التشغيل\nالمولد يعمل الآن\n\nيعمل منذ ساعتين · نشط ✓\n\n⏻",
+      "borderRight": "1px",
+      "bg": "rgb(35, 67, 56)",
+      "fg": "rgb(160, 217, 184)"
+    },
+    {
+      "text": "حالة التشغيل · مثال بديل\nالمولد متوقف\n\nمتوقف · رمز الإيقاف مع النص\n\n⏻",
+      "borderRight": "1px",
+      "bg": "rgb(38, 61, 64)",
+      "fg": "rgb(179, 197, 195)"
+    }
+  ],
+  "canvas": "rgb(243, 241, 235)",
+  "codesLTR": true,
+  "safeCircle": {
+    "canvasDP": 108,
+    "diameterDP": 66,
+    "maxAlphaRadiusDP": 32.58,
+    "passed": true
+  },
+  "stagedPlatformXMLParsed": true,
+  "iosOpaque1024": true
+}

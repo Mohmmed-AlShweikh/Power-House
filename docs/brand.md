@@ -1,6 +1,6 @@
 # بوابة المولدات — «وصلة الحي»
 
-Status: Step 1. **A selected conditionally; its refined artwork awaits explicit approval.** Latest [revision 03 preview](identity/a-refined.png), [logo/icon close-up](identity/a-refined-lockup-icon.png) and [revision notes](identity/a-refined.md). The bilingual wordmark remains unchanged as requested. Step 2 has not started. Earlier [three alternatives](identity/logo-review.md) are retained as review history. Nothing in the running Flutter UI, routes, providers, services, models, permissions or Firebase has been changed.
+Status: **Refined A artwork approved. Final Step 1 presentation awaits confirmation before Step 2.** See [complete preview](identity/theme-preview.png), [adaptive icon sizes and masks](identity/adaptive-icon-preview.png), and [final preparation notes](identity/final-review.md). SVG brand masters now use approved A with its two existing vents and unchanged bilingual wordmark. Earlier proposals are retained as review history. Step 2 has not started; application source and installed platform resources remain untouched.
 
 ## Concept
 
@@ -26,7 +26,7 @@ Status: Step 1. **A selected conditionally; its refined artwork awaits explicit 
 | Brand ink | `#173E43` | `#F3F7F4` |
 | Primary/action | `#14756B` | `#8AD8C7` |
 | On primary | `#FFFFFF` | `#113C35` |
-| Canvas | `#F4F6F3` | `#13262A` |
+| Canvas | `#F3F1EB` (warm neutral grey) | `#13262A` |
 | Surface | `#FFFFFF` | `#1B3337` |
 | Main text | `#233D42` | `#ECF3EF` |
 | Secondary text | `#53696D` | `#B3C5C3` |
