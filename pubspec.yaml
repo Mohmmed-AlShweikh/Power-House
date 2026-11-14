@@ -46,6 +46,20 @@ flutter:
   uses-material-design: true
   assets:
     - assets/logo.jpg
+    - assets/brand/approved-a/mark-primary-384.png
+    - assets/brand/approved-a/mark-reversed-384.png
+  fonts:
+    - family: PortalArabic
+      fonts:
+        - asset: assets/fonts/NotoSansArabic-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/NotoSansArabic-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/NotoSansArabic-Bold.ttf
+          weight: 700
+    - family: PortalCurrency
+      fonts:
+        - asset: assets/fonts/NotoSans-Regular.ttf
 
 flutter_native_splash:
   color: "#0d47a1"

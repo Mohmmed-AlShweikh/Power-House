@@ -6,6 +6,8 @@ import '../../../models/bill_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/data_provider.dart';
 import '../../../config/colors.dart';
+import '../../../theme/portal_theme.dart';
+import '../../widgets/portal_chart.dart';
 import '../../widgets/notification_bell.dart';
 
 enum _Period { daily, weekly, monthly }
@@ -470,162 +472,15 @@ class _LineChart extends StatelessWidget {
   final double anim;
   final Color primary;
   final Color muted;
-
-  const _LineChart({
-    required this.points,
-    required this.maxVal,
-    required this.anim,
-    required this.primary,
-    required this.muted,
-  });
-
+  const _LineChart({required this.points, required this.maxVal,
+    required this.anim, required this.primary, required this.muted});
   @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 190,
-      child: Column(
-        children: [
-          Expanded(
-            child: CustomPaint(
-              painter: _LinePainter(
-                  points: points,
-                  maxVal: maxVal,
-                  anim: anim,
-                  primary: primary,
-                  muted: muted),
-              child: const SizedBox.expand(),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: points
-                .map((p) => SizedBox(
-                      width: 36,
-                      child: Text(
-                        p.label.length > 3 ? p.label.substring(0, 3) : p.label,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: p.isToday ? primary : muted,
-                          fontWeight:
-                              p.isToday ? FontWeight.w700 : FontWeight.normal,
-                        ),
-                      ),
-                    ))
-                .toList(),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Theme(
+    data: buildPortalTheme(Theme.of(context).brightness),
+    child: PortalBarChart(points: points.map((p) => PortalChartPoint(p.label, p.value)).toList(),
+      maximum: maxVal, progress: anim, horizontal: false),
+  );
 }
-
-class _LinePainter extends CustomPainter {
-  final List<_DataPoint> points;
-  final double maxVal;
-  final double anim;
-  final Color primary;
-  final Color muted;
-
-  _LinePainter({
-    required this.points,
-    required this.maxVal,
-    required this.anim,
-    required this.primary,
-    required this.muted,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (points.isEmpty) return;
-
-    final n = points.length;
-    final dx = size.width / (n - 1);
-
-    List<Offset> pts = List.generate(n, (i) {
-      final x = i * dx;
-      final ratio = maxVal > 0 ? (points[i].value / maxVal) : 0.0;
-      final y = size.height - (ratio * size.height * 0.85 * anim) - 4;
-      return Offset(x, y);
-    });
-
-    // Area fill
-    final areaPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          primary.withOpacity(0.25 * anim),
-          primary.withOpacity(0.0),
-        ],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-
-    final areaPath = Path()..moveTo(pts[0].dx, pts[0].dy);
-    for (int i = 1; i < pts.length; i++) {
-      final cp1 = Offset((pts[i - 1].dx + pts[i].dx) / 2, pts[i - 1].dy);
-      final cp2 = Offset((pts[i - 1].dx + pts[i].dx) / 2, pts[i].dy);
-      areaPath.cubicTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, pts[i].dx, pts[i].dy);
-    }
-    areaPath
-      ..lineTo(pts.last.dx, size.height)
-      ..lineTo(pts.first.dx, size.height)
-      ..close();
-    canvas.drawPath(areaPath, areaPaint);
-
-    // Line
-    final linePaint = Paint()
-      ..color = primary
-      ..strokeWidth = 2.5
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final linePath = Path()..moveTo(pts[0].dx, pts[0].dy);
-    for (int i = 1; i < pts.length; i++) {
-      final cp1 = Offset((pts[i - 1].dx + pts[i].dx) / 2, pts[i - 1].dy);
-      final cp2 = Offset((pts[i - 1].dx + pts[i].dx) / 2, pts[i].dy);
-      linePath.cubicTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, pts[i].dx, pts[i].dy);
-    }
-    canvas.drawPath(linePath, linePaint);
-
-    // Dots
-    for (int i = 0; i < pts.length; i++) {
-      final isToday = points[i].isToday;
-      canvas.drawCircle(pts[i], isToday ? 6.0 : 4.0,
-          Paint()..color = isToday ? primary : primary.withOpacity(0.5));
-      canvas.drawCircle(
-          pts[i], isToday ? 3.5 : 2.0, Paint()..color = Colors.white);
-
-      if (isToday) {
-        final tp = TextPainter(
-          text: TextSpan(
-            text: '${points[i].value.toStringAsFixed(1)}',
-            style: TextStyle(
-                color: primary, fontSize: 10, fontWeight: FontWeight.w700),
-          ),
-          textDirection: TextDirection.rtl,
-        )..layout();
-        tp.paint(canvas, Offset(pts[i].dx - tp.width / 2, pts[i].dy - 20));
-      }
-    }
-
-    // Horizontal grid lines
-    final gridPaint = Paint()
-      ..color = muted.withOpacity(0.12)
-      ..strokeWidth = 1;
-    for (int i = 1; i <= 3; i++) {
-      final y = size.height * i / 4;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_LinePainter old) =>
-      old.anim != anim || old.points != points;
-}
-
-// ─── Horizontal bar chart (weekly) ──────────────────────────────────────────
 
 class _HorizontalBarChart extends StatelessWidget {
   final List<_DataPoint> points;
@@ -634,91 +489,15 @@ class _HorizontalBarChart extends StatelessWidget {
   final Color primary;
   final Color muted;
   final Brightness brightness;
-
-  const _HorizontalBarChart({
-    required this.points,
-    required this.maxVal,
-    required this.anim,
-    required this.primary,
-    required this.muted,
-    required this.brightness,
-  });
-
+  const _HorizontalBarChart({required this.points, required this.maxVal,
+    required this.anim, required this.primary, required this.muted, required this.brightness});
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: points.reversed.map((p) {
-        final ratio = maxVal > 0 ? (p.value / maxVal) : 0.0;
-        final isLast = p == points.last;
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 14),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 68,
-                child: Text(
-                  p.label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isLast ? primary : muted,
-                    fontWeight: isLast ? FontWeight.w700 : FontWeight.normal,
-                  ),
-                  textAlign: TextAlign.start,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Stack(
-                  children: [
-                    Container(
-                      height: 22,
-                      decoration: BoxDecoration(
-                        color: muted.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                    ),
-                    FractionallySizedBox(
-                      widthFactor: ratio * anim,
-                      child: Container(
-                        height: 22,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: isLast
-                                ? [primary, primary.withOpacity(0.7)]
-                                : [
-                                    primary.withOpacity(0.4),
-                                    primary.withOpacity(0.2)
-                                  ],
-                          ),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 48,
-                child: Text(
-                  '${p.value.toStringAsFixed(1)}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isLast ? primary : muted,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  textAlign: TextAlign.end,
-                ),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
-    );
-  }
+  Widget build(BuildContext context) => Theme(
+    data: buildPortalTheme(Theme.of(context).brightness),
+    child: PortalBarChart(points: points.map((p) => PortalChartPoint(p.label, p.value)).toList(),
+      maximum: maxVal, progress: anim, horizontal: true),
+  );
 }
-
-// ─── Vertical bar chart (monthly) ───────────────────────────────────────────
 
 class _VerticalBarChart extends StatelessWidget {
   final List<_DataPoint> points;
@@ -726,99 +505,15 @@ class _VerticalBarChart extends StatelessWidget {
   final double anim;
   final Color primary;
   final Color muted;
-
-  const _VerticalBarChart({
-    required this.points,
-    required this.maxVal,
-    required this.anim,
-    required this.primary,
-    required this.muted,
-  });
-
+  const _VerticalBarChart({required this.points, required this.maxVal,
+    required this.anim, required this.primary, required this.muted});
   @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 190,
-      child: Column(
-        children: [
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: points.map((p) {
-                final ratio = maxVal > 0 ? (p.value / maxVal) : 0.0;
-                final isLast = p == points.last;
-                return Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 3),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        if (isLast)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 5, vertical: 2),
-                            margin: const EdgeInsets.only(bottom: 4),
-                            decoration: BoxDecoration(
-                              color: primary,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              '${p.value.toInt()}',
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w700),
-                            ),
-                          ),
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 600),
-                          curve: Curves.easeOutCubic,
-                          height: ratio * 130 * anim,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: isLast
-                                  ? [primary, primary.withOpacity(0.7)]
-                                  : [
-                                      primary.withOpacity(0.35),
-                                      primary.withOpacity(0.15)
-                                    ],
-                            ),
-                            borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(7)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: points.map((p) {
-              final isLast = p == points.last;
-              return Expanded(
-                child: Text(
-                  p.label.length > 3 ? p.label.substring(0, 3) : p.label,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: isLast ? primary : muted,
-                    fontWeight: isLast ? FontWeight.w700 : FontWeight.normal,
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Theme(
+    data: buildPortalTheme(Theme.of(context).brightness),
+    child: PortalBarChart(points: points.map((p) => PortalChartPoint(p.label, p.value)).toList(),
+      maximum: maxVal, progress: anim, horizontal: false),
+  );
 }
-
 // ─── Empty state ─────────────────────────────────────────────────────────────
 
 class _EmptyUsage extends StatelessWidget {

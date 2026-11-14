@@ -15,6 +15,9 @@ import '../../../services/firebase_service.dart';
 import '../../../services/local_notification_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../config/colors.dart';
+import '../../../theme/portal_tokens.dart';
+import '../../../theme/portal_theme.dart';
+import '../../widgets/portal_components.dart';
 import '../../widgets/base64_image_viewer.dart';
 import 'subscriber_details_screen.dart';
 
@@ -80,137 +83,42 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    return Scaffold(
-      body: Column(
-        children: [
-          // Header
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 600),
-            curve: Curves.easeInOut,
-            decoration: BoxDecoration(
-              color: AppColors.primaryDarkFor(theme.brightness),
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(24),
-                bottomRight: Radius.circular(24),
-              ),
-            ),
-            child: SafeArea(
-              bottom: false,
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(9),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Icon(Icons.settings,
-                              color: Colors.white, size: 22),
-                        ),
-                        const SizedBox(width: 12),
-                        Consumer(
-                          builder: (_, ref, __) {
-                            final profile = ref.watch(authProvider).profile;
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('لوحة الإدارة',
-                                    style: theme.textTheme.headlineMedium
-                                        ?.copyWith(color: Colors.white)),
-                                Text(
-                                    profile != null && profile.name.isNotEmpty
-                                        ? profile.name
-                                        : 'مولد حي البيرة',
-                                    style: theme.textTheme.bodyMedium
-                                        ?.copyWith(color: Colors.white60)),
-                              ],
-                            );
-                          },
-                        ),
-                        const Spacer(),
-                        Consumer(
-                          builder: (_, ref, __) {
-                            final isDark = theme.brightness == Brightness.dark;
-                            return Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  tooltip: isDark ? 'وضع النهار' : 'وضع الليل',
-                                  icon: Icon(
-                                      isDark
-                                          ? Icons.light_mode
-                                          : Icons.dark_mode,
-                                      color: Colors.white),
-                                  onPressed: () =>
-                                      ref.read(themeProvider.notifier).toggle(),
-                                ),
-                                IconButton(
-                                  tooltip: 'تسجيل الخروج',
-                                  icon: const Icon(Icons.logout,
-                                      color: Colors.white),
-                                  onPressed: () async {
-                                    await ref
-                                        .read(authProvider.notifier)
-                                        .signOut();
-                                    if (context.mounted) context.go('/login');
-                                  },
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  TabBar(
-                    controller: _tabs,
-                    isScrollable: true,
-                    tabAlignment: TabAlignment.start,
-                    labelColor: Colors.white,
-                    unselectedLabelColor: Colors.white54,
-                    indicatorColor: AppColors.success,
-                    indicatorWeight: 3,
-                    labelStyle: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600),
-                    unselectedLabelStyle: const TextStyle(fontSize: 13),
-                    tabs: const [
-                      Tab(text: 'نظرة عامة'),
-                      Tab(text: 'الطلبات'),
-                      Tab(text: 'المشتركون'),
-                      Tab(text: 'الفواتير'),
-                      Tab(text: 'الشكاوى'),
-                      Tab(text: 'ملفي'),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          Expanded(
-            child: TabBarView(
-              controller: _tabs,
-              children: [
-                _DashboardTab(onToggle: (v) async {
-                  await FirebaseService().toggleGenerator(v);
-                  await NotificationService().notifyAllUsersGeneratorState(v);
-                }),
-                const _PendingUsersTab(),
-                _SubscribersTab(onJumpToBill: _jumpToBillsTab),
-                const _BillsTab(),
-                const _ComplaintsTab(),
-                const _AdminProfileTab(),
-              ],
-            ),
-          ),
-        ],
-      ),
+    // Keep unreviewed destinations on their existing theme until Step 3.
+    Widget existingAppearance(Widget child) => Theme(
+      data: theme,
+      child: ColoredBox(color: theme.scaffoldBackgroundColor, child: child),
     );
+
+    return Theme(data: buildPortalTheme(theme.brightness), child: Builder(builder: (context) {
+      final profile = ref.watch(authProvider).profile;
+      return Scaffold(body: Column(children: [
+        PortalIdentityBar(title: 'لوحة الإدارة',
+          subtitle: profile != null && profile.name.isNotEmpty ? profile.name : 'مولد حي البيرة',
+          actions: [
+            IconButton(tooltip: theme.brightness == Brightness.dark ? 'وضع النهار' : 'وضع الليل',
+              icon: Icon(theme.brightness == Brightness.dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+              onPressed: () => ref.read(themeProvider.notifier).toggle()),
+            IconButton(tooltip: 'تسجيل الخروج', icon: const Icon(Icons.logout),
+              onPressed: () async {
+                await ref.read(authProvider.notifier).signOut();
+                if (context.mounted) context.go('/login');
+              }),
+          ]),
+        AnimatedBuilder(animation: _tabs, builder: (_, __) => PortalDestinations(
+          selected: _tabs.index, onSelected: (index) => _tabs.animateTo(index))),
+        Expanded(child: TabBarView(controller: _tabs, children: [
+          _DashboardTab(onToggle: (v) async {
+            await FirebaseService().toggleGenerator(v);
+            await NotificationService().notifyAllUsersGeneratorState(v);
+          }),
+          existingAppearance(const _PendingUsersTab()),
+          existingAppearance(_SubscribersTab(onJumpToBill: _jumpToBillsTab)),
+          existingAppearance(const _BillsTab()),
+          existingAppearance(const _ComplaintsTab()),
+          existingAppearance(const _AdminProfileTab()),
+        ])),
+      ]));
+    }));
   }
 }
 
@@ -262,59 +170,27 @@ class _DashboardTab extends ConsumerWidget {
     final currentMonth = currentMonthArabic();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          _GeneratorToggleCard(
-            isOn: isOn,
-            lastChanged: lastChanged,
-            pricePerKwh: currentPrice,
-            scheduledOnAt: scheduledOnAt,
-            scheduledOffAt: scheduledOffAt,
-            onToggle: onToggle,
-            onEdit: () => _showGeneratorSettingsSheet(
-              context,
-              currentPrice,
-              scheduledOnAt,
-              scheduledOffAt,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(children: [
-            _StatBox(
-                label: 'المشتركون',
-                value: totalSubs,
-                icon: Icons.people,
-                color: AppColors.primary),
-            const SizedBox(width: 12),
-            _StatBox(
-                label: 'نشطون',
-                value: activeSubs,
-                icon: Icons.check_circle,
-                color: AppColors.success),
-          ]),
-          const SizedBox(height: 12),
-          Row(children: [
-            _StatBox(
-                label: 'شكاوى مفتوحة',
-                value: complaintsCount,
-                icon: Icons.report,
-                color: AppColors.warning),
-            const SizedBox(width: 12),
-            _StatBox(
-                label: 'كWh هذا الشهر',
-                value: stats.unpaidCount > 0 || stats.paidCount > 0
-                    ? '${(stats.unpaidCount + stats.paidCount)} فاتورة'
-                    : '-',
-                icon: Icons.bolt,
-                color: const Color(0xFF8B5CF6)),
-          ]),
-          const SizedBox(height: 16),
-          _MonthlyBillStatsCard(stats: stats, month: currentMonth),
-          const SizedBox(height: 16),
-          _RecentActivity(),
-        ],
-      ),
+      padding: PortalTokens.pagePadding,
+      child: Column(children: [
+        _GeneratorToggleCard(isOn: isOn, lastChanged: lastChanged,
+          pricePerKwh: currentPrice, scheduledOnAt: scheduledOnAt, scheduledOffAt: scheduledOffAt,
+          onToggle: onToggle,
+          onEdit: () => _showGeneratorSettingsSheet(context, currentPrice, scheduledOnAt, scheduledOffAt)),
+        const PortalSection('ملخص المشتركين'),
+        PortalMetricPair(
+          first: PortalMetric(label: 'المشتركون', value: totalSubs, icon: Icons.people_outline),
+          second: PortalMetric(label: 'نشطون', value: activeSubs, icon: Icons.check_circle_outline)),
+        const SizedBox(height: PortalTokens.md),
+        PortalMetricPair(
+          first: PortalMetric(label: 'شكاوى مفتوحة', value: complaintsCount, icon: Icons.chat_bubble_outline),
+          second: PortalMetric(label: 'كWh هذا الشهر',
+            value: stats.unpaidCount > 0 || stats.paidCount > 0 ? '${stats.unpaidCount + stats.paidCount} فاتورة' : '-',
+            icon: Icons.electric_bolt_outlined)),
+        PortalSection('ملخص فواتير $currentMonth'),
+        _MonthlyBillStatsCard(stats: stats, month: currentMonth),
+        const PortalSection('آخر النشاطات'),
+        _RecentActivity(),
+      ]),
     );
   }
 
@@ -530,103 +406,12 @@ class _GeneratorToggleCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isOn
-              ? [const Color(0xFF16A34A), const Color(0xFF22C55E)]
-              : [const Color(0xFF64748B), const Color(0xFF94A3B8)],
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: (isOn ? AppColors.success : AppColors.lightMuted)
-                .withOpacity(0.3),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.25), shape: BoxShape.circle),
-            child: Icon(isOn ? Icons.bolt : Icons.power_off,
-                color: Colors.white, size: 32),
-          ).animate().scaleXY(
-              begin: 0.8, end: 1, duration: 400.ms, curve: Curves.easeOutBack),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Text(isOn ? 'المولد يعمل' : 'المولد متوقف',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700)),
-                    ),
-                    IconButton(
-                      onPressed: onEdit,
-                      icon: const Icon(Icons.settings,
-                          color: Colors.white, size: 20),
-                      tooltip: 'تحديث السعر والجدول',
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(_runningFor(),
-                    style:
-                        const TextStyle(color: Colors.white70, fontSize: 12)),
-                const SizedBox(height: 12),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.14),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('سعر kWh: ₪${pricePerKwh.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 6),
-                      Text(
-                          'تشغيل مجدول: ${_formatTime(scheduledOnAt)} • إيقاف مجدول: ${_formatTime(scheduledOffAt)}',
-                          style: const TextStyle(
-                              color: Colors.white70, fontSize: 12)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Switch(
-            value: isOn,
-            onChanged: (v) => _confirmToggle(context, v),
-            activeColor: Colors.white,
-            activeTrackColor: Colors.white.withOpacity(0.4),
-            inactiveThumbColor: Colors.white,
-            inactiveTrackColor: Colors.white.withOpacity(0.3),
-          ),
-        ],
-      ),
-    ).animate().fadeIn().slideY(begin: 0.2, end: 0, duration: 400.ms);
-  }
+  Widget build(BuildContext context) => PortalGeneratorPanel(
+    isOn: isOn, detail: _runningFor(),
+    tariff: 'سعر kWh: ₪${pricePerKwh.toStringAsFixed(2)}',
+    schedule: 'تشغيل مجدول: ${_formatTime(scheduledOnAt)} • إيقاف مجدول: ${_formatTime(scheduledOffAt)}',
+    onToggle: (v) => _confirmToggle(context, v), onSettings: onEdit,
+  );
 
   void _confirmToggle(BuildContext context, bool v) {
     showDialog(
@@ -664,138 +449,19 @@ class _GeneratorToggleCard extends StatelessWidget {
   }
 }
 
-class _StatBox extends StatelessWidget {
-  final String label, value;
-  final IconData icon;
-  final Color color;
-  const _StatBox(
-      {required this.label,
-      required this.value,
-      required this.icon,
-      required this.color});
-
-  @override
-  Widget build(BuildContext context) => Expanded(
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardTheme.color,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2))
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8)),
-                child: Icon(icon, size: 18, color: color),
-              ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(value,
-                      style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: color)),
-                  Text(label,
-                      style: const TextStyle(
-                          fontSize: 11, color: AppColors.lightMuted)),
-                ],
-              ),
-            ],
-          ),
-        ).animate().fadeIn().slideY(begin: 0.2, end: 0, duration: 300.ms),
-      );
-}
-
 class _RecentActivity extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final items = ref.watch(recentActivitiesProvider);
     final theme = Theme.of(context);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2))
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-            child: Row(
-              children: [
-                Text('آخر النشاطات', style: theme.textTheme.titleMedium),
-                const Spacer(),
-                if (items.isNotEmpty)
-                  Text('${items.length} نشاط',
-                      style: const TextStyle(
-                          fontSize: 11, color: AppColors.lightMuted)),
-              ],
-            ),
-          ),
-          if (items.isEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-              child: Row(
-                children: [
-                  Icon(Icons.inbox_outlined,
-                      size: 18,
-                      color: theme.brightness == Brightness.dark
-                          ? AppColors.darkMuted
-                          : AppColors.lightMuted),
-                  const SizedBox(width: 8),
-                  Text('لا توجد نشاطات حتى الآن',
-                      style: TextStyle(
-                          fontSize: 13,
-                          color: theme.brightness == Brightness.dark
-                              ? AppColors.darkMuted
-                              : AppColors.lightMuted)),
-                ],
-              ),
-            )
-          else
-            ...items.map((item) => ListTile(
-                  dense: true,
-                  leading: CircleAvatar(
-                    radius: 18,
-                    backgroundColor: item.color.withOpacity(0.15),
-                    child: Text(
-                      item.name.isNotEmpty ? item.name[0] : '؟',
-                      style: TextStyle(
-                          color: item.color, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                  title: Text(item.name,
-                      style: const TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.w600)),
-                  subtitle: Text(item.action,
-                      style: const TextStyle(
-                          fontSize: 12, color: AppColors.lightMuted)),
-                  trailing: Text(_timeAgo(item.createdAt),
-                      style: const TextStyle(
-                          fontSize: 11, color: AppColors.lightMuted)),
-                )),
-          const SizedBox(height: 4),
-        ],
-      ),
-    ).animate().fadeIn();
+    return PortalPanel(child: items.isEmpty
+      ? const PortalEmptyState('لا توجد نشاطات حتى الآن')
+      : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('${items.length} نشاط', style: theme.textTheme.labelMedium),
+          ...items.map((item) => PortalRecordRow(title: item.name,
+            subtitle: item.action, trailing: _timeAgo(item.createdAt), icon: Icons.history_outlined)),
+        ]));
   }
 
   String _timeAgo(DateTime dt) {
@@ -819,113 +485,13 @@ class _MonthlyBillStatsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2))
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.bar_chart_rounded,
-                  color: AppColors.primary, size: 20),
-              const SizedBox(width: 8),
-              Text('ملخص فواتير $month',
-                  style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w700)),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _BillStatItem(
-                  label: 'الفواتير المستحقة',
-                  count: stats.unpaidCount,
-                  amount: stats.unpaidAmount,
-                  color: AppColors.error,
-                  icon: Icons.pending_actions,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _BillStatItem(
-                  label: 'الفواتير المدفوعة',
-                  count: stats.paidCount,
-                  amount: stats.paidAmount,
-                  color: AppColors.success,
-                  icon: Icons.check_circle_outline,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    ).animate().fadeIn().slideY(begin: 0.1, end: 0, duration: 350.ms);
-  }
-}
-
-class _BillStatItem extends StatelessWidget {
-  final String label;
-  final int count;
-  final int amount;
-  final Color color;
-  final IconData icon;
-  const _BillStatItem(
-      {required this.label,
-      required this.count,
-      required this.amount,
-      required this.color,
-      required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 16, color: color),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(label,
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: color),
-                    overflow: TextOverflow.ellipsis),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text('$count فاتورة',
-              style: TextStyle(
-                  fontSize: 20, fontWeight: FontWeight.w800, color: color)),
-          const SizedBox(height: 2),
-          Text('₪$amount',
-              style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.lightMuted)),
-        ],
-      ),
-    );
+    return PortalPanel(child: Column(children: [
+      PortalRecordRow(title: 'الفواتير المستحقة', subtitle: '${stats.unpaidCount} فاتورة',
+        trailing: '₪${stats.unpaidAmount}', icon: Icons.pending_actions_outlined),
+      const Divider(),
+      PortalRecordRow(title: 'الفواتير المدفوعة', subtitle: '${stats.paidCount} فاتورة',
+        trailing: '₪${stats.paidAmount}', icon: Icons.check_circle_outline),
+    ]));
   }
 }
 

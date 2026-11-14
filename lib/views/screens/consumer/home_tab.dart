@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../models/alert_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/data_provider.dart';
 import '../../../providers/theme_provider.dart';
-import '../../../config/colors.dart';
+import '../../../theme/portal_tokens.dart';
+import '../../../theme/portal_theme.dart';
+import '../../widgets/portal_components.dart';
 import '../../widgets/notification_bell.dart';
 
 class HomeTab extends ConsumerWidget {
@@ -88,268 +89,100 @@ class HomeTab extends ConsumerWidget {
       error: (_, __) => 0,
     );
 
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 160,
-            pinned: true,
-            automaticallyImplyLeading: false,
-            actions: [
-              Consumer(
-                builder: (_, ref, __) {
-                  final themeMode = ref.watch(themeProvider);
-                  return Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          themeMode == ThemeMode.dark
-                              ? Icons.light_mode
-                              : Icons.dark_mode,
-                          color: Colors.white,
-                        ),
-                        onPressed: () =>
-                            ref.read(themeProvider.notifier).toggle(),
-                      ),
-                      const NotificationBell(),
-                      IconButton(
-                        tooltip: 'تسجيل الخروج',
-                        icon: const Icon(Icons.logout, color: Colors.white),
-                        onPressed: () async {
-                          await ref.read(authProvider.notifier).signOut();
-                          if (context.mounted) context.go('/login');
-                        },
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              background: AnimatedContainer(
-                duration: const Duration(milliseconds: 600),
-                curve: Curves.easeInOut,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topRight,
-                    end: Alignment.bottomLeft,
-                    colors: [
-                      AppColors.primaryDarkFor(Theme.of(context).brightness),
-                      AppColors.primaryFor(Theme.of(context).brightness),
-                    ],
-                  ),
-                ),
-                child: SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 48, 20, 16),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Avatar
-                        Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.18),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                                color: Colors.white.withOpacity(0.35),
-                                width: 1.5),
-                          ),
-                          child: Center(
-                            child: Text(
-                              (profile?.name.isNotEmpty == true)
-                                  ? profile!.name[0]
-                                  : '؟',
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w700),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        // Greeting
-                        Expanded(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _greeting(),
-                                style: TextStyle(
-                                    color: Colors.white.withOpacity(0.75),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                profile?.name ?? 'زائر',
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w800,
-                                    height: 1.2),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              if ((profile?.address ?? '').isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 3),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.location_on,
-                                          size: 11,
-                                          color: Colors.white.withOpacity(0.6)),
-                                      const SizedBox(width: 3),
-                                      Text(
-                                        profile!.address,
-                                        style: TextStyle(
-                                            color:
-                                                Colors.white.withOpacity(0.65),
-                                            fontSize: 12),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.all(16),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                _GeneratorStatusCard(
-                    isOn: isOn,
-                    lastChanged: lastChanged,
-                    scheduledOnAt: scheduledOnAt,
-                    scheduledOffAt: scheduledOffAt),
-                const SizedBox(height: 16),
-                Text('الاستهلاك الشهري ($currentMonth)',
-                    style: theme.textTheme.titleLarge),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    _StatCard(
-                        label: 'هذا الشهر',
-                        value: totalKwh,
-                        icon: Icons.flash_on,
-                        color: AppColors.primary),
-                    const SizedBox(width: 12),
-                    _StatCard(
-                        label: 'الفاتورة',
-                        value: billAmount,
-                        icon: Icons.receipt_long,
-                        color: AppColors.warning),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    _StatCard(
-                        label: 'حد الأمبير',
-                        value: ampereStr,
-                        icon: Icons.electric_bolt_outlined,
-                        color: AppColors.success),
-                    const SizedBox(width: 12),
-                    _StatCard(
-                        label: 'سعر kWh',
-                        value: '₪ ${currentPrice.toStringAsFixed(2)}',
-                        icon: Icons.attach_money,
-                        color: const Color(0xFFf59e0b)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    _StatCard(
-                        label: 'الاستهلاك اليومي',
-                        value: dailyKwh,
-                        icon: Icons.today_outlined,
-                        color: const Color(0xFF8B5CF6)),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Text('آخر التنبيهات', style: theme.textTheme.titleLarge),
-                    const Spacer(),
-                    if (unreadCount > 0)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                            color: AppColors.error,
-                            borderRadius: BorderRadius.circular(10)),
-                        child: Text('$unreadCount',
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700)),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                if (alertsLoading)
-                  const Center(
-                      child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: CircularProgressIndicator(),
-                  ))
-                else if (recentAlerts.isEmpty)
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: theme.cardTheme.color,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.notifications_none,
-                            color: AppColors.mutedFor(
-                                Theme.of(context).brightness),
-                            size: 20),
-                        const SizedBox(width: 10),
-                        Text('لا توجد تنبيهات',
-                            style: TextStyle(
-                                fontSize: 13,
-                                color: AppColors.mutedFor(
-                                    Theme.of(context).brightness))),
-                      ],
-                    ),
-                  )
-                else
-                  ...recentAlerts
-                      .map((a) => Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: _AlertItem(alert: a),
-                          ))
-                      .toList(),
-                const SizedBox(height: 20),
+    return Theme(
+      data: buildPortalTheme(theme.brightness),
+      child: Builder(builder: (context) {
+        final palette = Theme.of(context).colorScheme;
+        return Scaffold(
+            body: Column(children: [
+          PortalIdentityBar(
+              title: 'بوابة المولدات',
+              subtitle: profile?.name ?? 'زائر',
+              actions: [
+                IconButton(
+                    tooltip: 'تبديل المظهر',
+                    icon: Icon(theme.brightness == Brightness.dark
+                        ? Icons.light_mode_outlined
+                        : Icons.dark_mode_outlined),
+                    onPressed: () => ref.read(themeProvider.notifier).toggle()),
+                NotificationBell(iconColor: palette.onSurface),
+                IconButton(
+                    tooltip: 'تسجيل الخروج',
+                    icon: const Icon(Icons.logout),
+                    onPressed: () async {
+                      await ref.read(authProvider.notifier).signOut();
+                      if (context.mounted) context.go('/login');
+                    }),
               ]),
-            ),
-          ),
-        ],
-      ),
+          Expanded(
+              child: ListView(padding: PortalTokens.pagePadding, children: [
+            Text(_greeting(), style: Theme.of(context).textTheme.titleLarge),
+            if ((profile?.address ?? '').isNotEmpty)
+              Padding(
+                  padding: const EdgeInsets.only(top: PortalTokens.xs),
+                  child: Text(profile!.address,
+                      style: Theme.of(context).textTheme.bodySmall)),
+            const SizedBox(height: PortalTokens.lg),
+            _GeneratorStatusCard(
+                isOn: isOn,
+                lastChanged: lastChanged,
+                scheduledOnAt: scheduledOnAt,
+                scheduledOffAt: scheduledOffAt),
+            PortalSection('الاستهلاك الشهري ($currentMonth)'),
+            PortalMetricPair(
+                first: PortalMetric(
+                    label: 'هذا الشهر',
+                    value: totalKwh,
+                    icon: Icons.electric_bolt_outlined),
+                second: PortalMetric(
+                    label: 'الفاتورة',
+                    value: billAmount,
+                    icon: Icons.receipt_long_outlined)),
+            const SizedBox(height: PortalTokens.md),
+            PortalMetricPair(
+                first: PortalMetric(
+                    label: 'حد الأمبير',
+                    value: ampereStr,
+                    icon: Icons.speed_outlined),
+                second: PortalMetric(
+                    label: 'سعر kWh',
+                    value: '₪ ${currentPrice.toStringAsFixed(2)}',
+                    icon: Icons.payments_outlined)),
+            const SizedBox(height: PortalTokens.md),
+            PortalMetric(
+                label: 'الاستهلاك اليومي',
+                value: dailyKwh,
+                icon: Icons.today_outlined),
+            PortalSection('آخر التنبيهات',
+                trailing: unreadCount > 0
+                    ? PortalStatusChip(
+                        label: '$unreadCount',
+                        tone: PortalTone.warning,
+                        icon: Icons.notifications_outlined)
+                    : null),
+            PortalPanel(
+                child: alertsLoading
+                    ? const PortalLoadingState()
+                    : recentAlerts.isEmpty
+                        ? const PortalEmptyState('لا توجد تنبيهات',
+                            icon: Icons.notifications_none)
+                        : Column(
+                            children: recentAlerts
+                                .map((a) => _AlertItem(alert: a))
+                                .toList())),
+          ])),
+        ]));
+      }),
     );
   }
 }
 
 String _greeting() {
   final h = DateTime.now().hour;
-  if (h >= 5 && h < 12) return 'صباح الخير 🌤';
-  if (h >= 12 && h < 17) return 'مساء النور 🌞';
-  if (h >= 17 && h < 21) return 'مساء الخير 🌆';
-  return 'تصبح على خير 🌙';
+  if (h >= 5 && h < 12) return 'صباح الخير';
+  if (h >= 12 && h < 17) return 'مساء النور';
+  if (h >= 17 && h < 21) return 'مساء الخير';
+  return 'تصبح على خير';
 }
 
 class _GeneratorStatusCard extends StatelessWidget {
@@ -384,159 +217,18 @@ class _GeneratorStatusCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isOn
-              ? [const Color(0xFF16A34A), const Color(0xFF22C55E)]
-              : [const Color(0xFF64748B), const Color(0xFF94A3B8)],
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: (isOn ? AppColors.success : AppColors.lightMuted)
-                .withOpacity(0.35),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.25),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.bolt, color: Colors.white, size: 32),
-          ).animate().fadeIn().scaleXY(
-              begin: 0.8, end: 1, duration: 400.ms, curve: Curves.easeOutBack),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(isOn ? 'المولد يعمل الآن' : 'المولد متوقف',
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700)),
-                if (isOn) ...[
-                  const SizedBox(height: 2),
-                  Text(_runningFor(),
-                      style:
-                          const TextStyle(color: Colors.white70, fontSize: 12)),
-                ],
-                if (scheduledOnAt != null || scheduledOffAt != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    'الجدول: ${scheduledOnAt != null ? _formatTime(scheduledOnAt!) : 'غير محدد'} - ${scheduledOffAt != null ? _formatTime(scheduledOffAt!) : 'غير محدد'}',
-                    style: const TextStyle(color: Colors.white70, fontSize: 12),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.25),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.circle, size: 8, color: Colors.white),
-                const SizedBox(width: 5),
-                Text(isOn ? 'نشط' : 'موقف',
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final String label, value;
-  final IconData icon;
-  final Color color;
-  const _StatCard(
-      {required this.label,
-      required this.value,
-      required this.icon,
-      required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardTheme.color,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 2)),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, size: 18, color: color),
-            ),
-            const SizedBox(height: 10),
-            Text(value,
-                style: TextStyle(
-                    fontSize: 17, fontWeight: FontWeight.w800, color: color)),
-            const SizedBox(height: 2),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 11,
-                    color: AppColors.mutedFor(Theme.of(context).brightness))),
-          ],
-        ),
-      ).animate().fadeIn().slideY(begin: 0.2, end: 0, duration: 300.ms),
-    );
-  }
+  Widget build(BuildContext context) => PortalGeneratorPanel(
+        isOn: isOn,
+        detail: isOn ? _runningFor() : 'المولد متوقف',
+        schedule: scheduledOnAt != null || scheduledOffAt != null
+            ? 'الجدول: ${scheduledOnAt != null ? _formatTime(scheduledOnAt!) : 'غير محدد'} - ${scheduledOffAt != null ? _formatTime(scheduledOffAt!) : 'غير محدد'}'
+            : null,
+      );
 }
 
 class _AlertItem extends StatelessWidget {
   final AppAlert alert;
   const _AlertItem({required this.alert});
-
-  Color get _color => switch (alert.type) {
-        AlertType.generatorOn => AppColors.success,
-        AlertType.generatorOff => AppColors.error,
-        AlertType.lowFuel => AppColors.warning,
-        AlertType.newBill => AppColors.primary,
-        AlertType.receiptApproved => AppColors.success,
-        AlertType.receiptRejected => AppColors.error,
-        AlertType.newSubscriber => AppColors.primary,
-        AlertType.complaint => AppColors.warning,
-        AlertType.newOwnerRequest => AppColors.primary,
-        AlertType.newConsumerRequest => AppColors.primary,
-        AlertType.requestApproved => AppColors.success,
-        AlertType.requestRejected => AppColors.error,
-        AlertType.passwordReset => AppColors.warning,
-      };
 
   IconData get _icon => switch (alert.type) {
         AlertType.generatorOn => Icons.power,
@@ -565,58 +257,10 @@ class _AlertItem extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: alert.read
-            ? Theme.of(context).cardTheme.color
-            : _color.withOpacity(0.04),
-        borderRadius: BorderRadius.circular(14),
-        border: alert.read ? null : Border.all(color: _color.withOpacity(0.25)),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2)),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(9),
-            decoration: BoxDecoration(
-              color: _color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(_icon, size: 18, color: _color),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(alert.title,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight:
-                          alert.read ? FontWeight.w600 : FontWeight.w700,
-                    )),
-                const SizedBox(height: 2),
-                Text(alert.body,
-                    style: TextStyle(
-                        fontSize: 12,
-                        color:
-                            AppColors.mutedFor(Theme.of(context).brightness))),
-              ],
-            ),
-          ),
-          Text(_timeAgo(alert.createdAt),
-              style: TextStyle(
-                  fontSize: 11,
-                  color: AppColors.mutedFor(Theme.of(context).brightness))),
-        ],
-      ),
-    ).animate().fadeIn().slideX(begin: 0.1, end: 0, duration: 300.ms);
-  }
+  Widget build(BuildContext context) => PortalRecordRow(
+        title: alert.title,
+        subtitle: alert.body,
+        icon: _icon,
+        trailing: _timeAgo(alert.createdAt),
+      );
 }

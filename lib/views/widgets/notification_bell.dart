@@ -6,9 +6,11 @@ import '../../providers/auth_provider.dart';
 import '../../providers/data_provider.dart';
 import '../../services/firebase_service.dart';
 import '../../config/colors.dart';
+import '../../theme/portal_tokens.dart';
 
 class NotificationBell extends ConsumerWidget {
-  const NotificationBell({super.key});
+  final Color? iconColor;
+  const NotificationBell({super.key, this.iconColor});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -21,38 +23,31 @@ class NotificationBell extends ConsumerWidget {
     );
 
     return IconButton(
+      tooltip: 'الإشعارات',
       onPressed: () => _open(context, ref, uid),
       icon: Stack(
         clipBehavior: Clip.none,
         children: [
-          const Icon(Icons.notifications_outlined, color: Colors.white, size: 24),
+          Icon(Icons.notifications_outlined, color: iconColor ?? Colors.white, size: 24),
           if (unread > 0)
             Positioned(
               top: -4,
               left: -4,
               child: Container(
                 padding: const EdgeInsets.all(3),
-                decoration: const BoxDecoration(
-                  color: AppColors.error,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.error,
                   shape: BoxShape.circle,
                 ),
                 constraints: const BoxConstraints(minWidth: 17, minHeight: 17),
                 child: Text(
                   unread > 9 ? '9+' : '$unread',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                    height: 1.1,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onError,
                   ),
                   textAlign: TextAlign.center,
                 ),
-              ).animate().scale(
-                    duration: 250.ms,
-                    curve: Curves.elasticOut,
-                    begin: const Offset(0.4, 0.4),
-                    end: const Offset(1, 1),
-                  ),
+              ).animate().fadeIn(duration: PortalTokens.motion),
             ),
         ],
       ),
