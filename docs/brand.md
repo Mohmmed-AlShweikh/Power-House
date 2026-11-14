@@ -1,11 +1,11 @@
 # بوابة المولدات — «وصلة الحي»
 
-Status: Step 1 identity proposal. **The original symbol is not approved.** See [revision 02 and three energy-first alternatives](identity/logo-review.md), [comparison screenshot](identity/logo-alternatives.png) and [main-logo/icon loading proof](identity/logo-and-icon.png). The unchanged bilingual wordmark is retained in every candidate. Awaiting owner's symbol choice before Step 2. Nothing in the running Flutter UI, routes, providers, services, models, permissions or Firebase has been changed.
+Status: Step 1. **A selected conditionally; its refined artwork awaits explicit approval.** Latest [revision 03 preview](identity/a-refined.png), [logo/icon close-up](identity/a-refined-lockup-icon.png) and [revision notes](identity/a-refined.md). The bilingual wordmark remains unchanged as requested. Step 2 has not started. Earlier [three alternatives](identity/logo-review.md) are retained as review history. Nothing in the running Flutter UI, routes, providers, services, models, permissions or Firebase has been changed.
 
 ## Concept
 
-ثلاثة بيوت بخط هندسي واحد تتصل بعقدة تغذية مشتركة: مولد يخدم حيًا، وعلاقة واضحة بين صاحبه والمشتركين.
-يرتفع البيت الأوسط قليلًا ليصنع بوابة مفتوحة؛ نقطة الوصل هي مركز العلامة، وليست صاعقة عامة.
+مولد كهربائي ممتلئ يتقدم بيتين بأسقف مثلثة وارتفاعين مختلفين: مصدر طاقة واحد يخدم الحي.
+العادم الجانبي وفتحتا التهوية يميزان جسم المولد، وتؤكد الصاعقة المفرّغة ارتباطه بالكهرباء.
 الأخضر البترولي والورق الفاتح يمنحان الخدمة هدوءًا وثباتًا، ويتركان أرقام الفواتير وحالة التشغيل في الصدارة.
 الثقة تأتي من الوضوح والاتساق؛ لا أختام ولا رموز حكومية ولا ادعاء اعتماد رسمي.
 
@@ -56,7 +56,7 @@ Sources: Google Fonts `ofl/notosansarabic/NotoSansArabic[wdth,wght].ttf` and `of
 | Label | 14 / 600 | 1.5 | Buttons and field labels |
 | Caption | 12 / 400 or 600 | 1.6 | Dates, units, metadata; never below 12sp |
 
-Arabic is primary. Wordmark Arabic is larger than Latin; English subtitle is `Generator Portal`. Do not stretch or track Arabic letters. Use explicit LTR isolation for identifiers, numbers/currency and times, inside an RTL layout; preserve actual values and locale semantics. Use tabular number features where supported and test actual glyph metrics.
+The application is **Arabic-only**, with its existing fixed `ar` locale and forced RTL preserved. Required presentation variants are Arabic light and Arabic dark only. No English UI mode, translations or l10n files will be introduced. The existing `Generator Portal` line remains in the logo because the owner explicitly requested that the wordmark stay unchanged. Do not stretch or track Arabic letters. Technical colour codes in review documentation remain isolated for correct reading; they are not a separate application locale requirement. Preserve existing numeric values and locale semantics.
 
 ## Geometry, iconography and motion
 
