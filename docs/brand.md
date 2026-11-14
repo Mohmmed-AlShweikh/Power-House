@@ -1,6 +1,6 @@
 # بوابة المولدات — «وصلة الحي»
 
-Status: **Refined A artwork approved. Final Step 1 presentation awaits confirmation before Step 2.** See [complete preview](identity/theme-preview.png), [adaptive icon sizes and masks](identity/adaptive-icon-preview.png), and [final preparation notes](identity/final-review.md). SVG brand masters now use approved A with its two existing vents and unchanged bilingual wordmark. Earlier proposals are retained as review history. Step 2 has not started; application source and installed platform resources remain untouched.
+Status: Identity approved; Step 2 is authorized for the design system and only the consumer/admin home golden checkpoint. Only approved A artwork is retained. See [current preview](identity/theme-preview.png) and [adaptive icon sizes](identity/adaptive-icon-preview.png).
 
 ## Concept
 
@@ -15,9 +15,6 @@ Status: **Refined A artwork approved. Final Step 1 presentation awaits confirmat
 - [Offline preview source](identity/theme-preview.html). Open locally; all fonts and images are relative local files, with no remote fetches. Buttons are static samples, not app functionality.
 - `assets/brand/mark-{primary,reversed,mono}.svg` and `lockup-{primary,reversed,mono}.svg`.
 - All wordmarks are actual outlined paths shaped from the bundled font, so Arabic joining and appearance do not depend on an SVG viewer's installed fonts. SVGs have accessible titles, viewBoxes, no scripts or external references.
-- `icon-proposal.svg`, `icon-proposal-1024.png`: full square, opaque icon source suitable for an iOS icon export. The OS owns corner masking; no rounded corners baked in.
-- `adaptive-foreground-proposal.svg` / `adaptive-foreground-proposal-432.png`: transparent Android foreground, artwork inside the central 64/108 region; proposed background `#173E43`. Verify Android masks at installation time.
-- `splash-proposal.svg` / `splash-mark-proposal-288.png`: quiet background and centered mark. Platform resources and generators deliberately remain untouched until approval. Android 12 icon masking and launch-to-app handoff will be checked in the implementation steps.
 
 ## Colour tokens
 
@@ -38,7 +35,7 @@ Status: **Refined A artwork approved. Final Step 1 presentation awaits confirmat
 
 Use neutral text for monetary totals; reserve semantic colours for status. Generator stopped uses neutral text + explicit power-off icon and wording, rather than treating all downtime as an error. Never use translucent white as small secondary text on coloured fills. Subtle dividers are decorative grouping only; field boundaries and focus use stronger outlines.
 
-Twelve specified text/background pairs were calculated from linearized sRGB WCAG luminance; all exceed 4.5:1 (minimum 5.30:1 in this set). See [contrast.json](identity/contrast.json). This validates these exact pairs, not the entire unimplemented app. Disabled controls, overlaid states, non-text contrast and final screens still require Step 4 checks.
+Specified text/background pairs are calculated from linearized sRGB WCAG luminance; see [current contrast evidence](identity/review-contrast.json). This validates these exact pairs, not the entire unimplemented app. Disabled controls, overlaid states, non-text contrast and final screens still require Step 4 checks.
 
 ## Typography and local font assets
 
@@ -80,10 +77,14 @@ Logo clear space is at least 12 units of the 96-unit mark. Mark minimum 24dp; us
 
 ## Approval boundary and validation
 
-Steps 0–1 only. Application source, dependency declarations/lockfile, platform icons/splash, routes and all backend files remain untouched. Approval of the identity is required before implementing ThemeData/components in Step 2. This gate is explicitly requested in the task, not an environment publishing requirement.
+Step 2 checkpoint scope: Application source, dependency declarations/lockfile, platform icons/splash, routes and all backend files remain untouched. Stop after the two main screens in light/dark goldens before Step 3.
 
 The preview is a static browser-rendered design artifact, not a running Flutter screen and not a golden test. Flutter analysis, existing test execution, faked-provider goldens, app screenshots, APK and Android runtime validation belong to subsequent steps; none are claimed here. No GitHub push or environment publication performed.
 
-Regenerate vector assets from repository root with Python tooling `fontTools` and `uharfbuzz`: `python3 docs/identity/generate_brand.py`. These are asset-generation tools, not application dependencies. Raster sources exported using Inkscape. PNG preview captured from locally served HTML in Chromium using a 1440×1600 viewport and full-page capture (1440×1656); no remote resources or live user data. Local `file:` navigation was blocked by browser policy, so an internal loopback HTTP server was used for this static export.
 
-Checks completed: parsed all ten SVGs, verified outlined wordmarks/no script nodes, verified three PNG export dimensions and opaque icon background, checked Arabic/Latin/digit coverage plus the bundled currency fallback, checked 12 contrast pairs, loaded all local preview fonts in Chromium, and visually inspected the full preview and Arabic wordmark. These are proposal-asset checks only.
+
+## Generator state is distinct from branding
+
+Working uses blue text/container `#2459A6` / `#EAF1FC` in light (6.05:1), and `#B0C9FF` / `#233653` in dark (7.33:1). This is a different family from teal brand actions. Stopped is neutral `#53696D` / `#EDF1EF` (5.11:1) and `#B3C5C3` / `#263D40` (6.41:1). Both appear side-by-side in the static preview with icons/text/ratios. Success remains green; danger red and warning ochre. No thick side stripe.
+
+Android icon and splash validation must use an emulator or physical device in Step 4; browser simulations do not qualify. If unavailable, report the limitation explicitly.

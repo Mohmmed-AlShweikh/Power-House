@@ -24,4 +24,4 @@ Source review only. These are separate follow-up tasks, not permission to change
 
 ## Current validation limits
 
-Flutter is not installed in the current checkout environment; application analysis/tests/APK have not been executed for these proposal-only steps. Android toolchains retained from onboarding do not by themselves establish build readiness. Only documentation, new brand assets and a static preview are prepared before the identity approval gate.
+Flutter 3.41.9 / Dart 3.11.5 is now installed outside the checkout, matching SDK-pinned dependencies in the unchanged lockfile. The original counter test was executed on an archived pre-redesign source snapshot and fails with `No ProviderScope found`, followed by its stale counter expectation. It still fails after the redesign; it has not been altered. Baseline analysis has 0 errors, 20 warnings and 261 infos; see the Step 2 report for current checks. Android has no installed emulator, exposed KVM or visible attached USB device here; native launcher/splash validation remains unverified and must not be replaced by browser simulations.

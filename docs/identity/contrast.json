@@ -8,8 +8,8 @@
   {
     "pair": "light muted",
     "foreground": "#53696D",
-    "background": "#F4F6F3",
-    "ratio": 5.35
+    "background": "#F3F1EB",
+    "ratio": 5.15
   },
   {
     "pair": "primary button",

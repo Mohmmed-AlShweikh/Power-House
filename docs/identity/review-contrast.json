@@ -50,17 +50,17 @@
   {
     "token": "generatorOn",
     "mode": "light",
-    "foreground": "#246B4C",
-    "background": "#E9F3ED",
-    "ratio": 5.64,
+    "foreground": "#2459A6",
+    "background": "#EAF1FC",
+    "ratio": 6.05,
     "kind": "text"
   },
   {
     "token": "generatorOn",
     "mode": "dark",
-    "foreground": "#A0D9B8",
-    "background": "#234338",
-    "ratio": 6.79,
+    "foreground": "#B0C9FF",
+    "background": "#233653",
+    "ratio": 7.33,
     "kind": "text"
   },
   {

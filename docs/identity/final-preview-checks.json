@@ -1,121 +1,38 @@
 {
-  "adaptive-icon-preview": {
-    "images": [
-      {
-        "loaded": true,
-        "width": 192,
-        "height": 192
-      },
-      {
-        "loaded": true,
-        "width": 96,
-        "height": 96
-      },
-      {
-        "loaded": true,
-        "width": 48,
-        "height": 48
-      },
-      {
-        "loaded": true,
-        "width": 96,
-        "height": 96
-      },
-      {
-        "loaded": true,
-        "width": 96,
-        "height": 96
-      },
-      {
-        "loaded": true,
-        "width": 192,
-        "height": 192
-      },
-      {
-        "loaded": true,
-        "width": 96,
-        "height": 96
-      },
-      {
-        "loaded": true,
-        "width": 48,
-        "height": 48
-      },
-      {
-        "loaded": true,
-        "width": 96,
-        "height": 96
-      },
-      {
-        "loaded": true,
-        "width": 96,
-        "height": 96
-      },
-      {
-        "loaded": true,
-        "width": 162,
-        "height": 162
-      }
-    ]
-  },
-  "theme-preview": {
-    "images": [
-      {
-        "loaded": true,
-        "width": 410,
-        "height": 100
-      },
-      {
-        "loaded": true,
-        "width": 566,
-        "height": 138
-      },
-      {
-        "loaded": true,
-        "width": 108,
-        "height": 108
-      },
-      {
-        "loaded": true,
-        "width": 56,
-        "height": 56
-      }
-    ]
-  },
-  "status": [
+  "states": [
     {
-      "text": "حالة التشغيل\nالمولد يعمل الآن\n\nيعمل منذ ساعتين · نشط ✓\n\n⏻",
+      "text": "حالة التشغيل\nالمولد يعمل الآن\n\nيعمل منذ ساعتين · نشط ✓\n\n⏻\n#2459A6 / #EAF1FC · 6.05:1",
+      "bg": "rgb(234, 241, 252)",
+      "color": "rgb(36, 89, 166)",
       "borderRight": "1px",
-      "bg": "rgb(233, 243, 237)",
-      "fg": "rgb(36, 107, 76)"
+      "x": 1061,
+      "y": 1088.90625
     },
     {
-      "text": "حالة التشغيل · مثال بديل\nالمولد متوقف\n\nمتوقف · رمز الإيقاف مع النص\n\n⏻",
-      "borderRight": "1px",
+      "text": "حالة التشغيل · مثال بديل\nالمولد متوقف\n\nمتوقف · رمز الإيقاف مع النص\n\n⏻\n#53696D / #EDF1EF · 5.11:1",
       "bg": "rgb(237, 241, 239)",
-      "fg": "rgb(83, 105, 109)"
+      "color": "rgb(83, 105, 109)",
+      "borderRight": "1px",
+      "x": 763,
+      "y": 1088.90625
     },
     {
-      "text": "حالة التشغيل\nالمولد يعمل الآن\n\nيعمل منذ ساعتين · نشط ✓\n\n⏻",
+      "text": "حالة التشغيل\nالمولد يعمل الآن\n\nيعمل منذ ساعتين · نشط ✓\n\n⏻\n#B0C9FF / #233653 · 7.33:1",
+      "bg": "rgb(35, 54, 83)",
+      "color": "rgb(176, 201, 255)",
       "borderRight": "1px",
-      "bg": "rgb(35, 67, 56)",
-      "fg": "rgb(160, 217, 184)"
+      "x": 391,
+      "y": 1088.90625
     },
     {
-      "text": "حالة التشغيل · مثال بديل\nالمولد متوقف\n\nمتوقف · رمز الإيقاف مع النص\n\n⏻",
-      "borderRight": "1px",
+      "text": "حالة التشغيل · مثال بديل\nالمولد متوقف\n\nمتوقف · رمز الإيقاف مع النص\n\n⏻\n#B3C5C3 / #263D40 · 6.41:1",
       "bg": "rgb(38, 61, 64)",
-      "fg": "rgb(179, 197, 195)"
+      "color": "rgb(179, 197, 195)",
+      "borderRight": "1px",
+      "x": 93,
+      "y": 1088.90625
     }
   ],
-  "canvas": "rgb(243, 241, 235)",
-  "codesLTR": true,
-  "safeCircle": {
-    "canvasDP": 108,
-    "diameterDP": 66,
-    "maxAlphaRadiusDP": 32.58,
-    "passed": true
-  },
-  "stagedPlatformXMLParsed": true,
-  "iosOpaque1024": true
+  "approvedImagesLoaded": true,
+  "statusPairsSideBySide": true
 }
