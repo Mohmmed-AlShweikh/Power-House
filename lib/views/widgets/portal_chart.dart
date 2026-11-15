@@ -31,7 +31,7 @@ class PortalBarChart extends StatelessWidget {
     final top = maximum > 0 ? maximum : 1.0;
     if (horizontal) {
       return Column(
-          children: points.reversed
+          children: points
               .map((p) => Padding(
                     padding: const EdgeInsets.only(bottom: PortalTokens.md),
                     child: Row(children: [
@@ -69,6 +69,7 @@ class PortalBarChart extends StatelessWidget {
                   height:
                       PortalTokens.chartHeight + PortalTokens.chartLabelHeight,
                   child: Row(
+                      textDirection: TextDirection.rtl,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         SizedBox(
@@ -107,6 +108,7 @@ class PortalBarChart extends StatelessWidget {
                       ])),
               const Divider(height: PortalTokens.line),
               Row(
+                textDirection: TextDirection.rtl,
                 children: [
                   const SizedBox(width: PortalTokens.chartAxisWidth),
                   ...points.map((p) => Expanded(

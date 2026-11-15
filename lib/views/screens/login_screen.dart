@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
-import '../../config/colors.dart';
+import '../../theme/portal_tokens.dart';
+import '../widgets/portal_components.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -42,8 +42,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         builder: (_) => Directionality(
           textDirection: TextDirection.rtl,
           child: AlertDialog(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            scrollable: true,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(PortalTokens.radiusPanel)),
             title: const Text('نسيت كلمة المرور؟'),
             content: const Text('يرجى إدخال رقم هويتك أولاً في الحقل أعلاه.'),
             actions: [
@@ -64,31 +65,39 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       builder: (_) => Directionality(
         textDirection: TextDirection.rtl,
         child: AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          scrollable: true,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(PortalTokens.radiusPanel)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.lock_reset_outlined,
-                    size: 40, color: AppColors.primary),
+                child: Icon(Icons.lock_reset_outlined,
+                    size: 40, color: Theme.of(context).colorScheme.primary),
               ),
               const SizedBox(height: 14),
-              const Text(
+              Text(
                 'إعادة تعيين كلمة المرور',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
               Text(
                 'يرجى التواصل مع الإدارة أو صاحب المولد لإعادة تعيين كلمة المرور \u201c${id.length > 6 ? id.substring(0, 3) + '****' + id.substring(id.length - 3) : id}\u201c.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                    fontSize: 13, color: AppColors.lightMuted, height: 1.5),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    height: 1.5),
               ),
             ],
           ),
@@ -134,250 +143,84 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final providerError = ref.watch(authProvider).error;
     final displayError = _errorMsg ?? providerError;
 
-    return Scaffold(
-      body: Column(
+    return PortalPage(
+        title: 'بوابة المولدات',
+        subtitle: 'تسجيل الدخول',
+        reserveNavigation: false,
         children: [
-          // ── Header ───────────────────────────────────────────────────────
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 600),
-            curve: Curves.easeInOut,
-            decoration: BoxDecoration(
-              color: AppColors.primaryDarkFor(Theme.of(context).brightness),
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(28),
-                bottomRight: Radius.circular(28),
-              ),
-            ),
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(Icons.bolt,
-                              color: Colors.white, size: 28),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('بوابة المولدات',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w800)),
-                            Text('Generator Portal',
-                                style: TextStyle(
-                                    color: Colors.white60,
-                                    fontSize: 12,
-                                    letterSpacing: 0.8)),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    const Text('مرحباً بك!',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 4),
-                    const Text('سجّل دخولك برقم هويتك وكلمة المرور',
-                        style: TextStyle(color: Colors.white60, fontSize: 14)),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // ── Form ─────────────────────────────────────────────────────────
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+          const PortalSection('مرحباً بك!'),
+          Text('سجّل دخولك برقم هويتك وكلمة المرور',
+              style: Theme.of(context).textTheme.bodyMedium),
+          const SizedBox(height: PortalTokens.xl),
+          _Card(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _Card(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _Label('رقم الهوية'),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _idCtrl,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(10),
-                          ],
-                          style:
-                              const TextStyle(fontSize: 16, letterSpacing: 1.0),
-                          onSubmitted: (_) => _submit(),
-                          decoration:
-                              _fieldDecor('xxxxxxxxxx', Icons.badge_outlined),
-                        ),
-                        const SizedBox(height: 16),
-                        _Label('كلمة المرور'),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _passCtrl,
-                          obscureText: !_passVisible,
-                          style: const TextStyle(fontSize: 16),
-                          textInputAction: TextInputAction.done,
-                          onSubmitted: (_) => _submit(),
-                          decoration: _fieldDecor(
-                            '••••••••',
-                            Icons.lock_outline,
-                          ).copyWith(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                const _Label('رقم الهوية'),
+                const SizedBox(height: PortalTokens.sm),
+                TextField(
+                    controller: _idCtrl,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(10)
+                    ],
+                    style: Theme.of(context).textTheme.bodyLarge,
+                    onSubmitted: (_) => _submit(),
+                    decoration:
+                        _fieldDecor('xxxxxxxxxx', Icons.badge_outlined)),
+                const SizedBox(height: PortalTokens.xl),
+                const _Label('كلمة المرور'),
+                const SizedBox(height: PortalTokens.sm),
+                TextField(
+                    controller: _passCtrl,
+                    obscureText: !_passVisible,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => _submit(),
+                    decoration: _fieldDecor('••••••••', Icons.lock_outline)
+                        .copyWith(
                             suffixIcon: IconButton(
-                              icon: Icon(
-                                  _passVisible
-                                      ? Icons.visibility_off_outlined
-                                      : Icons.visibility_outlined,
-                                  size: 20,
-                                  color: AppColors.lightMuted),
-                              onPressed: () =>
-                                  setState(() => _passVisible = !_passVisible),
-                            ),
-                          ),
-                        ),
-                        if (displayError != null) ...[
-                          const SizedBox(height: 12),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppColors.error.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                  color: AppColors.error.withOpacity(0.3)),
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Icon(Icons.error_outline,
-                                    size: 18, color: AppColors.error),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(displayError,
-                                      style: const TextStyle(
-                                          color: AppColors.error,
-                                          fontSize: 13,
-                                          height: 1.4)),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 8),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: TextButton(
-                            onPressed: _loading ? null : _forgotPassword,
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            child: const Text(
-                              'نسيت كلمة المرور؟',
-                              style: TextStyle(
-                                  color: AppColors.primary,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: (_loading ||
-                                  _idCtrl.text.trim().isEmpty ||
-                                  _passCtrl.text.isEmpty)
-                              ? null
-                              : _submit,
-                          child: _loading
-                              ? const SizedBox(
-                                  height: 22,
-                                  width: 22,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2.5, color: Colors.white))
-                              : const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text('تسجيل الدخول'),
-                                    SizedBox(width: 8),
-                                    Icon(Icons.arrow_back, size: 18),
-                                  ],
-                                ),
-                        ).animate().fadeIn(delay: 200.ms),
-                        const SizedBox(height: 12),
-                        Center(
-                          child: TextButton(
-                            onPressed: () => context.go('/register'),
-                            child: RichText(
-                              text: const TextSpan(
-                                text: 'ليس لديك حساب؟ ',
-                                style: TextStyle(
-                                    color: AppColors.lightMuted,
-                                    fontFamily: 'Tajawal'),
-                                children: [
-                                  TextSpan(
-                                    text: 'سجّل الآن',
-                                    style: TextStyle(
-                                        color: AppColors.primary,
-                                        fontWeight: FontWeight.w600,
-                                        fontFamily: 'Tajawal'),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
+                                tooltip: _passVisible
+                                    ? 'إخفاء كلمة المرور'
+                                    : 'إظهار كلمة المرور',
+                                icon: Icon(_passVisible
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined),
+                                onPressed: () => setState(
+                                    () => _passVisible = !_passVisible)))),
+                if (displayError != null) ...[
+                  const SizedBox(height: PortalTokens.lg),
+                  PortalErrorState(displayError)
                 ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+                const SizedBox(height: PortalTokens.sm),
+                Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: TextButton(
+                        onPressed: _loading ? null : _forgotPassword,
+                        child: const Text('نسيت كلمة المرور؟'))),
+                const SizedBox(height: PortalTokens.lg),
+                ElevatedButton(
+                    onPressed: (_loading ||
+                            _idCtrl.text.trim().isEmpty ||
+                            _passCtrl.text.isEmpty)
+                        ? null
+                        : _submit,
+                    child: _loading
+                        ? const SizedBox.square(
+                            dimension: PortalTokens.icon,
+                            child: CircularProgressIndicator())
+                        : const Text('تسجيل الدخول')),
+                const SizedBox(height: PortalTokens.md),
+                TextButton(
+                    onPressed: () => context.go('/register'),
+                    child: const Text('ليس لديك حساب؟ سجّل الآن')),
+              ])),
+        ]);
   }
 
   InputDecoration _fieldDecor(String hint, IconData icon) {
-    final color = Theme.of(context).colorScheme.onSurface;
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: TextStyle(color: color.withOpacity(0.65)),
-      prefixIcon: Icon(icon, color: color.withOpacity(0.75), size: 20),
-      filled: true,
-      fillColor: Theme.of(context).scaffoldBackgroundColor,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: color.withOpacity(0.15)),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: color.withOpacity(0.15)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.primary, width: 2),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
-    );
+    return InputDecoration(hintText: hint, prefixIcon: Icon(icon));
   }
 }
 
@@ -387,21 +230,7 @@ class _Card extends StatelessWidget {
   final Widget child;
   const _Card({required this.child});
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardTheme.color,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: child,
-      );
+  Widget build(BuildContext context) => PortalPanel(child: child);
 }
 
 class _Label extends StatelessWidget {
@@ -414,4 +243,3 @@ class _Label extends StatelessWidget {
         style: Theme.of(context).textTheme.titleMedium?.copyWith(color: color));
   }
 }
-

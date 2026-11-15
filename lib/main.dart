@@ -3,6 +3,9 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'config/router.dart';
 import 'providers/theme_provider.dart';
+import 'theme/portal_theme.dart';
+import 'theme/portal_tokens.dart';
+import 'views/widgets/portal_components.dart';
 import 'services/firebase_service.dart';
 import 'services/local_notification_service.dart';
 
@@ -11,26 +14,7 @@ void main() async {
   await FirebaseService.initialize();
   await LocalNotificationService().init();
   ErrorWidget.builder = (FlutterErrorDetails details) {
-    return Material(
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        color: Colors.red.shade50,
-        child: SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, color: Colors.red, size: 48),
-              const SizedBox(height: 16),
-              Text(
-                details.exception.toString(),
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.red, fontSize: 14),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    return PortalExceptionView(details.exception.toString());
   };
   runApp(const ProviderScope(child: GeneratorPortalApp()));
 }
@@ -54,9 +38,9 @@ class GeneratorPortalApp extends ConsumerWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       themeMode: themeMode,
-      theme: buildLightTheme(),
-      darkTheme: buildDarkTheme(),
-      themeAnimationDuration: const Duration(milliseconds: 600),
+      theme: buildPortalTheme(Brightness.light),
+      darkTheme: buildPortalTheme(Brightness.dark),
+      themeAnimationDuration: PortalTokens.motion,
       themeAnimationCurve: Curves.easeInOut,
       routerConfig: router,
       builder: (context, child) => Directionality(

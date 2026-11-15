@@ -1019,7 +1019,8 @@ class _ComplaintSheetState extends ConsumerState<_ComplaintSheet> {
                     : const Icon(Icons.send_outlined, size: 18),
                 label: Text(_loading ? 'جارٍ الإرسال...' : 'إرسال الشكوى'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: PortalTone.danger.colors(context).$1,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
               ),

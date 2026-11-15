@@ -1,4 +1,4 @@
-# لقطات مجموعة المشترك — نقطة توقف قبل مجموعة الأدمن
+# لقطات المشترك — محدّثة بعد مراجعة المجموعة ب
 
 كل اللقطات من Flutter الفعلي مع بيانات بديلة داخل الاختبار، بمقاس **430×1280**. ليست صور محاكي أندرويد. افتح رابط الصورة لعرضها بالحجم الأصلي. لا توجد لقطة مصطنعة لشاشة جديدة أو إجراء غير موجود.
 
@@ -24,6 +24,15 @@
 | المفتاح مع خلفية البطاقة | ![فاتح](../screenshots/redesign/details/admin_switch_light.png) | ![داكن](../screenshots/redesign/details/admin_switch_dark.png) |
 | سطر السعر | ![فاتح](../screenshots/redesign/details/admin_price_light.png) | ![داكن](../screenshots/redesign/details/admin_price_dark.png) |
 
+## حالتا صورة الإيصال والانتظار
+
+هما مكوّن العرض الفعلي `ReceiptUploadView` بحالتي bytes/uploading التجريبيتين؛ لم تُنفّذ خدمة رفع.
+
+| الحالة | فاتح | داكن |
+| --- | --- | --- |
+| الصورة المختارة | [عرض كامل](../screenshots/redesign/consumer/upload_selected_light.png) | [عرض كامل](../screenshots/redesign/consumer/upload_selected_dark.png) |
+| أثناء الرفع | [عرض كامل](../screenshots/redesign/consumer/upload_loading_light.png) | [عرض كامل](../screenshots/redesign/consumer/upload_loading_dark.png) |
+
 ## حالات البيانات — الفروع الأصلية نفسها
 
 الخطأ في الفواتير والاستهلاك وسجل الإشعارات يعرض الفراغ وفق سلوك الأصل؛ لم نغيّر معالجة الخطأ لإظهار شاشة جديدة. الملف لا يعتمد على هذه المزودات، لذلك صوره هنا تؤكد ثباته أثناء اختلاف حالتها.
@@ -48,3 +57,5 @@
 | الملف — خطأ | [عرض كامل](../screenshots/redesign/consumer/states/profile_error_light.png) | [عرض كامل](../screenshots/redesign/consumer/states/profile_error_dark.png) |
 | شكاواي — خطأ | [عرض كامل](../screenshots/redesign/consumer/states/complaints_error_light.png) | [عرض كامل](../screenshots/redesign/consumer/states/complaints_error_dark.png) |
 | الإشعارات — خطأ | [عرض كامل](../screenshots/redesign/consumer/states/notifications_error_light.png) | [عرض كامل](../screenshots/redesign/consumer/states/notifications_error_dark.png) |
+
+تم تحديث الهاتف وبيانات التواريخ واتجاه الرسوم وصفوف المبالغ. [الأدمن والدخول](admin-screenshots.md).

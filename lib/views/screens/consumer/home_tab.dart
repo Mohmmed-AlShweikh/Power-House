@@ -207,8 +207,13 @@ class _GeneratorStatusCard extends StatelessWidget {
   Widget build(BuildContext context) => PortalGeneratorPanel(
         isOn: isOn,
         detail: isOn ? _runningFor() : 'المولد متوقف',
-        schedule: scheduledOnAt != null || scheduledOffAt != null
-            ? 'الجدول: ${scheduledOnAt != null ? _formatTime(scheduledOnAt!) : 'غير محدد'} - ${scheduledOffAt != null ? _formatTime(scheduledOffAt!) : 'غير محدد'}'
+        scheduledOnValue: scheduledOnAt != null || scheduledOffAt != null
+            ? (scheduledOnAt != null ? _formatTime(scheduledOnAt!) : 'غير محدد')
+            : null,
+        scheduledOffValue: scheduledOnAt != null || scheduledOffAt != null
+            ? (scheduledOffAt != null
+                ? _formatTime(scheduledOffAt!)
+                : 'غير محدد')
             : null,
       );
 }

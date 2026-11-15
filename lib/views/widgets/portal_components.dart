@@ -181,14 +181,15 @@ class PortalStatusChip extends StatelessWidget {
 class PortalGeneratorPanel extends StatelessWidget {
   final bool isOn;
   final String detail;
-  final String? schedule, tariff;
+  final String? scheduledOnValue, scheduledOffValue, tariff;
   final ValueChanged<bool>? onToggle;
   final VoidCallback? onSettings;
   const PortalGeneratorPanel(
       {super.key,
       required this.isOn,
       required this.detail,
-      this.schedule,
+      this.scheduledOnValue,
+      this.scheduledOffValue,
       this.tariff,
       this.onToggle,
       this.onSettings});
@@ -251,18 +252,23 @@ class PortalGeneratorPanel extends StatelessWidget {
             style: text.headlineLarge?.copyWith(color: ink)),
         const SizedBox(height: PortalTokens.xs),
         PortalNumber(detail, style: text.bodyMedium?.copyWith(color: ink)),
-        if (tariff != null || schedule != null) ...[
+        if (tariff != null ||
+            scheduledOnValue != null ||
+            scheduledOffValue != null) ...[
           const SizedBox(height: PortalTokens.lg),
           if (tariff != null)
             RepaintBoundary(
                 key: const ValueKey('generator-price-zoom'),
                 child: ColoredBox(
                     color: fill,
-                    child: PortalNumber(tariff!,
-                        style: text.labelLarge?.copyWith(color: ink)))),
-          if (schedule != null)
-            PortalNumber(schedule!,
-                style: text.bodySmall?.copyWith(color: ink)),
+                    child: PortalLabelValue(
+                        label: 'سعر kWh', value: tariff!, ink: ink))),
+          if (scheduledOnValue != null)
+            PortalLabelValue(
+                label: 'تشغيل مجدول', value: scheduledOnValue!, ink: ink),
+          if (scheduledOffValue != null)
+            PortalLabelValue(
+                label: 'إيقاف مجدول', value: scheduledOffValue!, ink: ink),
         ],
       ]),
     );
@@ -468,4 +474,147 @@ class PortalPage extends StatelessWidget {
                         MediaQuery.paddingOf(context).bottom),
                 children: children)),
       ]));
+}
+
+/// Separate semantic label and value columns. Currency/unit text never shares
+/// a bidi paragraph with the Arabic label.
+class PortalLabelValue extends StatelessWidget {
+  final String label, value;
+  final Color? ink;
+  final bool prominent;
+  const PortalLabelValue(
+      {super.key,
+      required this.label,
+      required this.value,
+      this.ink,
+      this.prominent = false});
+  @override
+  Widget build(BuildContext context) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: PortalTokens.xs),
+      child: Row(
+          textDirection: TextDirection.rtl,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+                child: PortalNumber(label,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(color: ink))),
+            const SizedBox(width: PortalTokens.md),
+            Flexible(
+                child: Directionality(
+                    textDirection: TextDirection.ltr,
+                    child: Text(value,
+                        textDirection: TextDirection.ltr,
+                        textAlign: TextAlign.left,
+                        style: (prominent
+                                ? Theme.of(context).textTheme.headlineMedium
+                                : Theme.of(context).textTheme.labelLarge)
+                            ?.copyWith(color: ink)))),
+          ]));
+}
+
+class PortalInvoiceRow extends StatelessWidget {
+  final String title, amount, status;
+  final String? period, note;
+  final PortalTone tone;
+  final IconData icon;
+  final Color? accent;
+  final Widget? footer;
+  final VoidCallback? onTap;
+  const PortalInvoiceRow(
+      {super.key,
+      required this.title,
+      required this.amount,
+      required this.status,
+      required this.tone,
+      required this.icon,
+      this.period,
+      this.note,
+      this.accent,
+      this.footer,
+      this.onTap});
+  @override
+  Widget build(BuildContext context) => InkWell(
+      onTap: onTap,
+      child: PortalPanel(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Icon(icon,
+              color: accent ?? tone.colors(context).$1,
+              size: PortalTokens.icon),
+          const SizedBox(width: PortalTokens.md),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                PortalNumber(title,
+                    style: Theme.of(context).textTheme.titleMedium),
+                if (period != null)
+                  PortalNumber(period!,
+                      style: Theme.of(context).textTheme.bodySmall),
+                const SizedBox(height: PortalTokens.sm),
+                Wrap(
+                    spacing: PortalTokens.md,
+                    runSpacing: PortalTokens.sm,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Directionality(
+                          textDirection: TextDirection.ltr,
+                          child: Text(amount,
+                              textDirection: TextDirection.ltr,
+                              style:
+                                  Theme.of(context).textTheme.headlineMedium)),
+                      PortalStatusChip(
+                          label: status,
+                          tone: tone,
+                          icon: Icons.circle_outlined),
+                    ]),
+                if (note != null)
+                  Padding(
+                      padding: const EdgeInsets.only(top: PortalTokens.sm),
+                      child: Text(note!,
+                          style: Theme.of(context).textTheme.bodySmall)),
+              ])),
+        ]),
+        if (footer != null) ...[
+          const SizedBox(height: PortalTokens.md),
+          footer!
+        ],
+      ])));
+}
+
+/// Same exception content as the original global error builder, themed only.
+class PortalExceptionView extends StatelessWidget {
+  final String exceptionText;
+  const PortalExceptionView(this.exceptionText, {super.key});
+  @override
+  Widget build(BuildContext context) => Material(
+      child: SafeArea(
+          child: Center(
+              child: Padding(
+                  padding: PortalTokens.pagePadding,
+                  child: PortalErrorState(exceptionText)))));
+}
+
+class PortalDiagnosticDialog extends StatelessWidget {
+  final String title, info;
+  final VoidCallback onClose;
+  const PortalDiagnosticDialog(
+      {super.key,
+      required this.title,
+      required this.info,
+      required this.onClose});
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+          scrollable: true,
+          title: Text(title),
+          content: SingleChildScrollView(
+              child: SelectableText(info,
+                  style: Theme.of(context).textTheme.bodySmall)),
+          actions: [
+            ElevatedButton(onPressed: onClose, child: const Text('حسناً'))
+          ]);
 }

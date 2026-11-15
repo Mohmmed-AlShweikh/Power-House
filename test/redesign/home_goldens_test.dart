@@ -17,6 +17,7 @@ import 'package:generator_portal/providers/data_provider.dart';
 import 'package:generator_portal/theme/portal_theme.dart';
 import 'package:generator_portal/theme/portal_tokens.dart';
 import 'package:generator_portal/views/widgets/portal_components.dart';
+import 'package:generator_portal/views/widgets/portal_chart.dart';
 import 'package:generator_portal/views/widgets/portal_navigation.dart';
 import 'package:generator_portal/views/screens/admin/admin_screen.dart';
 import 'package:generator_portal/views/screens/consumer/consumer_shell.dart';
@@ -32,6 +33,7 @@ class FixtureAuth extends StateNotifier<AuthState> implements AuthNotifier {
               uid: '',
               name: role == UserRole.admin ? 'مولد حي النور' : 'محمد أحمد',
               address: 'غزة، حي النور',
+              phone: '0591234567',
               role: role,
               ampereLimit: 10,
               createdAt: DateTime(2025, 1, 1),
@@ -100,29 +102,29 @@ void main() {
                               id: 'review',
                               userId: '',
                               month: 'أكتوبر',
-                              year: 2025,
+                              year: now.year,
                               amount: 310,
                               kwh: 155,
                               status: BillStatus.pendingReview,
-                              createdAt: now),
+                              createdAt: DateTime(now.year, now.month - 1, 28)),
                           Bill(
                               id: 'rejected',
                               userId: '',
                               month: 'سبتمبر',
-                              year: 2025,
+                              year: now.year,
                               amount: 246,
                               kwh: 123,
                               status: BillStatus.rejected,
-                              createdAt: now),
+                              createdAt: DateTime(now.year, now.month - 2, 28)),
                           Bill(
                               id: 'paid',
                               userId: '',
                               month: 'أغسطس',
-                              year: 2025,
+                              year: now.year,
                               amount: 268,
                               kwh: 134,
                               status: BillStatus.paid,
-                              createdAt: now),
+                              createdAt: DateTime(now.year, now.month - 3, 28)),
                         ])),
               consumerComplaintsProvider('')
                   .overrideWith((ref) => Stream.value([
@@ -169,10 +171,10 @@ void main() {
                   .overrideWith((ref) => Stream.value({'': 'محمد أحمد'})),
               monthlyBillStatsProvider.overrideWith((ref) =>
                   const MonthlyBillStats(
-                      unpaidCount: 12,
-                      unpaidAmount: 3408,
-                      paidCount: 24,
-                      paidAmount: 6816)),
+                      unpaidCount: 1,
+                      unpaidAmount: 284,
+                      paidCount: 0,
+                      paidAmount: 0)),
               recentActivitiesProvider.overrideWith((ref) => [
                     ActivityItem(
                         name: 'محمد أحمد',
@@ -233,6 +235,22 @@ void main() {
         }
 
         Future<void> capture(String surface) async {
+          if (surface.startsWith('usage')) {
+            final chart =
+                tester.widget<PortalBarChart>(find.byType(PortalBarChart));
+            if (surface == 'usage') {
+              expect(chart.points.first.label, 'أغسطس ${now.year}');
+              expect(chart.points.last.label,
+                  '${currentMonthArabic()} ${now.year}');
+            }
+            if (chart.points.length > 1) {
+              expect(
+                  tester.getCenter(find.text(chart.points.first.label)).dx,
+                  greaterThan(
+                      tester.getCenter(find.text(chart.points.last.label)).dx),
+                  reason: 'Oldest right, newest left for every period');
+            }
+          }
           auditText();
           await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
           expect(tester.takeException(), isNull);

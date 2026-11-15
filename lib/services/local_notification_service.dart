@@ -1,4 +1,5 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import '../theme/portal_tokens.dart';
 
 class LocalNotificationService {
   static final LocalNotificationService _instance =
@@ -17,7 +18,7 @@ class LocalNotificationService {
   Future<void> init() async {
     try {
       const androidSettings =
-          AndroidInitializationSettings('@mipmap/ic_launcher');
+          AndroidInitializationSettings('ic_stat_generator');
       const iosSettings = DarwinInitializationSettings(
         requestAlertPermission: true,
         requestBadgePermission: true,
@@ -59,6 +60,7 @@ class LocalNotificationService {
           importance: Importance.high,
           priority: Priority.high,
           ticker: 'إشعار',
+          color: PortalTokens.primary,
         ),
         iOS: DarwinNotificationDetails(
           presentAlert: true,

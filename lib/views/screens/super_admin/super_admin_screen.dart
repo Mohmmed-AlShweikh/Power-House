@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../config/colors.dart';
+import '../../../theme/portal_tokens.dart';
+import '../../widgets/portal_components.dart';
 import '../../../models/user_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/data_provider.dart';
@@ -31,13 +31,9 @@ class SuperAdminScreen extends ConsumerWidget {
         children: [
           // ── Header ──────────────────────────────────────────────────────────
           Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF1a1a2e), Color(0xFF16213e)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.only(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(24),
                 bottomRight: Radius.circular(24),
               ),
@@ -51,37 +47,40 @@ class SuperAdminScreen extends ConsumerWidget {
                   children: [
                     Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(Icons.admin_panel_settings,
-                              color: Colors.white, size: 24),
-                        ),
+                        const PortalBrandMark(),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('لوحة المشرف العام',
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w800)),
+                              Text('لوحة المشرف العام',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleLarge
+                                      ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface,
+                                          fontWeight: FontWeight.w800)),
                               Text(
                                   profile?.name.isNotEmpty == true
                                       ? profile!.name
                                       : 'المشرف العام',
-                                  style: const TextStyle(
-                                      color: Colors.white60, fontSize: 13)),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant)),
                             ],
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.bug_report,
-                              color: Colors.white70),
+                          icon: Icon(Icons.bug_report,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant),
                           tooltip: 'استكشاف الطلبات',
                           onPressed: () async {
                             final db = FirebaseFirestore.instance;
@@ -91,7 +90,8 @@ class SuperAdminScreen extends ConsumerWidget {
                                 final data = d.data();
                                 final role = (data['role'] ?? '').toString();
                                 final name = (data['name'] ?? '').toString();
-                                final status = (data['status'] ?? '').toString();
+                                final status =
+                                    (data['status'] ?? '').toString();
                                 final idNumber =
                                     (data['idNumber'] ?? '').toString();
                                 return 'ID:${d.id} | role:$role | status:$status | name:$name | idNum:$idNumber';
@@ -104,8 +104,7 @@ class SuperAdminScreen extends ConsumerWidget {
                                 final s = (d.data()['status'] ?? '').toString();
                                 return s == 'pending';
                               }).toList();
-                              final info =
-                                  'المجموع: ${snap.size} مستند\n'
+                              final info = 'المجموع: ${snap.size} مستند\n'
                                   'أصحاب المولدات: ${owners.length}\n'
                                   'بانتظار الموافقة: ${pendingOwners.length}\n'
                                   '\n--- جميع المستندين ---\n$all';
@@ -113,19 +112,10 @@ class SuperAdminScreen extends ConsumerWidget {
                                 context: context,
                                 builder: (_) => Directionality(
                                   textDirection: TextDirection.rtl,
-                                  child: AlertDialog(
-                                    title: const Text('بيانات الفايرستور'),
-                                    content: SingleChildScrollView(
-                                      child: SelectableText(info),
-                                    ),
-                                    actions: [
-                                      ElevatedButton(
-                                        onPressed: () =>
-                                            Navigator.pop(context),
-                                        child: const Text('حسناً'),
-                                      ),
-                                    ],
-                                  ),
+                                  child: PortalDiagnosticDialog(
+                                      title: 'بيانات الفايرستور',
+                                      info: info,
+                                      onClose: () => Navigator.pop(context)),
                                 ),
                               );
                             } catch (e) {
@@ -133,24 +123,20 @@ class SuperAdminScreen extends ConsumerWidget {
                                 context: context,
                                 builder: (_) => Directionality(
                                   textDirection: TextDirection.rtl,
-                                  child: AlertDialog(
-                                    title: const Text('خطأ بالاستكشاف'),
-                                    content: SelectableText(e.toString()),
-                                    actions: [
-                                      ElevatedButton(
-                                        onPressed: () =>
-                                            Navigator.pop(context),
-                                        child: const Text('حسناً'),
-                                      ),
-                                    ],
-                                  ),
+                                  child: PortalDiagnosticDialog(
+                                      title: 'خطأ بالاستكشاف',
+                                      info: e.toString(),
+                                      onClose: () => Navigator.pop(context)),
                                 ),
                               );
                             }
                           },
                         ),
                         IconButton(
-                          icon: const Icon(Icons.logout, color: Colors.white70),
+                          icon: Icon(Icons.logout,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant),
                           tooltip: 'تسجيل الخروج',
                           onPressed: () async {
                             await ref.read(authProvider.notifier).signOut();
@@ -167,7 +153,7 @@ class SuperAdminScreen extends ConsumerWidget {
                           icon: Icons.pending_actions,
                           label: 'بانتظار الموافقة',
                           value: '$pendingCount',
-                          color: AppColors.warning,
+                          color: PortalTone.warning.colors(context).$1,
                         ),
                       ],
                     ),
@@ -177,16 +163,30 @@ class SuperAdminScreen extends ConsumerWidget {
                         return pendingAsync.when(
                           data: (list) => Text(
                               'DEBUG: pending owners=${list.length}',
-                              style: const TextStyle(
-                                  color: Colors.white70, fontSize: 12)),
-                          loading: () => const Text(
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant)),
+                          loading: () => Text(
                               'DEBUG: loading pending owners...',
-                              style: TextStyle(
-                                  color: Colors.white70, fontSize: 12)),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant)),
                           error: (e, s) => Text(
                               'DEBUG: error: ${e?.toString() ?? 'unknown'}',
-                              style: const TextStyle(
-                                  color: Colors.redAccent, fontSize: 12)),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                      color:
+                                          Theme.of(context).colorScheme.error)),
                         );
                       }),
                     ],
@@ -236,9 +236,14 @@ class _StatChip extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withOpacity(0.12)),
+            color:
+                Theme.of(context).colorScheme.surface.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(PortalTokens.radius),
+            border: Border.all(
+                color: Theme.of(context)
+                    .colorScheme
+                    .surface
+                    .withValues(alpha: 0.12)),
           ),
           child: Row(
             children: [
@@ -248,13 +253,13 @@ class _StatChip extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(value,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w800)),
                   Text(label,
-                      style:
-                          const TextStyle(color: Colors.white60, fontSize: 11)),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant)),
                 ],
               ),
             ],
@@ -286,10 +291,11 @@ class _OwnerRequestCardState extends ConsumerState<_OwnerRequestCard> {
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(approve ? 'تمت الموافقة على الطلب ✓' : 'تم رفض الطلب',
-              textAlign: TextAlign.right),
-          backgroundColor: approve ? AppColors.success : AppColors.error,
-        ));
+            content: Text(approve ? 'تمت الموافقة على الطلب ✓' : 'تم رفض الطلب',
+                textAlign: TextAlign.right),
+            backgroundColor: approve
+                ? PortalTone.success.colors(context).$1
+                : PortalTone.danger.colors(context).$1));
       }
     } catch (e) {
       if (mounted) {
@@ -298,7 +304,7 @@ class _OwnerRequestCardState extends ConsumerState<_OwnerRequestCard> {
             : 'حدث خطأ: ${e.toString()}';
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(msg, textAlign: TextAlign.right),
-            backgroundColor: AppColors.error));
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -308,121 +314,69 @@ class _OwnerRequestCardState extends ConsumerState<_OwnerRequestCard> {
   @override
   Widget build(BuildContext context) {
     final o = widget.owner;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(16),
-        border:
-            Border.all(color: AppColors.warning.withOpacity(0.3), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2))
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: AppColors.warning.withOpacity(0.15),
-                child: Text(o.name.isNotEmpty ? o.name[0] : '؟',
-                    style: const TextStyle(
-                        color: AppColors.warning,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16)),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(o.name.isNotEmpty ? o.name : 'بدون اسم',
-                        style: const TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.w700)),
-                    Text(
-                        'رقم الهوية: ${o.idNumber.isNotEmpty ? o.idNumber : '—'}',
-                        style: const TextStyle(
-                            fontSize: 12, color: AppColors.lightMuted)),
-                  ],
-                ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                    color: AppColors.warning.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20)),
-                child: const Text('بانتظار',
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.warning)),
-              ),
-            ],
-          ),
-          if (o.address.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Row(
+    return PortalPanel(
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      PortalRecordRow(
+          title: o.name.isNotEmpty ? o.name : 'بدون اسم',
+          subtitle: 'بانتظار',
+          icon: Icons.person_outline,
+          statusLabel: 'بانتظار',
+          statusTone: PortalTone.warning),
+      PortalLabelValue(
+          label: 'رقم الهوية', value: o.idNumber.isNotEmpty ? o.idNumber : '—'),
+      if (o.address.isNotEmpty)
+        PortalDataRow(
+            label: 'العنوان',
+            value: o.address,
+            icon: Icons.location_on_outlined),
+      const SizedBox(height: PortalTokens.lg),
+      _loading
+          ? const Center(
+              child: SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2.5)))
+          : Row(
               children: [
-                const Icon(Icons.location_on_outlined,
-                    size: 14, color: AppColors.lightMuted),
-                const SizedBox(width: 4),
-                Text(o.address,
-                    style: const TextStyle(
-                        fontSize: 12, color: AppColors.lightMuted)),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _act(false),
+                    icon: const Icon(Icons.close, size: 16),
+                    label: Text('رفض',
+                        style: Theme.of(context).textTheme.bodySmall),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: PortalTone.danger.colors(context).$1,
+                      side: BorderSide(
+                          color: PortalTone.danger.colors(context).$1),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(PortalTokens.radius)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _act(true),
+                    icon: const Icon(Icons.check, size: 16),
+                    label: const Text('موافقة'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                      minimumSize:
+                          const Size(PortalTokens.target, PortalTokens.target),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(PortalTokens.radius)),
+                    ),
+                  ),
+                ),
               ],
             ),
-          ],
-          const SizedBox(height: 12),
-          _loading
-              ? const Center(
-                  child: SizedBox(
-                      height: 24,
-                      width: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2.5)))
-              : Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _act(false),
-                        icon: const Icon(Icons.close, size: 16),
-                        label:
-                            const Text('رفض', style: TextStyle(fontSize: 13)),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.error,
-                          side: const BorderSide(color: AppColors.error),
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => _act(true),
-                        icon: const Icon(Icons.check, size: 16),
-                        label: const Text('موافقة',
-                            style: TextStyle(fontSize: 13)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.success,
-                          minimumSize: Size.zero,
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-        ],
-      ),
-    ).animate().fadeIn().slideY(begin: 0.1, end: 0, duration: 250.ms);
+    ]));
   }
 }
 
@@ -435,17 +389,21 @@ class _EmptyState extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.1),
+                  color: PortalTone.success.colors(context).$2,
                   shape: BoxShape.circle),
-              child: const Icon(Icons.check_circle,
-                  size: 48, color: AppColors.success),
+              child: Icon(Icons.check_circle,
+                  size: 48, color: PortalTone.success.colors(context).$1),
             ),
             const SizedBox(height: 16),
-            const Text('لا توجد طلبات معلقة',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            Text('لا توجد طلبات معلقة',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-            const Text('جميع طلبات أصحاب المولدات تمت معالجتها',
-                style: TextStyle(fontSize: 13, color: AppColors.lightMuted)),
+            Text('جميع طلبات أصحاب المولدات تمت معالجتها',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
           ],
         ),
       );
@@ -460,16 +418,16 @@ class _SuperAdminErrorState extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: const [
-              Icon(Icons.error_outline, size: 52, color: AppColors.warning),
-              SizedBox(height: 16),
+            children: [
+              Icon(Icons.error_outline,
+                  size: 52, color: PortalTone.warning.colors(context).$1),
+              const SizedBox(height: 16),
               Text(
                 'تعذّر تحميل بيانات المشرف العام. سجّل الدخول كمشرف عام حقيقي لعرض الطلبات الفعلية.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 14,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: AppColors.lightMuted),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -508,9 +466,13 @@ class _MockOwnersListState extends State<_MockOwnersList> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Theme.of(context).cardTheme.color,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(PortalTokens.radiusPanel),
               border: Border.all(
-                  color: AppColors.warning.withOpacity(0.3), width: 1.5),
+                  color: PortalTone.warning
+                      .colors(context)
+                      .$1
+                      .withValues(alpha: 0.3),
+                  width: 1.5),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -519,12 +481,14 @@ class _MockOwnersListState extends State<_MockOwnersList> {
                   children: [
                     CircleAvatar(
                       radius: 22,
-                      backgroundColor: AppColors.warning.withOpacity(0.15),
+                      backgroundColor: PortalTone.warning.colors(context).$2,
                       child: Text(item.$1[0],
-                          style: const TextStyle(
-                              color: AppColors.warning,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16)),
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(
+                                  color: PortalTone.warning.colors(context).$1,
+                                  fontWeight: FontWeight.w700)),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -532,11 +496,18 @@ class _MockOwnersListState extends State<_MockOwnersList> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(item.$1,
-                              style: const TextStyle(
-                                  fontSize: 15, fontWeight: FontWeight.w700)),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w700)),
                           Text('رقم الهوية: ${item.$2}',
-                              style: const TextStyle(
-                                  fontSize: 12, color: AppColors.lightMuted)),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant)),
                         ],
                       ),
                     ),
@@ -544,25 +515,32 @@ class _MockOwnersListState extends State<_MockOwnersList> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                          color: AppColors.warning.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20)),
-                      child: const Text('بانتظار',
-                          style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.warning)),
+                          color: PortalTone.warning.colors(context).$2,
+                          borderRadius:
+                              BorderRadius.circular(PortalTokens.radiusPanel)),
+                      child: Text('بانتظار',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color:
+                                      PortalTone.warning.colors(context).$1)),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.location_on_outlined,
-                        size: 14, color: AppColors.lightMuted),
+                    Icon(Icons.location_on_outlined,
+                        size: 14,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
                     const SizedBox(width: 4),
                     Text(item.$3,
-                        style: const TextStyle(
-                            fontSize: 12, color: AppColors.lightMuted)),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant)),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -572,20 +550,22 @@ class _MockOwnersListState extends State<_MockOwnersList> {
                       child: OutlinedButton.icon(
                         onPressed: () {
                           setState(() => _rejected.add(i));
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('تم رفض الطلب',
-                                      textAlign: TextAlign.right),
-                                  backgroundColor: AppColors.error));
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: const Text('تم رفض الطلب',
+                                  textAlign: TextAlign.right),
+                              backgroundColor:
+                                  Theme.of(context).scaffoldBackgroundColor));
                         },
                         icon: const Icon(Icons.close, size: 16),
                         label: const Text('رفض'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.error,
-                          side: const BorderSide(color: AppColors.error),
+                          foregroundColor: PortalTone.danger.colors(context).$1,
+                          side: BorderSide(
+                              color: PortalTone.danger.colors(context).$1),
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
+                              borderRadius:
+                                  BorderRadius.circular(PortalTokens.radius)),
                         ),
                       ),
                     ),
@@ -594,20 +574,25 @@ class _MockOwnersListState extends State<_MockOwnersList> {
                       child: ElevatedButton.icon(
                         onPressed: () {
                           setState(() => _approved.add(i));
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('تمت الموافقة ✓',
-                                      textAlign: TextAlign.right),
-                                  backgroundColor: AppColors.success));
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: const Text('تمت الموافقة ✓',
+                                  textAlign: TextAlign.right),
+                              backgroundColor:
+                                  Theme.of(context).colorScheme.primary));
                         },
                         icon: const Icon(Icons.check, size: 16),
                         label: const Text('موافقة'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.success,
-                          minimumSize: Size.zero,
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimary,
+                          minimumSize: const Size(
+                              PortalTokens.target, PortalTokens.target),
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
+                              borderRadius:
+                                  BorderRadius.circular(PortalTokens.radius)),
                         ),
                       ),
                     ),

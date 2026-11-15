@@ -1,0 +1,73 @@
+{
+  "base": "22a5b84",
+  "protected_paths_unchanged": [
+    "lib/providers",
+    "lib/models",
+    "lib/config/router.dart",
+    "firestore.rules",
+    "pubspec.lock",
+    "android/app/build.gradle.kts"
+  ],
+  "notification_service_exact_metadata_only_diff": true,
+  "method_comparisons": [
+    {
+      "file": "lib/views/screens/admin/admin_screen.dart",
+      "method": "_validateId",
+      "same_ignoring_whitespace_const_trailing_commas_palette_aliases": true
+    },
+    {
+      "file": "lib/views/screens/admin/admin_screen.dart",
+      "method": "_calculateAmount",
+      "same_ignoring_whitespace_const_trailing_commas_palette_aliases": true
+    },
+    {
+      "file": "lib/views/screens/admin/admin_screen.dart",
+      "method": "_submit",
+      "same_ignoring_whitespace_const_trailing_commas_palette_aliases": true
+    },
+    {
+      "file": "lib/views/screens/admin/admin_screen.dart",
+      "method": "_jumpToBillsTab",
+      "same_ignoring_whitespace_const_trailing_commas_palette_aliases": true
+    },
+    {
+      "file": "lib/views/screens/admin/admin_screen.dart",
+      "method": "_startListening",
+      "same_ignoring_whitespace_const_trailing_commas_palette_aliases": true
+    },
+    {
+      "file": "lib/views/screens/login_screen.dart",
+      "method": "_submit",
+      "same_ignoring_whitespace_const_trailing_commas_palette_aliases": true
+    },
+    {
+      "file": "lib/views/screens/consumer/bills_tab.dart",
+      "method": "_pickImage",
+      "same_ignoring_whitespace_const_trailing_commas_palette_aliases": true
+    },
+    {
+      "file": "lib/views/screens/consumer/bills_tab.dart",
+      "method": "_upload",
+      "same_ignoring_whitespace_const_trailing_commas_palette_aliases": true
+    },
+    {
+      "file": "lib/views/screens/consumer/profile_tab.dart",
+      "method": "_submit",
+      "same_ignoring_whitespace_const_trailing_commas_palette_aliases": true
+    },
+    {
+      "file": "lib/views/screens/consumer/usage_tab.dart",
+      "method": "_buildPoints",
+      "same_ignoring_whitespace_const_trailing_commas_palette_aliases": true
+    },
+    {
+      "file": "lib/views/screens/consumer/usage_tab.dart",
+      "method": "_selectPeriod",
+      "same_ignoring_whitespace_const_trailing_commas_palette_aliases": true
+    }
+  ],
+  "register_validation_auth_call_prefix_unchanged": true,
+  "dependencies_unchanged": true,
+  "native_resource_xmls_parse": 19,
+  "intentional_presentation_order_change": "Monthly usage display copy reversed; provider lists and numeric calculations unchanged."
+}

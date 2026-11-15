@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
-import '../../config/colors.dart';
+import '../../theme/portal_tokens.dart';
+import '../widgets/portal_components.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -43,7 +43,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final confirm = _confirmCtrl.text;
 
     if (id.length < 9 || !RegExp(r'^\d+$').hasMatch(id)) {
-      setState(() => _errorMsg = 'رقم الهوية يجب أن يكون أرقاماً (9-10 خانات على الأقل)');
+      setState(() =>
+          _errorMsg = 'رقم الهوية يجب أن يكون أرقاماً (9-10 خانات على الأقل)');
       return;
     }
     if (name.isEmpty) {
@@ -59,15 +60,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       return;
     }
 
-    setState(() { _loading = true; _errorMsg = null; });
+    setState(() {
+      _loading = true;
+      _errorMsg = null;
+    });
 
     final error = await ref.read(authProvider.notifier).register(
-      idNumber: id,
-      name: name,
-      address: address,
-      password: pass,
-      role: _role,
-    );
+          idNumber: id,
+          name: name,
+          address: address,
+          password: pass,
+          role: _role,
+        );
 
     if (!mounted) return;
     setState(() => _loading = false);
@@ -84,29 +88,31 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         builder: (_) => Directionality(
           textDirection: TextDirection.rtl,
           child: AlertDialog(
+            scrollable: true,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20)),
+                borderRadius: BorderRadius.circular(PortalTokens.radiusPanel)),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                      color: AppColors.success.withOpacity(0.1),
+                      color: PortalTone.success.colors(context).$2,
                       shape: BoxShape.circle),
-                  child: const Icon(Icons.check_circle,
-                      size: 48, color: AppColors.success),
+                  child: Icon(Icons.check_circle,
+                      size: 48, color: PortalTone.success.colors(context).$1),
                 ),
                 const SizedBox(height: 16),
-                const Text('تم تقديم الطلب!',
-                    style: TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w700)),
+                Text('تم تقديم الطلب!',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 8),
                 Text(msg,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        fontSize: 14,
-                        color: AppColors.lightMuted,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         height: 1.5)),
               ],
             ),
@@ -133,212 +139,86 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final theme = Theme.of(context);
     final nameHint = _role == UserRole.admin ? 'اسم المولد' : 'الاسم الكامل';
 
-    return Scaffold(
-      body: Column(
+    return PortalPage(
+        title: 'بوابة المولدات',
+        subtitle: 'إنشاء حساب جديد',
+        reserveNavigation: false,
         children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 600),
-            curve: Curves.easeInOut,
-            decoration: BoxDecoration(
-              color: AppColors.primaryDarkFor(Theme.of(context).brightness),
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(28),
-                bottomRight: Radius.circular(28),
-              ),
-            ),
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(Icons.bolt,
-                              color: Colors.white, size: 28),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('بوابة المولدات',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w800)),
-                            Text('Generator Portal',
-                                style: TextStyle(
-                                    color: Colors.white.withOpacity(0.7),
-                                    fontSize: 14)),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    const Text('إنشاء حساب جديد',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 4),
-                    const Text('سيتم مراجعة طلبك قبل التفعيل',
-                        style: TextStyle(
-                            color: Colors.white60, fontSize: 14)),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+          Text('سيتم مراجعة طلبك قبل التفعيل',
+              style: theme.textTheme.bodyMedium),
+          const PortalSection('نوع الحساب'),
+          _RoleSwitch(
+              selected: _role, onChanged: (r) => setState(() => _role = r)),
+          const SizedBox(height: PortalTokens.xl),
+          PortalPanel(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Role selection
-                  _SectionLabel('نوع الحساب'),
-                  const SizedBox(height: 10),
-                  _RoleSwitch(
-                    selected: _role,
-                    onChanged: (r) => setState(() => _role = r),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Form
-                  _SectionLabel('رقم الهوية'),
-                  const SizedBox(height: 8),
-                  _Field(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                const _SectionLabel('رقم الهوية'),
+                const SizedBox(height: PortalTokens.sm),
+                _Field(
                     controller: _idCtrl,
                     hint: 'xxxxxxxxxx',
                     icon: Icons.badge_outlined,
                     inputType: TextInputType.number,
                     formatters: [
                       FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(10),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  _SectionLabel(nameHint),
-                  const SizedBox(height: 8),
-                  _Field(
+                      LengthLimitingTextInputFormatter(10)
+                    ]),
+                const SizedBox(height: PortalTokens.lg),
+                _SectionLabel(nameHint),
+                const SizedBox(height: PortalTokens.sm),
+                _Field(
                     controller: _nameCtrl,
                     hint: nameHint,
                     icon: _role == UserRole.admin
                         ? Icons.bolt
-                        : Icons.person_outline,
-                  ),
-                  const SizedBox(height: 16),
-
-                  _SectionLabel('العنوان'),
-                  const SizedBox(height: 8),
-                  _Field(
+                        : Icons.person_outline),
+                const SizedBox(height: PortalTokens.lg),
+                const _SectionLabel('العنوان'),
+                const SizedBox(height: PortalTokens.sm),
+                _Field(
                     controller: _addressCtrl,
                     hint: 'المدينة / الحي',
-                    icon: Icons.location_on_outlined,
-                  ),
-                  const SizedBox(height: 16),
-
-                  _SectionLabel('كلمة المرور'),
-                  const SizedBox(height: 8),
-                  _PasswordField(
+                    icon: Icons.location_on_outlined),
+                const SizedBox(height: PortalTokens.lg),
+                const _SectionLabel('كلمة المرور'),
+                const SizedBox(height: PortalTokens.sm),
+                _PasswordField(
                     controller: _passCtrl,
                     hint: '8 أحرف على الأقل',
                     visible: _passVisible,
                     onToggle: () =>
-                        setState(() => _passVisible = !_passVisible),
-                  ),
-                  const SizedBox(height: 16),
-
-                  _SectionLabel('تأكيد كلمة المرور'),
-                  const SizedBox(height: 8),
-                  _PasswordField(
+                        setState(() => _passVisible = !_passVisible)),
+                const SizedBox(height: PortalTokens.lg),
+                const _SectionLabel('تأكيد كلمة المرور'),
+                const SizedBox(height: PortalTokens.sm),
+                _PasswordField(
                     controller: _confirmCtrl,
                     hint: 'أعد كتابة كلمة المرور',
                     visible: _passVisible,
                     onToggle: () =>
-                        setState(() => _passVisible = !_passVisible),
-                  ),
-
-                  if (_errorMsg != null) ...[
-                    const SizedBox(height: 14),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.error.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                            color: AppColors.error.withOpacity(0.3)),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(Icons.error_outline,
-                              size: 18, color: AppColors.error),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(_errorMsg!,
-                                style: const TextStyle(
-                                    color: AppColors.error,
-                                    fontSize: 13,
-                                    height: 1.4)),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-
-                  const SizedBox(height: 24),
-                  ElevatedButton(
+                        setState(() => _passVisible = !_passVisible)),
+                if (_errorMsg != null) ...[
+                  const SizedBox(height: PortalTokens.lg),
+                  PortalErrorState(_errorMsg!)
+                ],
+                const SizedBox(height: PortalTokens.xl),
+                ElevatedButton(
                     onPressed: _loading ? null : _submit,
                     child: _loading
-                        ? const SizedBox(
-                            height: 22,
-                            width: 22,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2.5, color: Colors.white))
-                        : const Text('تقديم الطلب'),
-                  ).animate().fadeIn(delay: 200.ms),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: TextButton(
-                      onPressed: () => context.go('/login'),
-                      child: RichText(
-                        text: const TextSpan(
-                          text: 'لديك حساب؟ ',
-                          style: TextStyle(color: AppColors.lightMuted),
-                          children: [
-                            TextSpan(
-                              text: 'تسجيل الدخول',
-                              style: TextStyle(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w600),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+                        ? const SizedBox.square(
+                            dimension: PortalTokens.icon,
+                            child: CircularProgressIndicator())
+                        : const Text('تقديم الطلب')),
+                const SizedBox(height: PortalTokens.lg),
+                TextButton(
+                    onPressed: () => context.go('/login'),
+                    child: const Text('لديك حساب؟ تسجيل الدخول')),
+              ])),
+        ]);
   }
 }
-
-// ── Sub-widgets ───────────────────────────────────────────────────────────────
 
 class _SectionLabel extends StatelessWidget {
   final String text;
@@ -348,7 +228,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) => Text(
         text,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w600,
             ),
       );
 }
@@ -363,7 +243,7 @@ class _RoleSwitch extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
           color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: BorderRadius.circular(12)),
+          borderRadius: BorderRadius.circular(PortalTokens.radius)),
       padding: const EdgeInsets.all(4),
       child: Row(
         children: [
@@ -397,35 +277,23 @@ class _RoleTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Expanded(
-        child: GestureDetector(
-          onTap: onTap,
-          child: AnimatedContainer(
-            duration: 200.ms,
-            padding: const EdgeInsets.symmetric(vertical: 11),
-            decoration: BoxDecoration(
-              color: selected ? AppColors.primary : Colors.transparent,
-              borderRadius: BorderRadius.circular(9),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon,
-                    size: 17,
-                    color:
-                        selected ? Colors.white : AppColors.lightMuted),
-                const SizedBox(width: 6),
-                Text(label,
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: selected
-                            ? Colors.white
-                            : AppColors.lightMuted)),
-              ],
-            ),
-          ),
-        ),
-      );
+      child: Padding(
+          padding: const EdgeInsets.all(PortalTokens.xs),
+          child: Semantics(
+              selected: selected,
+              child: OutlinedButton.icon(
+                  onPressed: onTap,
+                  icon: Icon(selected ? Icons.check_circle_outline : icon),
+                  label: Text(label),
+                  style: OutlinedButton.styleFrom(
+                      backgroundColor: selected
+                          ? Theme.of(context).colorScheme.primaryContainer
+                          : null,
+                      side: BorderSide(
+                          width: selected
+                              ? PortalTokens.focusLine
+                              : PortalTokens.line,
+                          color: Theme.of(context).colorScheme.primary))))));
 }
 
 class _Field extends StatelessWidget {
@@ -446,28 +314,31 @@ class _Field extends StatelessWidget {
         controller: controller,
         keyboardType: inputType,
         inputFormatters: formatters,
-        style: const TextStyle(fontSize: 15),
+        style: Theme.of(context).textTheme.bodyMedium,
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(color: AppColors.lightMuted),
-          prefixIcon:
-              Icon(icon, color: AppColors.lightMuted, size: 20),
+          hintStyle: Theme.of(context)
+              .textTheme
+              .bodyMedium
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          prefixIcon: Icon(icon,
+              color: Theme.of(context).colorScheme.onSurfaceVariant, size: 20),
           filled: true,
           fillColor: Theme.of(context).cardTheme.color,
           border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: AppColors.lightBorder)),
+              borderRadius: BorderRadius.circular(PortalTokens.radius),
+              borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.outlineVariant)),
           enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: AppColors.lightBorder)),
+              borderRadius: BorderRadius.circular(PortalTokens.radius),
+              borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.outlineVariant)),
           focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: AppColors.primary, width: 2)),
-          contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14, vertical: 14),
+              borderRadius: BorderRadius.circular(PortalTokens.radius),
+              borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.primary, width: 2)),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         ),
       );
 }
@@ -487,37 +358,40 @@ class _PasswordField extends StatelessWidget {
   Widget build(BuildContext context) => TextField(
         controller: controller,
         obscureText: !visible,
-        style: const TextStyle(fontSize: 15),
+        style: Theme.of(context).textTheme.bodyMedium,
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(color: AppColors.lightMuted),
-          prefixIcon: const Icon(Icons.lock_outline,
-              color: AppColors.lightMuted, size: 20),
+          hintStyle: Theme.of(context)
+              .textTheme
+              .bodyMedium
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          prefixIcon: Icon(Icons.lock_outline,
+              color: Theme.of(context).colorScheme.onSurfaceVariant, size: 20),
           suffixIcon: IconButton(
             icon: Icon(
                 visible
                     ? Icons.visibility_off_outlined
                     : Icons.visibility_outlined,
                 size: 20,
-                color: AppColors.lightMuted),
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
             onPressed: onToggle,
           ),
           filled: true,
           fillColor: Theme.of(context).cardTheme.color,
           border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: AppColors.lightBorder)),
+              borderRadius: BorderRadius.circular(PortalTokens.radius),
+              borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.outlineVariant)),
           enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: AppColors.lightBorder)),
+              borderRadius: BorderRadius.circular(PortalTokens.radius),
+              borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.outlineVariant)),
           focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: AppColors.primary, width: 2)),
-          contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14, vertical: 14),
+              borderRadius: BorderRadius.circular(PortalTokens.radius),
+              borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.primary, width: 2)),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         ),
       );
 }

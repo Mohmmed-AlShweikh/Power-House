@@ -1,0 +1,1 @@
+Native Android runtime validation NOT performed. No installed emulator, no exposed /dev/kvm or USB device directory. adb attempts to create a directory in the read-only task-user home. APK assembly, v2 signature and compiled resource presence passed; none is a substitute for device/emulator icon/splash verification.

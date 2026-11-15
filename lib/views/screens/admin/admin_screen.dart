@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../models/user_model.dart';
@@ -14,10 +13,10 @@ import '../../../providers/theme_provider.dart';
 import '../../../services/firebase_service.dart';
 import '../../../services/local_notification_service.dart';
 import '../../../services/notification_service.dart';
-import '../../../config/colors.dart';
 import '../../../theme/portal_tokens.dart';
-import '../../../theme/portal_theme.dart';
 import '../../widgets/portal_components.dart';
+import '../../widgets/portal_number.dart';
+import '../../../theme/portal_theme.dart';
 import '../../widgets/portal_navigation.dart';
 import '../../widgets/base64_image_viewer.dart';
 import 'subscriber_details_screen.dart';
@@ -84,72 +83,153 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
 
   Future<void> _showMore(BuildContext context) async {
     setState(() => _moreVisible = true);
-    await showModalBottomSheet<void>(context: context, isScrollControlled: true,
-      builder: (sheetContext) => SafeArea(top: false,
-        child: SingleChildScrollView(child: Padding(key: const ValueKey('admin-more-menu'), padding: PortalTokens.pagePadding,
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [Expanded(child: Text('المزيد', style: Theme.of(context).textTheme.titleLarge)),
-              IconButton(tooltip: 'إغلاق', onPressed: () => Navigator.pop(sheetContext), icon: const Icon(Icons.close))]),
-            ListTile(leading: const Icon(Icons.pending_actions_outlined), title: const Text('الطلبات'),
-              onTap: () { Navigator.pop(sheetContext); _tabs.animateTo(1); }),
-            ListTile(leading: const Icon(Icons.person_outline), title: const Text('ملفي'),
-              onTap: () { Navigator.pop(sheetContext); _tabs.animateTo(5); }),
-            ListTile(leading: const Icon(Icons.tune_outlined), title: const Text('السعر وجدول التشغيل'),
-              onTap: () {
-                Navigator.pop(sheetContext);
-                final gen = ref.read(generatorProvider);
-                _DashboardTab._showGeneratorSettingsSheet(context,
-                  gen.when(data: (g) => g.pricePerKwh, loading: () => 2.0, error: (_, __) => 2.0),
-                  gen.when(data: (g) => g.scheduledOnAt, loading: () => null, error: (_, __) => null),
-                  gen.when(data: (g) => g.scheduledOffAt, loading: () => null, error: (_, __) => null));
-              }),
-            ListTile(leading: const Icon(Icons.brightness_6_outlined), title: const Text('تبديل المظهر'),
-              onTap: () { Navigator.pop(sheetContext); ref.read(themeProvider.notifier).toggle(); }),
-            ListTile(leading: const Icon(Icons.logout), title: const Text('تسجيل الخروج'),
-              onTap: () async {
-                Navigator.pop(sheetContext);
-                await ref.read(authProvider.notifier).signOut();
-                if (context.mounted) context.go('/login');
-              }),
-          ])))));
+    await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (sheetContext) => SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+                child: Padding(
+                    key: const ValueKey('admin-more-menu'),
+                    padding: PortalTokens.pagePadding,
+                    child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(children: [
+                            Expanded(
+                                child: Text('المزيد',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleLarge)),
+                            IconButton(
+                                tooltip: 'إغلاق',
+                                onPressed: () => Navigator.pop(sheetContext),
+                                icon: const Icon(Icons.close))
+                          ]),
+                          ListTile(
+                              leading:
+                                  const Icon(Icons.pending_actions_outlined),
+                              title: const Text('الطلبات'),
+                              onTap: () {
+                                Navigator.pop(sheetContext);
+                                _tabs.animateTo(1);
+                              }),
+                          ListTile(
+                              leading: const Icon(Icons.person_outline),
+                              title: const Text('ملفي'),
+                              onTap: () {
+                                Navigator.pop(sheetContext);
+                                _tabs.animateTo(5);
+                              }),
+                          ListTile(
+                              leading: const Icon(Icons.tune_outlined),
+                              title: const Text('السعر وجدول التشغيل'),
+                              onTap: () {
+                                Navigator.pop(sheetContext);
+                                final gen = ref.read(generatorProvider);
+                                _DashboardTab._showGeneratorSettingsSheet(
+                                    context,
+                                    gen.when(
+                                        data: (g) => g.pricePerKwh,
+                                        loading: () => 2.0,
+                                        error: (_, __) => 2.0),
+                                    gen.when(
+                                        data: (g) => g.scheduledOnAt,
+                                        loading: () => null,
+                                        error: (_, __) => null),
+                                    gen.when(
+                                        data: (g) => g.scheduledOffAt,
+                                        loading: () => null,
+                                        error: (_, __) => null));
+                              }),
+                          ListTile(
+                              leading: const Icon(Icons.brightness_6_outlined),
+                              title: const Text('تبديل المظهر'),
+                              onTap: () {
+                                Navigator.pop(sheetContext);
+                                ref.read(themeProvider.notifier).toggle();
+                              }),
+                          ListTile(
+                              leading: const Icon(Icons.logout),
+                              title: const Text('تسجيل الخروج'),
+                              onTap: () async {
+                                Navigator.pop(sheetContext);
+                                await ref.read(authProvider.notifier).signOut();
+                                if (context.mounted) context.go('/login');
+                              }),
+                        ])))));
     if (mounted) setState(() => _moreVisible = false);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    Widget existingAppearance(Widget child) => Theme(data: theme,
-      child: Padding(padding: EdgeInsets.only(bottom: PortalTokens.navHeight + MediaQuery.paddingOf(context).bottom),
-        child: ColoredBox(color: theme.scaffoldBackgroundColor, child: child)));
-    return Theme(data: buildPortalTheme(theme.brightness), child: Builder(builder: (context) {
-      final profile = ref.watch(authProvider).profile;
-      return Scaffold(body: Stack(children: [
-        Column(children: [
-          AnimatedBuilder(animation: _tabs, builder: (_, __) => PortalIdentityBar(
-            title: const ['نظرة عامة', 'الطلبات', 'المشتركون', 'الفواتير', 'الشكاوى', 'ملفي'][_tabs.index],
-            subtitle: profile != null && profile.name.isNotEmpty ? profile.name : 'مولد حي البيرة')),
-          Expanded(child: TabBarView(controller: _tabs, children: [
-            _DashboardTab(onToggle: (v) async {
-              await FirebaseService().toggleGenerator(v);
-              await NotificationService().notifyAllUsersGeneratorState(v);
-            }),
-            existingAppearance(const _PendingUsersTab()),
-            existingAppearance(_SubscribersTab(onJumpToBill: _jumpToBillsTab)),
-            existingAppearance(const _BillsTab()),
-            existingAppearance(const _ComplaintsTab()),
-            existingAppearance(const _AdminProfileTab()),
-          ])),
-        ]),
-        PositionedDirectional(start: 0, end: 0, bottom: MediaQuery.paddingOf(context).bottom,
-          child: AnimatedBuilder(animation: _tabs, builder: (_, __) {
-            final selected = _moreVisible ? 4 : switch (_tabs.index) {0 => 0, 2 => 1, 3 => 2, 4 => 3, _ => 4};
-            return PortalFloatingNavigation(items: adminNavItems, selected: selected,
-              onSelected: (i) {
-                if (i == 4) { _showMore(context); } else { _tabs.animateTo([0, 2, 3, 4][i]); }
-              });
-          })),
-      ]));
-    }));
+    Widget existingAppearance(Widget child) => child;
+    return Theme(
+        data: buildPortalTheme(theme.brightness),
+        child: Builder(builder: (context) {
+          final profile = ref.watch(authProvider).profile;
+          return Scaffold(
+              body: Stack(children: [
+            Column(children: [
+              AnimatedBuilder(
+                  animation: _tabs,
+                  builder: (_, __) => PortalIdentityBar(
+                      title: [
+                        'نظرة عامة',
+                        'الطلبات',
+                        'المشتركون',
+                        'الفواتير',
+                        'الشكاوى',
+                        'ملفي'
+                      ][_tabs.index],
+                      subtitle: profile != null && profile.name.isNotEmpty
+                          ? profile.name
+                          : 'مولد حي البيرة')),
+              Expanded(
+                  child: TabBarView(controller: _tabs, children: [
+                _DashboardTab(onToggle: (v) async {
+                  await FirebaseService().toggleGenerator(v);
+                  await NotificationService().notifyAllUsersGeneratorState(v);
+                }),
+                existingAppearance(const _PendingUsersTab()),
+                existingAppearance(
+                    _SubscribersTab(onJumpToBill: _jumpToBillsTab)),
+                existingAppearance(const _BillsTab()),
+                existingAppearance(const _ComplaintsTab()),
+                existingAppearance(const _AdminProfileTab()),
+              ])),
+            ]),
+            PositionedDirectional(
+                start: 0,
+                end: 0,
+                bottom: MediaQuery.paddingOf(context).bottom,
+                child: AnimatedBuilder(
+                    animation: _tabs,
+                    builder: (_, __) {
+                      final selected = _moreVisible
+                          ? 4
+                          : switch (_tabs.index) {
+                              0 => 0,
+                              2 => 1,
+                              3 => 2,
+                              4 => 3,
+                              _ => 4
+                            };
+                      return PortalFloatingNavigation(
+                          items: adminNavItems,
+                          selected: selected,
+                          onSelected: (i) {
+                            if (i == 4) {
+                              _showMore(context);
+                            } else {
+                              _tabs.animateTo([0, 2, 3, 4][i]);
+                            }
+                          });
+                    })),
+          ]));
+        }));
   }
 }
 
@@ -201,31 +281,56 @@ class _DashboardTab extends ConsumerWidget {
     final currentMonth = currentMonthArabic();
 
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(PortalTokens.gutter, PortalTokens.sm,
-        PortalTokens.gutter, PortalTokens.navClearance + MediaQuery.paddingOf(context).bottom),
+      padding: EdgeInsets.fromLTRB(
+          PortalTokens.gutter,
+          PortalTokens.sm,
+          PortalTokens.gutter,
+          PortalTokens.navClearance + MediaQuery.paddingOf(context).bottom),
       child: Column(children: [
-        _GeneratorToggleCard(isOn: isOn, lastChanged: lastChanged,
-          pricePerKwh: currentPrice, scheduledOnAt: scheduledOnAt,
-          scheduledOffAt: scheduledOffAt, onToggle: onToggle),
+        _GeneratorToggleCard(
+            isOn: isOn,
+            lastChanged: lastChanged,
+            pricePerKwh: currentPrice,
+            scheduledOnAt: scheduledOnAt,
+            scheduledOffAt: scheduledOffAt,
+            onToggle: onToggle),
         PortalSection('ملخص فواتير $currentMonth'),
         PortalMetricPair(
-          first: PortalMetric(label: 'الفواتير المستحقة', value: '₪${stats.unpaidAmount}',
-            footnote: '${stats.unpaidCount} فاتورة', icon: Icons.pending_actions_outlined),
-          second: PortalMetric(label: 'الفواتير المدفوعة', value: '₪${stats.paidAmount}',
-            footnote: '${stats.paidCount} فاتورة', icon: Icons.check_circle_outline)),
+            first: PortalMetric(
+                label: 'الفواتير المستحقة',
+                value: '₪${stats.unpaidAmount}',
+                footnote: '${stats.unpaidCount} فاتورة',
+                icon: Icons.pending_actions_outlined),
+            second: PortalMetric(
+                label: 'الفواتير المدفوعة',
+                value: '₪${stats.paidAmount}',
+                footnote: '${stats.paidCount} فاتورة',
+                icon: Icons.check_circle_outline)),
         const PortalSection('المشتركون والتشغيل'),
-        PortalPanel(child: Column(children: [
-          PortalDataRow(label: 'المشتركون', value: totalSubs, icon: Icons.people_outline),
+        PortalPanel(
+            child: Column(children: [
+          PortalDataRow(
+              label: 'المشتركون', value: totalSubs, icon: Icons.people_outline),
           const Divider(height: PortalTokens.line),
-          PortalDataRow(label: 'نشطون', value: activeSubs, icon: Icons.check_circle_outline),
+          PortalDataRow(
+              label: 'نشطون',
+              value: activeSubs,
+              icon: Icons.check_circle_outline),
           const Divider(height: PortalTokens.line),
-          PortalDataRow(label: 'شكاوى مفتوحة', value: complaintsCount, icon: Icons.chat_bubble_outline),
+          PortalDataRow(
+              label: 'شكاوى مفتوحة',
+              value: complaintsCount,
+              icon: Icons.chat_bubble_outline),
           const Divider(height: PortalTokens.line),
-          PortalDataRow(label: 'كWh هذا الشهر',
-            value: stats.unpaidCount > 0 || stats.paidCount > 0 ? '${stats.unpaidCount + stats.paidCount} فاتورة' : '-',
-            icon: Icons.electric_bolt_outlined),
+          PortalDataRow(
+              label: 'كWh هذا الشهر',
+              value: stats.unpaidCount > 0 || stats.paidCount > 0
+                  ? '${stats.unpaidCount + stats.paidCount} فاتورة'
+                  : '-',
+              icon: Icons.electric_bolt_outlined),
         ])),
-        const PortalSection('آخر النشاطات'), _RecentActivity(),
+        const PortalSection('آخر النشاطات'),
+        _RecentActivity(),
       ]),
     );
   }
@@ -278,7 +383,8 @@ class _DashboardTab extends ConsumerWidget {
             bottom: MediaQuery.of(context).viewInsets.bottom + 24,
           ),
           child: StatefulBuilder(builder: (context, setState) {
-            return Column(
+            return SingleChildScrollView(
+                child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -295,7 +401,7 @@ class _DashboardTab extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 Text('السعر الحالي لكل كيلوواط/ساعة',
-                    style: const TextStyle(fontSize: 13)),
+                    style: Theme.of(context).textTheme.bodySmall),
                 const SizedBox(height: 8),
                 TextField(
                   controller: priceController,
@@ -304,13 +410,14 @@ class _DashboardTab extends ConsumerWidget {
                   decoration: InputDecoration(
                     hintText: 'مثال: 2.50',
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14)),
+                        borderRadius:
+                            BorderRadius.circular(PortalTokens.radiusPanel)),
                     filled: true,
                   ),
                 ),
                 const SizedBox(height: 16),
                 Text('توقيت تشغيل المولد',
-                    style: const TextStyle(fontSize: 13)),
+                    style: Theme.of(context).textTheme.bodySmall),
                 const SizedBox(height: 8),
                 Row(
                   children: [
@@ -321,9 +428,11 @@ class _DashboardTab extends ConsumerWidget {
                           setState(() {});
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14)),
+                              borderRadius: BorderRadius.circular(
+                                  PortalTokens.radiusPanel)),
                         ),
                         child: Text('تشغيل ${formatTime(onTime)}'),
                       ),
@@ -336,9 +445,13 @@ class _DashboardTab extends ConsumerWidget {
                           setState(() {});
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.warning,
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimary,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14)),
+                              borderRadius: BorderRadius.circular(
+                                  PortalTokens.radiusPanel)),
                         ),
                         child: Text('إيقاف ${formatTime(offTime)}'),
                       ),
@@ -388,13 +501,14 @@ class _DashboardTab extends ConsumerWidget {
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                          borderRadius:
+                              BorderRadius.circular(PortalTokens.radiusPanel)),
                     ),
                     child: const Text('حفظ التعديلات'),
                   ),
                 ),
               ],
-            );
+            ));
           }),
         );
       },
@@ -441,11 +555,13 @@ class _GeneratorToggleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => PortalGeneratorPanel(
-    isOn: isOn, detail: _runningFor(),
-    tariff: 'سعر kWh: ₪${pricePerKwh.toStringAsFixed(2)}',
-    schedule: 'تشغيل مجدول: ${_formatTime(scheduledOnAt)} • إيقاف مجدول: ${_formatTime(scheduledOffAt)}',
-    onToggle: (v) => _confirmToggle(context, v),
-  );
+        isOn: isOn,
+        detail: _runningFor(),
+        tariff: '₪${pricePerKwh.toStringAsFixed(2)}',
+        scheduledOnValue: _formatTime(scheduledOnAt),
+        scheduledOffValue: _formatTime(scheduledOffAt),
+        onToggle: (v) => _confirmToggle(context, v),
+      );
 
   void _confirmToggle(BuildContext context, bool v) {
     showDialog(
@@ -453,8 +569,9 @@ class _GeneratorToggleCard extends StatelessWidget {
       builder: (_) => Directionality(
         textDirection: TextDirection.rtl,
         child: AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          scrollable: true,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(PortalTokens.radiusPanel)),
           title: Text(v ? 'تشغيل المولد؟' : 'إيقاف المولد؟'),
           content: Text(v
               ? 'هل تريد تشغيل المولد وإعادة التيار للمشتركين؟'
@@ -469,8 +586,11 @@ class _GeneratorToggleCard extends StatelessWidget {
                 onToggle(v);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: v ? AppColors.success : AppColors.error,
-                minimumSize: Size.zero,
+                backgroundColor: v
+                    ? PortalTone.success.colors(context).$1
+                    : PortalTone.danger.colors(context).$1,
+                minimumSize:
+                    const Size(PortalTokens.target, PortalTokens.target),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               ),
@@ -489,13 +609,18 @@ class _RecentActivity extends ConsumerWidget {
     final items = ref.watch(recentActivitiesProvider);
     final theme = Theme.of(context);
 
-    return PortalPanel(child: items.isEmpty
-      ? const PortalEmptyState('لا توجد نشاطات حتى الآن')
-      : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('${items.length} نشاط', style: theme.textTheme.labelMedium),
-          ...items.map((item) => PortalRecordRow(title: item.name,
-            subtitle: item.action, trailing: _timeAgo(item.createdAt), icon: Icons.history_outlined)),
-        ]));
+    return PortalPanel(
+        child: items.isEmpty
+            ? const PortalEmptyState('لا توجد نشاطات حتى الآن')
+            : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('${items.length} نشاط',
+                    style: theme.textTheme.labelMedium),
+                ...items.map((item) => PortalRecordRow(
+                    title: item.name,
+                    subtitle: item.action,
+                    trailing: _timeAgo(item.createdAt),
+                    icon: Icons.history_outlined)),
+              ]));
   }
 
   String _timeAgo(DateTime dt) {
@@ -549,17 +674,28 @@ class _SubscribersTabState extends ConsumerState<_SubscribersTab> {
                     child: Container(
                       decoration: BoxDecoration(
                         color: theme.cardTheme.color,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.lightBorder),
+                        borderRadius:
+                            BorderRadius.circular(PortalTokens.radius),
+                        border: Border.all(
+                            color:
+                                Theme.of(context).colorScheme.outlineVariant),
                       ),
                       child: TextField(
                         onChanged: (v) => setState(() => _search = v.trim()),
                         decoration: InputDecoration(
                           hintText: 'بحث بالاسم أو رقم الجوال...',
-                          hintStyle: const TextStyle(
-                              color: AppColors.lightMuted, fontSize: 14),
-                          prefixIcon: const Icon(Icons.search,
-                              color: AppColors.lightMuted, size: 20),
+                          hintStyle: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant),
+                          prefixIcon: Icon(Icons.search,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                              size: 20),
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(
                               vertical: 12, horizontal: 12),
@@ -574,7 +710,12 @@ class _SubscribersTabState extends ConsumerState<_SubscribersTab> {
             ),
             Expanded(
               child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsetsDirectional.fromSTEB(
+                    PortalTokens.gutter,
+                    PortalTokens.lg,
+                    PortalTokens.gutter,
+                    PortalTokens.navClearance +
+                        MediaQuery.paddingOf(context).bottom),
                 itemCount: filtered.length,
                 itemBuilder: (context, i) => Padding(
                   padding: const EdgeInsets.only(bottom: 10),
@@ -621,14 +762,16 @@ class _SubscribersTabState extends ConsumerState<_SubscribersTab> {
               Text('إضافة مشترك جديد',
                   style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: 20),
-              _SheetField(hint: 'الاسم الكامل', icon: Icons.person_outline),
+              const _SheetField(
+                  hint: 'الاسم الكامل', icon: Icons.person_outline),
               const SizedBox(height: 12),
-              _SheetField(hint: 'رقم الهاتف (05xxxxxxxx)', icon: Icons.phone),
+              const _SheetField(
+                  hint: 'رقم الهاتف (05xxxxxxxx)', icon: Icons.phone),
               const SizedBox(height: 12),
-              _SheetField(
+              const _SheetField(
                   hint: 'المنطقة / العنوان', icon: Icons.location_on_outlined),
               const SizedBox(height: 12),
-              _SheetField(
+              const _SheetField(
                   hint: 'الأمبير (الحد الأقصى)', icon: Icons.electric_bolt),
               const SizedBox(height: 20),
               ElevatedButton(
@@ -658,15 +801,17 @@ class _SubscriberCard extends StatelessWidget {
       builder: (_) => Directionality(
         textDirection: TextDirection.rtl,
         child: AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          scrollable: true,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(PortalTokens.radiusPanel)),
           title: Text('حد الأمبير — ${sub.name}'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
+              Text(
                 'أدخل الحد الأقصى للأمبير المسموح به لهذا المشترك',
-                style: TextStyle(fontSize: 13, color: AppColors.lightMuted),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -678,7 +823,7 @@ class _SubscriberCard extends StatelessWidget {
                   hintText: 'مثال: 10',
                   suffixText: 'A',
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                      borderRadius: BorderRadius.circular(PortalTokens.radius)),
                   prefixIcon: const Icon(Icons.electric_bolt, size: 20),
                 ),
               ),
@@ -707,131 +852,37 @@ class _SubscriberCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isActive = sub.subscriptionStatus == SubscriptionStatus.active;
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => SubscriberDetailsScreen(
-            sub: sub,
-            onJumpToBill: onJumpToBill,
-          ),
-        ),
-      ),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardTheme.color,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 6,
-                offset: const Offset(0, 2))
-          ],
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 22,
-              backgroundColor: AppColors.primary.withOpacity(0.12),
-              child: Text(sub.name.isNotEmpty ? sub.name[0] : '?',
-                  style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16)),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return InkWell(
+        onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => SubscriberDetailsScreen(
+                    sub: sub, onJumpToBill: onJumpToBill))),
+        child: PortalPanel(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(sub.name.isNotEmpty ? sub.name : 'بدون اسم',
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(sub.phone,
-                            style: const TextStyle(
-                                fontSize: 12, color: AppColors.lightMuted),
-                            overflow: TextOverflow.ellipsis),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                          width: 4,
-                          height: 4,
-                          decoration: const BoxDecoration(
-                              color: AppColors.lightMuted,
-                              shape: BoxShape.circle)),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(sub.address,
-                            style: const TextStyle(
-                                fontSize: 12, color: AppColors.lightMuted),
-                            overflow: TextOverflow.ellipsis),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  GestureDetector(
-                    onTap: () => _editAmpere(context),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.electric_bolt,
-                            size: 12,
-                            color: sub.ampereLimit > 0
-                                ? AppColors.primary
-                                : AppColors.warning),
-                        const SizedBox(width: 3),
-                        Text(
-                          sub.ampereLimit > 0
-                              ? '${sub.ampereLimit} A'
-                              : 'اضغط لتحديد الأمبير',
-                          style: TextStyle(
-                              fontSize: 11,
-                              color: sub.ampereLimit > 0
-                                  ? AppColors.primary
-                                  : AppColors.warning,
-                              fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(width: 4),
-                        Icon(Icons.edit,
-                            size: 10,
-                            color: sub.ampereLimit > 0
-                                ? AppColors.lightMuted
-                                : AppColors.warning),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: (isActive ? AppColors.success : AppColors.error)
-                    .withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(isActive ? 'نشط' : 'موقوف',
-                  style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: isActive ? AppColors.success : AppColors.error)),
-            ),
-            const SizedBox(width: 8),
-            Switch(
-              value: isActive,
-              onChanged: onToggle,
-              activeColor: AppColors.success,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-          ],
-        ),
-      ).animate().fadeIn(),
-    );
+              PortalRecordRow(
+                  title: sub.name.isNotEmpty ? sub.name : 'بدون اسم',
+                  subtitle: sub.address,
+                  icon: Icons.person_outline,
+                  statusLabel: isActive ? 'نشط' : 'موقوف',
+                  statusTone:
+                      isActive ? PortalTone.success : PortalTone.stopped),
+              PortalLabelValue(label: 'رقم الهاتف', value: sub.phone),
+              const SizedBox(height: PortalTokens.sm),
+              Row(children: [
+                Expanded(
+                    child: OutlinedButton.icon(
+                        onPressed: () => _editAmpere(context),
+                        icon: const Icon(Icons.edit_outlined),
+                        label: PortalNumber(sub.ampereLimit > 0
+                            ? '${sub.ampereLimit} A'
+                            : 'اضغط لتحديد الأمبير'))),
+                const SizedBox(width: PortalTokens.md),
+                Switch(value: isActive, onChanged: onToggle),
+              ]),
+            ])));
   }
 }
 
@@ -922,17 +973,19 @@ class _MockSubscribersState extends State<_MockSubscribers> {
                 child: Container(
                   decoration: BoxDecoration(
                     color: Theme.of(context).cardTheme.color,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.lightBorder),
+                    borderRadius: BorderRadius.circular(PortalTokens.radius),
+                    border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant),
                   ),
                   child: TextField(
                     onChanged: (v) => setState(() => _query = v.trim()),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'بحث بالاسم أو رقم الجوال...',
                       prefixIcon: Icon(Icons.search,
-                          color: AppColors.lightMuted, size: 20),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          size: 20),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
                 ),
@@ -942,7 +995,12 @@ class _MockSubscribersState extends State<_MockSubscribers> {
         ),
         Expanded(
           child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsetsDirectional.fromSTEB(
+                PortalTokens.gutter,
+                PortalTokens.lg,
+                PortalTokens.gutter,
+                PortalTokens.navClearance +
+                    MediaQuery.paddingOf(context).bottom),
             itemCount: filtered.length,
             itemBuilder: (context, i) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
@@ -1062,22 +1120,29 @@ class _SheetField extends StatelessWidget {
   Widget build(BuildContext context) => TextField(
         controller: controller,
         keyboardType: keyboardType,
-        style: const TextStyle(fontSize: 14),
+        style: Theme.of(context).textTheme.bodyMedium,
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(color: AppColors.lightMuted),
-          prefixIcon: Icon(icon, size: 20, color: AppColors.lightMuted),
+          hintStyle: Theme.of(context)
+              .textTheme
+              .bodyMedium
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          prefixIcon: Icon(icon,
+              size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
           filled: true,
           fillColor: Theme.of(context).scaffoldBackgroundColor,
           border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.lightBorder)),
+              borderRadius: BorderRadius.circular(PortalTokens.radius),
+              borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.outlineVariant)),
           enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.lightBorder)),
+              borderRadius: BorderRadius.circular(PortalTokens.radius),
+              borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.outlineVariant)),
           focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.primary, width: 2)),
+              borderRadius: BorderRadius.circular(PortalTokens.radius),
+              borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.primary, width: 2)),
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         ),
@@ -1127,7 +1192,12 @@ class _BillsTabState extends ConsumerState<_BillsTab> {
 
           return ListView(
             controller: _scrollController,
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsetsDirectional.fromSTEB(
+                PortalTokens.gutter,
+                PortalTokens.lg,
+                PortalTokens.gutter,
+                PortalTokens.navClearance +
+                    MediaQuery.paddingOf(context).bottom),
             children: [
               _AddBillHeader(onAdd: () => _showAddBillSheet(context)),
               const SizedBox(height: 10),
@@ -1136,11 +1206,14 @@ class _BillsTabState extends ConsumerState<_BillsTab> {
                   onSelect: (v) => setState(() => _filter = v)),
               const SizedBox(height: 12),
               if (filtered.isEmpty)
-                const Center(
+                Center(
                   child: Padding(
-                    padding: EdgeInsets.all(32),
+                    padding: const EdgeInsets.all(32),
                     child: Text('لا توجد فواتير',
-                        style: TextStyle(color: AppColors.lightMuted)),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant)),
                   ),
                 )
               else
@@ -1158,9 +1231,13 @@ class _BillsTabState extends ConsumerState<_BillsTab> {
                   } catch (e) {
                     return Container(
                       padding: const EdgeInsets.all(16),
-                      color: Colors.red.withOpacity(0.1),
+                      color: PortalTone.danger.colors(context).$2,
                       child: Text('Error in bill ${b.id}: $e',
-                          style: const TextStyle(color: Colors.red)),
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(
+                                  color: PortalTone.danger.colors(context).$1)),
                     );
                   }
                 }),
@@ -1171,7 +1248,12 @@ class _BillsTabState extends ConsumerState<_BillsTab> {
         error: (err, st) {
           return ListView(
             controller: _scrollController,
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsetsDirectional.fromSTEB(
+                PortalTokens.gutter,
+                PortalTokens.lg,
+                PortalTokens.gutter,
+                PortalTokens.navClearance +
+                    MediaQuery.paddingOf(context).bottom),
             children: [
               _AddBillHeader(onAdd: () => _showAddBillSheet(context)),
               const SizedBox(height: 10),
@@ -1184,16 +1266,26 @@ class _BillsTabState extends ConsumerState<_BillsTab> {
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     children: [
-                      const Icon(Icons.error_outline,
-                          color: AppColors.error, size: 40),
+                      Icon(Icons.error_outline,
+                          color: PortalTone.danger.colors(context).$1,
+                          size: 40),
                       const SizedBox(height: 12),
                       Text('خطأ في تحميل الفواتير',
-                          style: const TextStyle(color: AppColors.error)),
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(
+                                  color: PortalTone.danger.colors(context).$1)),
                       const SizedBox(height: 4),
                       Text(err.toString(),
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              fontSize: 11, color: AppColors.lightMuted)),
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant)),
                     ],
                   ),
                 ),
@@ -1219,20 +1311,24 @@ class _BillsTabState extends ConsumerState<_BillsTab> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, color: AppColors.error, size: 48),
+              Icon(Icons.error_outline,
+                  color: PortalTone.danger.colors(context).$1, size: 48),
               const SizedBox(height: 16),
               Text('خطأ: $e',
                   textAlign: TextAlign.center,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: AppColors.error)),
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: PortalTone.danger.colors(context).$1)),
               const SizedBox(height: 8),
               Text(st.toString(),
                   textAlign: TextAlign.center,
                   maxLines: 6,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontSize: 10, color: AppColors.lightMuted)),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant)),
             ],
           ),
         ),
@@ -1269,40 +1365,29 @@ class _FilterRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: _filters
-              .map((f) => Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: GestureDetector(
-                      onTap: () => onSelect(f.$2),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: selected == f.$2
-                              ? AppColors.primary
-                              : Theme.of(context).cardTheme.color,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                              color: selected == f.$2
-                                  ? AppColors.primary
-                                  : AppColors.lightBorder),
-                        ),
-                        child: Text(f.$1,
-                            style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: selected == f.$2
-                                    ? Colors.white
-                                    : AppColors.lightMuted)),
-                      ),
-                    ),
-                  ))
-              .toList(),
-        ),
-      );
+      scrollDirection: Axis.horizontal,
+      child: Row(textDirection: TextDirection.rtl, children: [
+        for (final f in _filters)
+          Padding(
+              padding: const EdgeInsetsDirectional.only(end: PortalTokens.sm),
+              child: Semantics(
+                  selected: selected == f.$2,
+                  child: OutlinedButton.icon(
+                      onPressed: () => onSelect(f.$2),
+                      icon: Icon(
+                          selected == f.$2 ? Icons.check : Icons.filter_list,
+                          size: PortalTokens.lg),
+                      label: Text(f.$1),
+                      style: OutlinedButton.styleFrom(
+                          backgroundColor: selected == f.$2
+                              ? Theme.of(context).colorScheme.primaryContainer
+                              : Theme.of(context).colorScheme.surface,
+                          side: BorderSide(
+                              width: selected == f.$2
+                                  ? PortalTokens.focusLine
+                                  : PortalTokens.line,
+                              color: Theme.of(context).colorScheme.primary)))))
+      ]));
 }
 
 // ── Add Bill Header ───────────────────────────────────────────────────────────
@@ -1322,8 +1407,8 @@ class _AddBillHeader extends StatelessWidget {
             children: [
               Text('الفواتير', style: Theme.of(context).textTheme.titleLarge),
               Text('شهر $month ${DateTime.now().year}',
-                  style: const TextStyle(
-                      fontSize: 12, color: AppColors.lightMuted)),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant)),
             ],
           ),
         ),
@@ -1332,7 +1417,7 @@ class _AddBillHeader extends StatelessWidget {
           icon: const Icon(Icons.add, size: 18),
           label: const Text('إضافة فاتورة'),
           style: ElevatedButton.styleFrom(
-            minimumSize: Size.zero,
+            minimumSize: const Size(PortalTokens.target, PortalTokens.target),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           ),
         ),
@@ -1453,12 +1538,11 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'تم إصدار فاتورة $month لـ $_resolvedName ✓',
-            textAlign: TextAlign.right,
-          ),
-          backgroundColor: AppColors.success,
-        ),
+            content: Text(
+              'تم إصدار فاتورة $month لـ $_resolvedName ✓',
+              textAlign: TextAlign.right,
+            ),
+            backgroundColor: PortalTone.success.colors(context).$1),
       );
     } catch (e) {
       if (mounted) _showError('فشل إصدار الفاتورة: ${e.toString()}');
@@ -1471,7 +1555,7 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
           content: Text(msg, textAlign: TextAlign.right),
-          backgroundColor: AppColors.error),
+          backgroundColor: PortalTone.danger.colors(context).$1),
     );
   }
 
@@ -1504,8 +1588,13 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
                           style: Theme.of(context).textTheme.titleLarge),
                       const SizedBox(height: 2),
                       Text('$month $year — يتم الرصد تلقائياً',
-                          style: const TextStyle(
-                              fontSize: 12, color: AppColors.lightMuted)),
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant)),
                     ],
                   ),
                 ),
@@ -1521,25 +1610,32 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                color: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(PortalTokens.radius),
+                border: Border.all(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.2)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.calendar_month,
-                      size: 16, color: AppColors.primary),
+                  Icon(Icons.calendar_month,
+                      size: 16, color: Theme.of(context).colorScheme.primary),
                   const SizedBox(width: 6),
                   Text('الشهر: $month $year',
-                      style: const TextStyle(
-                          fontSize: 13,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: AppColors.primary)),
+                          color: Theme.of(context).colorScheme.primary)),
                   const SizedBox(width: 6),
-                  const Text('(تلقائي)',
-                      style:
-                          TextStyle(fontSize: 11, color: AppColors.lightMuted)),
+                  Text('(تلقائي)',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant)),
                 ],
               ),
             ),
@@ -1548,8 +1644,10 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
 
             // ID Number field with live validation
             Text('رقم هوية المشترك',
-                style:
-                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1558,12 +1656,20 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
                   child: TextField(
                     controller: _idCtrl,
                     keyboardType: TextInputType.number,
-                    style: const TextStyle(fontSize: 14),
+                    style: Theme.of(context).textTheme.bodyMedium,
                     decoration: InputDecoration(
                       hintText: 'أدخل رقم الهوية',
-                      hintStyle: const TextStyle(color: AppColors.lightMuted),
-                      prefixIcon: const Icon(Icons.badge_outlined,
-                          size: 20, color: AppColors.lightMuted),
+                      hintStyle: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant),
+                      prefixIcon: Icon(Icons.badge_outlined,
+                          size: 20,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant),
                       suffixIcon: _checking
                           ? const Padding(
                               padding: EdgeInsets.all(12),
@@ -1576,29 +1682,37 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
                               ? Icon(
                                   _idValid ? Icons.check_circle : Icons.cancel,
                                   color: _idValid
-                                      ? AppColors.success
-                                      : AppColors.error,
+                                      ? PortalTone.success.colors(context).$1
+                                      : PortalTone.danger.colors(context).$1,
                                   size: 22)
                               : null,
                       filled: true,
                       fillColor: Theme.of(context).scaffoldBackgroundColor,
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide:
-                              const BorderSide(color: AppColors.lightBorder)),
+                          borderRadius:
+                              BorderRadius.circular(PortalTokens.radius),
+                          borderSide: BorderSide(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .outlineVariant)),
                       enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius:
+                              BorderRadius.circular(PortalTokens.radius),
                           borderSide: BorderSide(
                               color: _idChecked
                                   ? (_idValid
-                                      ? AppColors.success
-                                      : AppColors.error)
-                                  : AppColors.lightBorder,
+                                      ? PortalTone.success.colors(context).$1
+                                      : PortalTone.danger.colors(context).$1)
+                                  : Theme.of(context)
+                                      .colorScheme
+                                      .outlineVariant,
                               width: _idChecked ? 1.5 : 1)),
                       focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                              color: AppColors.primary, width: 2)),
+                          borderRadius:
+                              BorderRadius.circular(PortalTokens.radius),
+                          borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.primary,
+                              width: 2)),
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 14),
                     ),
@@ -1620,13 +1734,15 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
                   child: ElevatedButton(
                     onPressed: _checking ? null : _validateId,
                     style: ElevatedButton.styleFrom(
-                      minimumSize: Size.zero,
+                      minimumSize:
+                          const Size(PortalTokens.target, PortalTokens.target),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 0),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                          borderRadius:
+                              BorderRadius.circular(PortalTokens.radius)),
                     ),
-                    child: const Text('تحقق', style: TextStyle(fontSize: 13)),
+                    child: const Text('تحقق'),
                   ),
                 ),
               ],
@@ -1640,26 +1756,30 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: (_idValid ? AppColors.success : AppColors.error)
-                      .withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(8),
+                  color: (_idValid
+                          ? PortalTone.success.colors(context).$1
+                          : PortalTone.danger.colors(context).$1)
+                      .withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(PortalTokens.radiusSmall),
                 ),
                 child: Row(
                   children: [
                     Icon(
                         _idValid ? Icons.person_pin : Icons.person_off_outlined,
                         size: 16,
-                        color: _idValid ? AppColors.success : AppColors.error),
+                        color: _idValid
+                            ? PortalTone.success.colors(context).$1
+                            : PortalTone.danger.colors(context).$1),
                     const SizedBox(width: 8),
                     Text(
                       _idValid
                           ? 'تم التحقق: $_resolvedName'
                           : 'رقم الهوية غير موجود في النظام',
-                      style: TextStyle(
-                          fontSize: 13,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           fontWeight: FontWeight.w600,
-                          color:
-                              _idValid ? AppColors.success : AppColors.error),
+                          color: _idValid
+                              ? PortalTone.success.colors(context).$1
+                              : PortalTone.danger.colors(context).$1),
                     ),
                   ],
                 ),
@@ -1670,8 +1790,10 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
 
             // Amount field
             Text('قيمة الفاتورة (₪)',
-                style:
-                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             _SheetField(
                 controller: _amountCtrl,
@@ -1683,32 +1805,39 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
 
             // kWh field
             Text('الاستهلاك الأسبوعي (كيلوواط/ساعة)',
-                style:
-                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             TextField(
               controller: _kwhCtrl,
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
               onChanged: (_) => _calculateAmount(),
-              style: const TextStyle(fontSize: 14),
+              style: Theme.of(context).textTheme.bodyMedium,
               decoration: InputDecoration(
                 hintText: 'مثال: 142.5',
-                hintStyle: const TextStyle(color: AppColors.lightMuted),
-                prefixIcon: const Icon(Icons.bolt_outlined,
-                    size: 20, color: AppColors.lightMuted),
+                hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
+                prefixIcon: Icon(Icons.bolt_outlined,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
                 filled: true,
                 fillColor: Theme.of(context).scaffoldBackgroundColor,
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.lightBorder)),
+                    borderRadius: BorderRadius.circular(PortalTokens.radius),
+                    borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.outlineVariant)),
                 enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.lightBorder)),
+                    borderRadius: BorderRadius.circular(PortalTokens.radius),
+                    borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.outlineVariant)),
                 focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: AppColors.primary, width: 2)),
+                    borderRadius: BorderRadius.circular(PortalTokens.radius),
+                    borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.primary,
+                        width: 2)),
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               ),
@@ -1718,21 +1847,25 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+                color: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(PortalTokens.radius),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('المبلغ المحسوب:',
-                      style:
-                          TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  Text('المبلغ المحسوب:',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(fontWeight: FontWeight.w600)),
                   Text(
                     _amountCtrl.text.isEmpty ? '₪ 0' : '₪ ${_amountCtrl.text}',
-                    style: const TextStyle(
-                        fontSize: 14,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: AppColors.primary),
+                        color: Theme.of(context).colorScheme.primary),
                   ),
                 ],
               ),
@@ -1748,19 +1881,19 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
+                      borderRadius:
+                          BorderRadius.circular(PortalTokens.radiusPanel)),
                 ),
                 child: _submitting
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 22,
                         width: 22,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2.5, color: Colors.white))
-                    : Text(
-                        canSubmit
-                            ? 'إصدار الفاتورة لـ $_resolvedName'
-                            : 'تحقق من رقم الهوية أولاً',
-                        style: const TextStyle(fontSize: 15)),
+                            strokeWidth: 2.5,
+                            color: Theme.of(context).colorScheme.onPrimary))
+                    : Text(canSubmit
+                        ? 'إصدار الفاتورة لـ $_resolvedName'
+                        : 'تحقق من رقم الهوية أولاً'),
               ),
             ),
           ],
@@ -1779,11 +1912,11 @@ class _AdminBillCard extends StatelessWidget {
       this.subscriberName = '',
       this.isHighlighted = false});
 
-  Color get _statusColor => switch (bill.status) {
-        BillStatus.pending => AppColors.primary,
-        BillStatus.pendingReview => AppColors.warning,
-        BillStatus.paid => AppColors.success,
-        BillStatus.rejected => AppColors.error,
+  Color _statusColor(BuildContext context) => switch (bill.status) {
+        BillStatus.pending => Theme.of(context).colorScheme.primary,
+        BillStatus.pendingReview => PortalTone.warning.colors(context).$1,
+        BillStatus.paid => PortalTone.success.colors(context).$1,
+        BillStatus.rejected => PortalTone.danger.colors(context).$1,
       };
 
   String get _statusLabel => switch (bill.status) {
@@ -1808,162 +1941,93 @@ class _AdminBillCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
+  Widget build(BuildContext context) => PortalInvoiceRow(
+      title: _displayName,
+      period: '${bill.month} ${bill.year}',
+      amount: '₪${bill.amount}',
+      status: _statusLabel,
+      tone: bill.status == BillStatus.paid
+          ? PortalTone.success
+          : bill.status == BillStatus.rejected
+              ? PortalTone.danger
+              : PortalTone.warning,
+      icon: Icons.receipt_long_outlined,
+      accent: _statusColor(context),
       onTap: () => _openReviewDialog(context),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: isHighlighted
-              ? AppColors.warning.withOpacity(0.06)
-              : Theme.of(context).cardTheme.color,
-          borderRadius: BorderRadius.circular(14),
-          border: isHighlighted
-              ? Border.all(color: AppColors.warning, width: 2)
-              : Border.all(color: Colors.transparent),
-          boxShadow: [
-            BoxShadow(
-                color: isHighlighted
-                    ? AppColors.warning.withOpacity(0.15)
-                    : Colors.black.withOpacity(0.04),
-                blurRadius: isHighlighted ? 12 : 6,
-                offset: const Offset(0, 2))
-          ],
-        ),
-        child: Column(
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: AppColors.primary.withOpacity(0.12),
-                  child: Text(_displayName.isNotEmpty ? _displayName[0] : '?',
-                      style: const TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700)),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(_displayName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 2),
-                      Text('${bill.month} ${bill.year} • ₪${bill.amount}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontSize: 12, color: AppColors.lightMuted)),
-                    ],
-                  ),
-                ),
-                if (isHighlighted)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    margin: const EdgeInsets.only(left: 6),
-                    decoration: BoxDecoration(
-                      color: AppColors.warning.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text('جديد',
-                        style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.warning)),
-                  ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(_statusLabel,
-                      style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: _statusColor)),
-                ),
-              ],
+      footer: Column(children: [
+        if (bill.status == BillStatus.pendingReview) ...[
+          const SizedBox(height: 12),
+          if (bill.receiptBase64 != null)
+            GestureDetector(
+              onTap: () => _openReviewDialog(context),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(PortalTokens.radiusSmall),
+                child: Base64ImageViewer(
+                    base64String: bill.receiptBase64!, height: 120),
+              ),
             ),
-            if (bill.status == BillStatus.pendingReview) ...[
-              const SizedBox(height: 12),
-              if (bill.receiptBase64 != null)
-                GestureDetector(
-                  onTap: () => _openReviewDialog(context),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Base64ImageViewer(
-                        base64String: bill.receiptBase64!, height: 120),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    await FirebaseService()
+                        .updateBillStatus(bill.id, BillStatus.rejected);
+                    await NotificationService().addAlert(
+                      userId: bill.userId,
+                      title: 'تم رفض الإيصال',
+                      body:
+                          'تم رفض إيصال الدفع لفاتورة ${bill.month} ${bill.year}. يرجى التواصل مع المشرف.',
+                      type: 'receiptRejected',
+                    );
+                  },
+                  icon: const Icon(Icons.close, size: 16),
+                  label:
+                      Text('رفض', style: Theme.of(context).textTheme.bodySmall),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: PortalTone.danger.colors(context).$1,
+                    side:
+                        BorderSide(color: PortalTone.danger.colors(context).$1),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(PortalTokens.radius)),
                   ),
                 ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () async {
-                        await FirebaseService()
-                            .updateBillStatus(bill.id, BillStatus.rejected);
-                        await NotificationService().addAlert(
-                          userId: bill.userId,
-                          title: 'تم رفض الإيصال',
-                          body:
-                              'تم رفض إيصال الدفع لفاتورة ${bill.month} ${bill.year}. يرجى التواصل مع المشرف.',
-                          type: 'receiptRejected',
-                        );
-                      },
-                      icon: const Icon(Icons.close, size: 16),
-                      label: const Text('رفض', style: TextStyle(fontSize: 13)),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.error,
-                        side: const BorderSide(color: AppColors.error),
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                      ),
-                    ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    await FirebaseService()
+                        .updateBillStatus(bill.id, BillStatus.paid);
+                    await NotificationService().addAlert(
+                      userId: bill.userId,
+                      title: 'تم قبول الإيصال ✓',
+                      body:
+                          'تم قبول إيصال الدفع لفاتورة ${bill.month} ${bill.year} بنجاح.',
+                      type: 'receiptApproved',
+                    );
+                  },
+                  icon: const Icon(Icons.check, size: 16),
+                  label: const Text('قبول'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                    minimumSize:
+                        const Size(PortalTokens.target, PortalTokens.target),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(PortalTokens.radius)),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        await FirebaseService()
-                            .updateBillStatus(bill.id, BillStatus.paid);
-                        await NotificationService().addAlert(
-                          userId: bill.userId,
-                          title: 'تم قبول الإيصال ✓',
-                          body:
-                              'تم قبول إيصال الدفع لفاتورة ${bill.month} ${bill.year} بنجاح.',
-                          type: 'receiptApproved',
-                        );
-                      },
-                      icon: const Icon(Icons.check, size: 16),
-                      label: const Text('قبول', style: TextStyle(fontSize: 13)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.success,
-                        minimumSize: Size.zero,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ],
-          ],
-        ),
-      ),
-    ).animate().fadeIn();
-  }
+          ),
+        ]
+      ]));
 }
 
 class _MockAdminBillCard extends StatefulWidget {
@@ -1987,10 +2051,10 @@ class _MockAdminBillCardState extends State<_MockAdminBillCard> {
     _localStatus = widget.status;
   }
 
-  Color get _color => switch (_localStatus) {
-        'pendingReview' => AppColors.warning,
-        'paid' => AppColors.success,
-        _ => AppColors.error,
+  Color _color(BuildContext context) => switch (_localStatus) {
+        'pendingReview' => PortalTone.warning.colors(context).$1,
+        'paid' => PortalTone.success.colors(context).$1,
+        _ => PortalTone.danger.colors(context).$1,
       };
 
   String get _label => switch (_localStatus) {
@@ -2005,13 +2069,7 @@ class _MockAdminBillCardState extends State<_MockAdminBillCard> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2))
-        ],
+        borderRadius: BorderRadius.circular(PortalTokens.radiusPanel),
       ),
       child: Column(
         children: [
@@ -2020,10 +2078,14 @@ class _MockAdminBillCardState extends State<_MockAdminBillCard> {
             children: [
               CircleAvatar(
                 radius: 20,
-                backgroundColor: AppColors.primary.withOpacity(0.12),
+                backgroundColor: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.12),
                 child: Text(widget.name[0],
-                    style: const TextStyle(
-                        color: AppColors.primary, fontWeight: FontWeight.w700)),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w700)),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -2033,14 +2095,18 @@ class _MockAdminBillCardState extends State<_MockAdminBillCard> {
                     Text(widget.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w600)),
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 2),
                     Text('${widget.month} • ${widget.amount}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 12, color: AppColors.lightMuted)),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant)),
                   ],
                 ),
               ),
@@ -2048,13 +2114,12 @@ class _MockAdminBillCardState extends State<_MockAdminBillCard> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                    color: _color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20)),
+                    color: _color(context).withValues(alpha: 0.1),
+                    borderRadius:
+                        BorderRadius.circular(PortalTokens.radiusPanel)),
                 child: Text(_label,
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: _color)),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600, color: _color(context))),
               ),
             ],
           ),
@@ -2066,13 +2131,16 @@ class _MockAdminBillCardState extends State<_MockAdminBillCard> {
                   child: OutlinedButton.icon(
                     onPressed: () => setState(() => _localStatus = 'rejected'),
                     icon: const Icon(Icons.close, size: 16),
-                    label: const Text('رفض', style: TextStyle(fontSize: 13)),
+                    label: Text('رفض',
+                        style: Theme.of(context).textTheme.bodySmall),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.error,
-                      side: const BorderSide(color: AppColors.error),
+                      foregroundColor: PortalTone.danger.colors(context).$1,
+                      side: BorderSide(
+                          color: PortalTone.danger.colors(context).$1),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                          borderRadius:
+                              BorderRadius.circular(PortalTokens.radius)),
                     ),
                   ),
                 ),
@@ -2081,13 +2149,16 @@ class _MockAdminBillCardState extends State<_MockAdminBillCard> {
                   child: ElevatedButton.icon(
                     onPressed: () => setState(() => _localStatus = 'paid'),
                     icon: const Icon(Icons.check, size: 16),
-                    label: const Text('قبول', style: TextStyle(fontSize: 13)),
+                    label: const Text('قبول'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.success,
-                      minimumSize: Size.zero,
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                      minimumSize:
+                          const Size(PortalTokens.target, PortalTokens.target),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                          borderRadius:
+                              BorderRadius.circular(PortalTokens.radius)),
                     ),
                   ),
                 ),
@@ -2125,7 +2196,12 @@ class _ComplaintsTab extends ConsumerWidget {
       data: (complaints) => complaints.isEmpty
           ? const _EmptyComplaints()
           : ListView(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsetsDirectional.fromSTEB(
+                  PortalTokens.gutter,
+                  PortalTokens.lg,
+                  PortalTokens.gutter,
+                  PortalTokens.navClearance +
+                      MediaQuery.paddingOf(context).bottom),
               children: complaints
                   .map((c) => Padding(
                         padding: const EdgeInsets.only(bottom: 12),
@@ -2135,7 +2211,11 @@ class _ComplaintsTab extends ConsumerWidget {
             ),
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (_, __) => ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsetsDirectional.fromSTEB(
+            PortalTokens.gutter,
+            PortalTokens.lg,
+            PortalTokens.gutter,
+            PortalTokens.navClearance + MediaQuery.paddingOf(context).bottom),
         children: _items
             .map((c) => Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -2162,55 +2242,56 @@ class _EmptyComplaints extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.1),
+                color: PortalTone.success.colors(context).$2,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.check_circle_outline,
                 size: 56,
-                color: AppColors.success,
+                color: PortalTone.success.colors(context).$1,
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               '\u0644\u0627 \u062a\u0648\u062c\u062f \u0634\u0643\u0627\u0648\u064a \u0645\u0639\u0644\u0642\u0629',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: AppColors.success,
-              ),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: PortalTone.success.colors(context).$1),
             ),
             const SizedBox(height: 10),
-            const Text(
+            Text(
               '\u062c\u0645\u064a\u0639 \u0627\u0644\u0634\u0643\u0627\u0648\u064a \u062a\u0645\u062a \u0627\u0644\u0645\u0639\u0627\u0644\u062c\u0629 \u0628\u0646\u062c\u0627\u062d. \u0627\u0644\u0646\u0638\u0627\u0645 \u064a\u0639\u0645\u0644 \u0628\u0634\u0643\u0644 \u0637\u0628\u064a\u0639\u064a.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: AppColors.lightMuted,
-                height: 1.5,
-              ),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  height: 1.5),
             ),
             const SizedBox(height: 24),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                color: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(PortalTokens.radius),
+                border: Border.all(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.2)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.sentiment_satisfied_alt,
-                      size: 18, color: AppColors.primary),
+                      size: 18, color: Theme.of(context).colorScheme.primary),
                   const SizedBox(width: 8),
-                  const Text(
+                  Text(
                     '\u0627\u0644\u0645\u0634\u062a\u0631\u0643\u0648\n \u0631\u0627\u0636\u064a\u0646 \u0639\u0646 \u0627\u0644\u0645\u0648\u0644\u062f',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
-                    ),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.primary),
                   ),
                 ],
               ),
@@ -2226,10 +2307,10 @@ class _ComplaintCard extends StatelessWidget {
   final Complaint item;
   const _ComplaintCard({required this.item});
 
-  Color get _color => switch (item.status) {
-        ComplaintStatus.open => AppColors.error,
-        ComplaintStatus.inProgress => AppColors.warning,
-        _ => AppColors.success,
+  Color _color(BuildContext context) => switch (item.status) {
+        ComplaintStatus.open => PortalTone.danger.colors(context).$1,
+        ComplaintStatus.inProgress => PortalTone.warning.colors(context).$1,
+        _ => PortalTone.success.colors(context).$1,
       };
 
   String get _label => switch (item.status) {
@@ -2240,114 +2321,33 @@ class _ComplaintCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final textColor = theme.colorScheme.onSurface;
-    final mutedColor = theme.brightness == Brightness.dark
-        ? AppColors.darkMuted
-        : AppColors.lightMuted;
     final hasReply = item.reply != null && item.reply!.isNotEmpty;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2))
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: _color.withOpacity(0.12),
-                child: Text(item.userName.isNotEmpty ? item.userName[0] : '?',
-                    style:
-                        TextStyle(color: _color, fontWeight: FontWeight.w700)),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                  child: Text(item.userName,
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w600))),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                    color: _color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20)),
-                child: Text(_label,
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: _color)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(item.text,
-              style: TextStyle(fontSize: 13, color: textColor, height: 1.4)),
-          if (hasReply) ...[
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.07),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.success.withOpacity(0.25)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: const [
-                      Icon(Icons.reply_outlined,
-                          size: 14, color: AppColors.success),
-                      SizedBox(width: 6),
-                      Text('ردك',
-                          style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.success)),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(item.reply!,
-                      style: TextStyle(
-                          fontSize: 13, color: textColor, height: 1.4)),
-                ],
-              ),
-            ),
-          ],
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(Icons.access_time, size: 13, color: mutedColor),
-              const SizedBox(width: 4),
-              Text(_timeAgo(item.createdAt),
-                  style: TextStyle(fontSize: 12, color: mutedColor)),
-              const Spacer(),
-              if (item.status != ComplaintStatus.resolved)
-                TextButton(
-                  onPressed: () => _showReplyDialog(context, item.id),
-                  style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      padding: EdgeInsets.zero,
-                      minimumSize: Size.zero),
-                  child: const Text('الرد على الشكوى',
-                      style: TextStyle(fontSize: 12)),
-                ),
-            ],
-          ),
-        ],
-      ),
-    ).animate().fadeIn();
+    return PortalPanel(
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      PortalRecordRow(
+          title: item.userName,
+          subtitle: _timeAgo(item.createdAt),
+          icon: Icons.chat_bubble_outline,
+          statusLabel: _label,
+          statusTone: item.status == ComplaintStatus.resolved
+              ? PortalTone.success
+              : item.status == ComplaintStatus.inProgress
+                  ? PortalTone.warning
+                  : PortalTone.danger),
+      const SizedBox(height: PortalTokens.md),
+      Text(item.text, style: Theme.of(context).textTheme.bodyMedium),
+      if (hasReply) ...[
+        const Divider(),
+        const PortalSection('ردك'),
+        Text(item.reply!, style: Theme.of(context).textTheme.bodyMedium)
+      ],
+      if (item.status != ComplaintStatus.resolved)
+        TextButton.icon(
+            onPressed: () => _showReplyDialog(context, item.id),
+            icon: Icon(Icons.reply_outlined, color: _color(context)),
+            label: const Text('الرد على الشكوى')),
+    ]));
   }
 
   String _timeAgo(DateTime dt) {
@@ -2364,8 +2364,9 @@ class _ComplaintCard extends StatelessWidget {
       builder: (_) => Directionality(
         textDirection: TextDirection.rtl,
         child: AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          scrollable: true,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(PortalTokens.radiusPanel)),
           title: const Text('الرد على الشكوى'),
           content: TextField(
             controller: ctrl,
@@ -2373,9 +2374,10 @@ class _ComplaintCard extends StatelessWidget {
             autofocus: true,
             decoration: InputDecoration(
               hintText: 'اكتب ردك هنا...',
-              hintStyle: const TextStyle(color: AppColors.lightMuted),
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(PortalTokens.radius)),
               contentPadding: const EdgeInsets.all(12),
             ),
           ),
@@ -2404,7 +2406,8 @@ class _ComplaintCard extends StatelessWidget {
                 }
               },
               style: ElevatedButton.styleFrom(
-                  minimumSize: Size.zero,
+                  minimumSize:
+                      const Size(PortalTokens.target, PortalTokens.target),
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
               child: const Text('إرسال الرد'),
@@ -2424,10 +2427,10 @@ class _MockComplaintCard extends StatelessWidget {
       required this.time,
       required this.status});
 
-  Color get _color => switch (status) {
-        'open' => AppColors.error,
-        'inProgress' => AppColors.warning,
-        _ => AppColors.success,
+  Color _color(BuildContext context) => switch (status) {
+        'open' => PortalTone.danger.colors(context).$1,
+        'inProgress' => PortalTone.warning.colors(context).$1,
+        _ => PortalTone.success.colors(context).$1,
       };
 
   String get _label => switch (status) {
@@ -2441,20 +2444,14 @@ class _MockComplaintCard extends StatelessWidget {
     final theme = Theme.of(context);
     final textColor = theme.colorScheme.onSurface;
     final mutedColor = theme.brightness == Brightness.dark
-        ? AppColors.darkMuted
-        : AppColors.lightMuted;
+        ? Theme.of(context).colorScheme.onSurfaceVariant
+        : Theme.of(context).colorScheme.onSurfaceVariant;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2))
-        ],
+        borderRadius: BorderRadius.circular(PortalTokens.radiusPanel),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2463,55 +2460,63 @@ class _MockComplaintCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 18,
-                backgroundColor: _color.withOpacity(0.12),
+                backgroundColor: _color(context).withValues(alpha: 0.12),
                 child: Text(name[0],
-                    style:
-                        TextStyle(color: _color, fontWeight: FontWeight.w700)),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: _color(context), fontWeight: FontWeight.w700)),
               ),
               const SizedBox(width: 10),
               Expanded(
                   child: Text(name,
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w600))),
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(fontWeight: FontWeight.w600))),
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                    color: _color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20)),
+                    color: _color(context).withValues(alpha: 0.1),
+                    borderRadius:
+                        BorderRadius.circular(PortalTokens.radiusPanel)),
                 child: Text(_label,
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: _color)),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600, color: _color(context))),
               ),
             ],
           ),
           const SizedBox(height: 10),
           Text(text,
-              style: TextStyle(fontSize: 13, color: textColor, height: 1.4)),
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: textColor, height: 1.4)),
           const SizedBox(height: 8),
           Row(
             children: [
               Icon(Icons.access_time, size: 13, color: mutedColor),
               const SizedBox(width: 4),
-              Text(time, style: TextStyle(fontSize: 12, color: mutedColor)),
+              Text(time,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: mutedColor)),
               const Spacer(),
               if (status != 'resolved')
                 TextButton(
                   onPressed: () => _showMockReplyDialog(context),
                   style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primary,
+                      foregroundColor: Theme.of(context).colorScheme.primary,
                       padding: EdgeInsets.zero,
                       minimumSize: Size.zero),
-                  child: const Text('الرد على الشكوى',
-                      style: TextStyle(fontSize: 12)),
+                  child: Text('الرد على الشكوى',
+                      style: Theme.of(context).textTheme.bodySmall),
                 ),
             ],
           ),
         ],
       ),
-    ).animate().fadeIn();
+    );
   }
 
   void _showMockReplyDialog(BuildContext context) {
@@ -2521,8 +2526,9 @@ class _MockComplaintCard extends StatelessWidget {
       builder: (_) => Directionality(
         textDirection: TextDirection.rtl,
         child: AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          scrollable: true,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(PortalTokens.radiusPanel)),
           title: const Text('الرد على الشكوى'),
           content: TextField(
             controller: ctrl,
@@ -2530,9 +2536,10 @@ class _MockComplaintCard extends StatelessWidget {
             autofocus: true,
             decoration: InputDecoration(
               hintText: 'اكتب ردك هنا...',
-              hintStyle: const TextStyle(color: AppColors.lightMuted),
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(PortalTokens.radius)),
               contentPadding: const EdgeInsets.all(12),
             ),
           ),
@@ -2550,7 +2557,8 @@ class _MockComplaintCard extends StatelessWidget {
                         Text('تم إرسال الرد ✓', textAlign: TextAlign.right)));
               },
               style: ElevatedButton.styleFrom(
-                  minimumSize: Size.zero,
+                  minimumSize:
+                      const Size(PortalTokens.target, PortalTokens.target),
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
               child: const Text('إرسال الرد'),
@@ -2594,301 +2602,102 @@ class _AdminProfileTab extends ConsumerWidget {
         : '—';
 
     return ListView(
-      padding: EdgeInsets.zero,
-      children: [
-        // ── Header ────────────────────────────────────────────────────────
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 600),
-          curve: Curves.easeInOut,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft,
-              colors: [
-                AppColors.primaryDarkFor(theme.brightness),
-                AppColors.primaryFor(theme.brightness),
-              ],
-            ),
-          ),
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 18),
-          child: Column(
-            children: [
-              // Avatar with glow ring
-              Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                      color: Colors.white.withOpacity(0.5), width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6))
-                  ],
-                ),
-                child: CircleAvatar(
-                  radius: 34,
-                  backgroundColor: Colors.white.withOpacity(0.2),
-                  child: Text(initials,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700)),
-                ),
-              ).animate().scaleXY(
-                  begin: 0.85,
-                  end: 1,
-                  duration: 400.ms,
-                  curve: Curves.easeOutBack),
-              const SizedBox(height: 10),
-              Text(
-                profile?.name.isNotEmpty == true
-                    ? profile!.name
-                    : 'صاحب المولد',
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700),
-              ).animate().fadeIn(delay: 100.ms),
-              const SizedBox(height: 4),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.bolt, color: Colors.white70, size: 13),
-                        const SizedBox(width: 4),
-                        const Text('صاحب مولد',
-                            style:
-                                TextStyle(color: Colors.white70, fontSize: 12)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.phone,
-                            color: Colors.white54, size: 12),
-                        const SizedBox(width: 4),
-                        Text(
-                            profile?.phone.isNotEmpty == true
-                                ? profile!.phone
-                                : '—',
-                            style: const TextStyle(
-                                color: Colors.white60, fontSize: 11)),
-                      ],
-                    ),
-                  ),
-                ],
-              ).animate().fadeIn(delay: 150.ms),
-              const SizedBox(height: 12),
-
-              // ── Quick Stats ───────────────────────────────────────────────
-              Row(
-                children: [
-                  _ProfileStatChip(
-                    label: 'المشتركون',
-                    value: '$totalSubs',
-                    icon: Icons.people_alt_outlined,
-                  ),
-                  const SizedBox(width: 10),
-                  _ProfileStatChip(
-                    label: 'نشطون',
-                    value: '$activeSubs',
-                    icon: Icons.check_circle_outline,
-                  ),
-                  const SizedBox(width: 10),
-                  _ProfileStatChip(
-                    label: 'الفواتير',
-                    value: '$totalBills',
-                    icon: Icons.receipt_long_outlined,
-                  ),
-                ],
-              )
-                  .animate()
-                  .fadeIn(delay: 200.ms)
-                  .slideY(begin: 0.2, end: 0, duration: 350.ms),
-            ],
-          ),
-        ),
-
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 4),
-
-              // ── البيانات الشخصية ──────────────────────────────────────────
-              const _SectionLabel('البيانات الشخصية'),
-              Container(
-                decoration: BoxDecoration(
-                  color: theme.cardTheme.color,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2))
-                  ],
-                ),
+        padding: EdgeInsetsDirectional.fromSTEB(
+            PortalTokens.gutter,
+            PortalTokens.lg,
+            PortalTokens.gutter,
+            PortalTokens.navClearance + MediaQuery.paddingOf(context).bottom),
+        children: [
+          PortalPanel(
+              child: Row(children: [
+            CircleAvatar(
+                radius: PortalTokens.xl,
+                backgroundColor: theme.colorScheme.primaryContainer,
+                child: Text(initials,
+                    style: theme.textTheme.headlineMedium
+                        ?.copyWith(color: theme.colorScheme.primary))),
+            const SizedBox(width: PortalTokens.lg),
+            Expanded(
                 child: Column(
-                  children: [
-                    _InfoTile(
-                      icon: Icons.phone_outlined,
-                      iconColor: AppColors.primary,
-                      label: 'رقم الهاتف',
-                      value: profile?.phone.isNotEmpty == true
-                          ? profile!.phone
-                          : '—',
-                    ),
-                    _Separator(),
-                    _InfoTile(
-                      icon: Icons.location_on_outlined,
-                      iconColor: AppColors.success,
-                      label: 'العنوان',
-                      value: profile?.address?.isNotEmpty == true
-                          ? profile!.address!
-                          : '—',
-                    ),
-                    _Separator(),
-                    _InfoTile(
-                      icon: Icons.calendar_today_outlined,
-                      iconColor: const Color(0xFF8B5CF6),
-                      label: 'تاريخ الانضمام',
-                      value: joinDate,
-                    ),
-                  ],
-                ),
-              )
-                  .animate()
-                  .fadeIn()
-                  .slideY(begin: 0.15, end: 0, duration: 300.ms),
-              const SizedBox(height: 20),
-
-              // ── إعدادات الحساب ────────────────────────────────────────────
-              const _SectionLabel('إعدادات الحساب'),
-              Container(
-                decoration: BoxDecoration(
-                  color: theme.cardTheme.color,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2))
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    _ActionTile(
-                      icon: Icons.edit_outlined,
-                      iconColor: AppColors.warning,
-                      title: 'تعديل البيانات الشخصية',
-                      subtitle: 'تغيير الاسم والعنوان ورقم الهاتف',
-                      onTap: () => _showEditSheet(context, ref),
-                    ),
-                    _Separator(),
-                    _ActionTile(
-                      icon: isDark
-                          ? Icons.dark_mode_outlined
-                          : Icons.light_mode_outlined,
-                      iconColor: AppColors.primary,
-                      title: isDark ? 'الوضع الداكن' : 'الوضع الفاتح',
-                      subtitle: isDark
-                          ? 'اضغط للتبديل للوضع الفاتح'
-                          : 'اضغط للتبديل للوضع الداكن',
-                      trailing: Switch(
-                        value: isDark,
-                        onChanged: (_) =>
-                            ref.read(themeProvider.notifier).toggle(),
-                        activeColor: AppColors.primary,
-                      ),
-                      onTap: () => ref.read(themeProvider.notifier).toggle(),
-                    ),
-                  ],
-                ),
-              )
-                  .animate()
-                  .fadeIn(delay: 50.ms)
-                  .slideY(begin: 0.15, end: 0, duration: 300.ms),
-              const SizedBox(height: 28),
-
-              // ── تسجيل الخروج ─────────────────────────────────────────────
-              Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFDC2626), Color(0xFFEF4444)],
-                    begin: Alignment.topRight,
-                    end: Alignment.bottomLeft,
-                  ),
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: [
-                    BoxShadow(
-                        color: AppColors.error.withOpacity(0.25),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4))
-                  ],
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(14),
-                    onTap: () async {
-                      await ref.read(authProvider.notifier).signOut();
-                      if (context.mounted) context.go('/login');
-                    },
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 15),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.logout_rounded,
-                              color: Colors.white, size: 20),
-                          SizedBox(width: 8),
-                          Text('تسجيل الخروج',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 15)),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ).animate().fadeIn(delay: 100.ms),
-              const SizedBox(height: 24),
-
-              Center(
-                child: Text('بوابة المولدات v1.0.0',
-                    style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.lightMuted.withOpacity(0.5))),
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
-      ],
-    );
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Text(profile?.name ?? 'صاحب المولد',
+                      style: theme.textTheme.titleLarge),
+                  Text('صاحب مولد', style: theme.textTheme.bodySmall),
+                ]))
+          ])),
+          const PortalSection('المشتركون والفواتير'),
+          PortalPanel(
+              child: Column(children: [
+            PortalDataRow(
+                label: 'المشتركون',
+                value: '$totalSubs',
+                icon: Icons.people_outline),
+            PortalDataRow(
+                label: 'نشطون',
+                value: '$activeSubs',
+                icon: Icons.check_circle_outline),
+            PortalDataRow(
+                label: 'الفواتير',
+                value: '$totalBills',
+                icon: Icons.receipt_long_outlined),
+          ])),
+          const PortalSection('البيانات الشخصية'),
+          PortalPanel(
+              child: Column(children: [
+            PortalDataRow(
+                label: 'رقم الهاتف',
+                value: profile?.phone.isNotEmpty == true ? profile!.phone : '—',
+                icon: Icons.phone_outlined),
+            PortalDataRow(
+                label: 'العنوان',
+                value: profile?.address?.isNotEmpty == true
+                    ? profile!.address!
+                    : '—',
+                icon: Icons.location_on_outlined),
+            PortalDataRow(
+                label: 'تاريخ الانضمام',
+                value: joinDate,
+                icon: Icons.calendar_today_outlined),
+          ])),
+          const PortalSection('إعدادات الحساب'),
+          PortalPanel(
+              child: Column(children: [
+            ListTile(
+                leading: const Icon(Icons.edit_outlined),
+                title: const Text('تعديل البيانات الشخصية'),
+                subtitle: const Text('تغيير الاسم والعنوان ورقم الهاتف'),
+                onTap: () => _showEditSheet(context, ref)),
+            const Divider(),
+            ListTile(
+                leading: Icon(isDark
+                    ? Icons.dark_mode_outlined
+                    : Icons.light_mode_outlined),
+                title: Text(isDark ? 'الوضع الداكن' : 'الوضع الفاتح'),
+                subtitle: Text(isDark
+                    ? 'اضغط للتبديل للوضع الفاتح'
+                    : 'اضغط للتبديل للوضع الداكن'),
+                trailing: Switch(
+                    value: isDark,
+                    onChanged: (_) =>
+                        ref.read(themeProvider.notifier).toggle()),
+                onTap: () => ref.read(themeProvider.notifier).toggle()),
+          ])),
+          const SizedBox(height: PortalTokens.xl),
+          OutlinedButton.icon(
+              onPressed: () async {
+                await ref.read(authProvider.notifier).signOut();
+                if (context.mounted) context.go('/login');
+              },
+              icon: Icon(Icons.logout, color: theme.colorScheme.error),
+              label: Text('تسجيل الخروج',
+                  style: theme.textTheme.labelLarge
+                      ?.copyWith(color: theme.colorScheme.error))),
+          const SizedBox(height: PortalTokens.xl),
+          Center(
+              child: Text('بوابة المولدات v1.0.0',
+                  style: theme.textTheme.bodySmall)),
+        ]);
   }
 
   void _showEditSheet(BuildContext context, WidgetRef ref) {
@@ -2912,16 +2721,19 @@ class _AdminProfileTab extends ConsumerWidget {
             bottom: MediaQuery.of(context).viewInsets.bottom + 24,
           ),
           child: SingleChildScrollView(
-            child: Column(
+            child: SingleChildScrollView(
+                child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text('تعديل بيانات الحساب',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.w700)),
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w700)),
                     ),
                     IconButton(
                       icon: const Icon(Icons.close),
@@ -2972,16 +2784,17 @@ class _AdminProfileTab extends ConsumerWidget {
                             }
                           },
                     child: saving
-                        ? const SizedBox(
+                        ? SizedBox(
                             height: 22,
                             width: 22,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2.5, color: Colors.white))
+                                strokeWidth: 2.5,
+                                color: Theme.of(context).colorScheme.onPrimary))
                         : const Text('حفظ التغييرات'),
                   );
                 }),
               ],
-            ),
+            )),
           ),
         ),
       ),
@@ -3007,24 +2820,32 @@ class _PendingUsersTab extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                        color: AppColors.success.withOpacity(0.1),
+                        color: PortalTone.success.colors(context).$2,
                         shape: BoxShape.circle),
-                    child: const Icon(Icons.check_circle,
-                        size: 48, color: AppColors.success),
+                    child: Icon(Icons.check_circle,
+                        size: 48, color: PortalTone.success.colors(context).$1),
                   ),
                   const SizedBox(height: 16),
-                  const Text('لا توجد طلبات معلقة',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  Text('لا توجد طلبات معلقة',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
-                  const Text('جميع الطلبات تمت معالجتها',
-                      style:
-                          TextStyle(fontSize: 13, color: AppColors.lightMuted)),
+                  Text('جميع الطلبات تمت معالجتها',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant)),
                 ],
               ),
             )
           : ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsetsDirectional.fromSTEB(
+                  PortalTokens.gutter,
+                  PortalTokens.lg,
+                  PortalTokens.gutter,
+                  PortalTokens.navClearance +
+                      MediaQuery.paddingOf(context).bottom),
               itemCount: users.length,
               itemBuilder: (context, i) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
@@ -3038,16 +2859,19 @@ class _PendingUsersTab extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline,
-                  size: 48, color: AppColors.warning),
+              Icon(Icons.error_outline,
+                  size: 48, color: PortalTone.warning.colors(context).$1),
               const SizedBox(height: 16),
-              const Text('تعذّر تحميل الطلبات المعلقة',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+              Text('تعذّر تحميل الطلبات المعلقة',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               Text(err.toString(),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      fontSize: 11, color: AppColors.lightMuted)),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant)),
             ],
           ),
         ),
@@ -3079,10 +2903,11 @@ class _PendingUserCardState extends ConsumerState<_PendingUserCard> {
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(approve ? 'تمت الموافقة ✓' : 'تم رفض الطلب',
-              textAlign: TextAlign.right),
-          backgroundColor: approve ? AppColors.success : AppColors.error,
-        ));
+            content: Text(approve ? 'تمت الموافقة ✓' : 'تم رفض الطلب',
+                textAlign: TextAlign.right),
+            backgroundColor: approve
+                ? PortalTone.success.colors(context).$1
+                : PortalTone.danger.colors(context).$1));
       }
     } catch (e) {
       if (mounted) {
@@ -3091,7 +2916,7 @@ class _PendingUserCardState extends ConsumerState<_PendingUserCard> {
             : 'حدث خطأ: ${e.toString()}';
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(msg, textAlign: TextAlign.right),
-            backgroundColor: AppColors.error));
+            backgroundColor: PortalTone.danger.colors(context).$1));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -3101,121 +2926,69 @@ class _PendingUserCardState extends ConsumerState<_PendingUserCard> {
   @override
   Widget build(BuildContext context) {
     final u = widget.user;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(16),
-        border:
-            Border.all(color: AppColors.warning.withOpacity(0.3), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2))
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: AppColors.warning.withOpacity(0.15),
-                child: Text(u.name.isNotEmpty ? u.name[0] : '؟',
-                    style: const TextStyle(
-                        color: AppColors.warning,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16)),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(u.name.isNotEmpty ? u.name : 'بدون اسم',
-                        style: const TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w700)),
-                    Text(
-                        'رقم الهوية: ${u.idNumber.isNotEmpty ? u.idNumber : '—'}',
-                        style: const TextStyle(
-                            fontSize: 12, color: AppColors.lightMuted)),
-                  ],
-                ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                    color: AppColors.warning.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20)),
-                child: const Text('بانتظار',
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.warning)),
-              ),
-            ],
-          ),
-          if (u.address.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Row(
+    return PortalPanel(
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      PortalRecordRow(
+          title: u.name.isNotEmpty ? u.name : 'بدون اسم',
+          subtitle: 'بانتظار',
+          icon: Icons.person_outline,
+          statusLabel: 'بانتظار',
+          statusTone: PortalTone.warning),
+      PortalLabelValue(
+          label: 'رقم الهوية', value: u.idNumber.isNotEmpty ? u.idNumber : '—'),
+      if (u.address.isNotEmpty)
+        PortalDataRow(
+            label: 'العنوان',
+            value: u.address,
+            icon: Icons.location_on_outlined),
+      const SizedBox(height: PortalTokens.lg),
+      _loading
+          ? const Center(
+              child: SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2.5)))
+          : Row(
               children: [
-                const Icon(Icons.location_on_outlined,
-                    size: 14, color: AppColors.lightMuted),
-                const SizedBox(width: 4),
-                Text(u.address,
-                    style: const TextStyle(
-                        fontSize: 12, color: AppColors.lightMuted)),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _act(false),
+                    icon: const Icon(Icons.close, size: 16),
+                    label: Text('رفض',
+                        style: Theme.of(context).textTheme.bodySmall),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: PortalTone.danger.colors(context).$1,
+                      side: BorderSide(
+                          color: PortalTone.danger.colors(context).$1),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(PortalTokens.radius)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _act(true),
+                    icon: const Icon(Icons.check, size: 16),
+                    label: const Text('موافقة'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                      minimumSize:
+                          const Size(PortalTokens.target, PortalTokens.target),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(PortalTokens.radius)),
+                    ),
+                  ),
+                ),
               ],
             ),
-          ],
-          const SizedBox(height: 12),
-          _loading
-              ? const Center(
-                  child: SizedBox(
-                      height: 24,
-                      width: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2.5)))
-              : Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _act(false),
-                        icon: const Icon(Icons.close, size: 16),
-                        label:
-                            const Text('رفض', style: TextStyle(fontSize: 13)),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.error,
-                          side: const BorderSide(color: AppColors.error),
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => _act(true),
-                        icon: const Icon(Icons.check, size: 16),
-                        label: const Text('موافقة',
-                            style: TextStyle(fontSize: 13)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.success,
-                          minimumSize: Size.zero,
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-        ],
-      ),
-    ).animate().fadeIn().slideY(begin: 0.1, end: 0, duration: 250.ms);
+    ]));
   }
 }
 
@@ -3248,21 +3021,28 @@ class _MockPendingUsersState extends State<_MockPendingUsers> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.1),
+                  color: PortalTone.success.colors(context).$2,
                   shape: BoxShape.circle),
-              child: const Icon(Icons.check_circle,
-                  size: 48, color: AppColors.success),
+              child: Icon(Icons.check_circle,
+                  size: 48, color: PortalTone.success.colors(context).$1),
             ),
             const SizedBox(height: 16),
-            const Text('لا توجد طلبات معلقة',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            Text('لا توجد طلبات معلقة',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w600)),
           ],
         ),
       );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsetsDirectional.fromSTEB(
+          PortalTokens.gutter,
+          PortalTokens.lg,
+          PortalTokens.gutter,
+          PortalTokens.navClearance + MediaQuery.paddingOf(context).bottom),
       itemCount: visible.length,
       itemBuilder: (context, idx) {
         final i = visible[idx];
@@ -3273,9 +3053,13 @@ class _MockPendingUsersState extends State<_MockPendingUsers> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Theme.of(context).cardTheme.color,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(PortalTokens.radiusPanel),
               border: Border.all(
-                  color: AppColors.warning.withOpacity(0.3), width: 1.5),
+                  color: PortalTone.warning
+                      .colors(context)
+                      .$1
+                      .withValues(alpha: 0.3),
+                  width: 1.5),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -3284,12 +3068,14 @@ class _MockPendingUsersState extends State<_MockPendingUsers> {
                   children: [
                     CircleAvatar(
                       radius: 22,
-                      backgroundColor: AppColors.warning.withOpacity(0.15),
+                      backgroundColor: PortalTone.warning.colors(context).$2,
                       child: Text(item.$1[0],
-                          style: const TextStyle(
-                              color: AppColors.warning,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16)),
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(
+                                  color: PortalTone.warning.colors(context).$1,
+                                  fontWeight: FontWeight.w700)),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -3297,11 +3083,18 @@ class _MockPendingUsersState extends State<_MockPendingUsers> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(item.$1,
-                              style: const TextStyle(
-                                  fontSize: 14, fontWeight: FontWeight.w700)),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w700)),
                           Text('رقم الهوية: ${item.$2}',
-                              style: const TextStyle(
-                                  fontSize: 12, color: AppColors.lightMuted)),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant)),
                         ],
                       ),
                     ),
@@ -3309,25 +3102,32 @@ class _MockPendingUsersState extends State<_MockPendingUsers> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                          color: AppColors.warning.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20)),
-                      child: const Text('بانتظار',
-                          style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.warning)),
+                          color: PortalTone.warning.colors(context).$2,
+                          borderRadius:
+                              BorderRadius.circular(PortalTokens.radiusPanel)),
+                      child: Text('بانتظار',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color:
+                                      PortalTone.warning.colors(context).$1)),
                     ),
                   ],
                 ),
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    const Icon(Icons.location_on_outlined,
-                        size: 14, color: AppColors.lightMuted),
+                    Icon(Icons.location_on_outlined,
+                        size: 14,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
                     const SizedBox(width: 4),
                     Text(item.$3,
-                        style: const TextStyle(
-                            fontSize: 12, color: AppColors.lightMuted)),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant)),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -3337,20 +3137,22 @@ class _MockPendingUsersState extends State<_MockPendingUsers> {
                       child: OutlinedButton.icon(
                         onPressed: () {
                           setState(() => _done.add(i));
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('تم رفض الطلب',
-                                      textAlign: TextAlign.right),
-                                  backgroundColor: AppColors.error));
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: const Text('تم رفض الطلب',
+                                  textAlign: TextAlign.right),
+                              backgroundColor:
+                                  PortalTone.danger.colors(context).$1));
                         },
                         icon: const Icon(Icons.close, size: 16),
                         label: const Text('رفض'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.error,
-                          side: const BorderSide(color: AppColors.error),
+                          foregroundColor: PortalTone.danger.colors(context).$1,
+                          side: BorderSide(
+                              color: PortalTone.danger.colors(context).$1),
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
+                              borderRadius:
+                                  BorderRadius.circular(PortalTokens.radius)),
                         ),
                       ),
                     ),
@@ -3359,20 +3161,25 @@ class _MockPendingUsersState extends State<_MockPendingUsers> {
                       child: ElevatedButton.icon(
                         onPressed: () {
                           setState(() => _done.add(i));
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('تمت الموافقة ✓',
-                                      textAlign: TextAlign.right),
-                                  backgroundColor: AppColors.success));
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: const Text('تمت الموافقة ✓',
+                                  textAlign: TextAlign.right),
+                              backgroundColor:
+                                  Theme.of(context).colorScheme.primary));
                         },
                         icon: const Icon(Icons.check, size: 16),
                         label: const Text('موافقة'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.success,
-                          minimumSize: Size.zero,
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimary,
+                          minimumSize: const Size(
+                              PortalTokens.target, PortalTokens.target),
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
+                              borderRadius:
+                                  BorderRadius.circular(PortalTokens.radius)),
                         ),
                       ),
                     ),
@@ -3388,184 +3195,3 @@ class _MockPendingUsersState extends State<_MockPendingUsers> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-
-class _SectionLabel extends StatelessWidget {
-  final String text;
-  const _SectionLabel(this.text);
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 8, right: 4),
-        child: Text(text,
-            style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.lightMuted)),
-      );
-}
-
-class _PRow extends StatelessWidget {
-  final IconData icon;
-  final String label, value;
-  const _PRow(this.icon, this.label, this.value);
-
-  @override
-  Widget build(BuildContext context) => Row(
-        children: [
-          Icon(icon, size: 18, color: AppColors.primary),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label,
-                    style: const TextStyle(
-                        fontSize: 11, color: AppColors.lightMuted)),
-                const SizedBox(height: 1),
-                Text(value,
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w500)),
-              ],
-            ),
-          ),
-        ],
-      );
-}
-
-class _ProfileStatChip extends StatelessWidget {
-  final String label, value;
-  final IconData icon;
-  const _ProfileStatChip(
-      {required this.label, required this.value, required this.icon});
-
-  @override
-  Widget build(BuildContext context) => Expanded(
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, color: Colors.white70, size: 18),
-              const SizedBox(height: 5),
-              Text(value,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800)),
-              const SizedBox(height: 2),
-              Text(label,
-                  style: const TextStyle(color: Colors.white60, fontSize: 10)),
-            ],
-          ),
-        ),
-      );
-}
-
-class _InfoTile extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String label, value;
-  const _InfoTile(
-      {required this.icon,
-      required this.iconColor,
-      required this.label,
-      required this.value});
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(9)),
-              child: Icon(icon, size: 18, color: iconColor),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label,
-                      style: const TextStyle(
-                          fontSize: 11, color: AppColors.lightMuted)),
-                  const SizedBox(height: 2),
-                  Text(value,
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w600)),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-}
-
-class _ActionTile extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String title, subtitle;
-  final Widget? trailing;
-  final VoidCallback onTap;
-  const _ActionTile(
-      {required this.icon,
-      required this.iconColor,
-      required this.title,
-      required this.subtitle,
-      this.trailing,
-      required this.onTap});
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(9)),
-                child: Icon(icon, size: 18, color: iconColor),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title,
-                        style: const TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 2),
-                    Text(subtitle,
-                        style: const TextStyle(
-                            fontSize: 11, color: AppColors.lightMuted)),
-                  ],
-                ),
-              ),
-              trailing ??
-                  const Icon(Icons.chevron_left,
-                      color: AppColors.lightMuted, size: 18),
-            ],
-          ),
-        ),
-      );
-}
-
-class _Separator extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) => const Divider(
-        height: 1,
-        indent: 56,
-        endIndent: 16,
-        color: AppColors.lightBorder,
-      );
-}

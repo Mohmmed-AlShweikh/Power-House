@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/user_model.dart';
-import '../../config/colors.dart';
+import '../../theme/portal_tokens.dart';
+import '../widgets/portal_components.dart';
 
 class SetupScreen extends ConsumerStatefulWidget {
   const SetupScreen({super.key});
@@ -50,44 +51,13 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       body: Column(
         children: [
           // Header
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 600),
-            curve: Curves.easeInOut,
-            decoration: BoxDecoration(
-              color: AppColors.primaryDarkFor(Theme.of(context).brightness),
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(28),
-                bottomRight: Radius.circular(28),
-              ),
-            ),
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('إعداد الملف',
-                        style: theme.textTheme.headlineMedium
-                            ?.copyWith(color: Colors.white)),
-                    const SizedBox(height: 4),
-                    Text('اكتمل الخطوة الأخيرة',
-                        style: theme.textTheme.bodyMedium
-                            ?.copyWith(color: Colors.white60)),
-                    const SizedBox(height: 16),
-                    _ProgressBar(),
-                  ],
-                ),
-              ),
-            ),
-          ),
+          const PortalIdentityBar(
+              title: 'إعداد الملف', subtitle: 'اكتمل الخطوة الأخيرة'),
+          Padding(padding: PortalTokens.pagePadding, child: _ProgressBar()),
 
           Expanded(
             child: SingleChildScrollView(
@@ -101,14 +71,14 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                       children: [
                         _AvatarPicker(),
                         const SizedBox(height: 24),
-                        _Label('الاسم الكامل *'),
+                        const _Label('الاسم الكامل *'),
                         const SizedBox(height: 8),
                         _Field(
                             controller: _nameCtrl,
                             hint: 'محمد أحمد',
                             icon: Icons.person_outline),
                         const SizedBox(height: 16),
-                        _Label('العنوان'),
+                        const _Label('العنوان'),
                         const SizedBox(height: 8),
                         _Field(
                             controller: _addressCtrl,
@@ -118,11 +88,14 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                         ElevatedButton(
                           onPressed: _loading ? null : _save,
                           child: _loading
-                              ? const SizedBox(
+                              ? SizedBox(
                                   height: 22,
                                   width: 22,
                                   child: CircularProgressIndicator(
-                                      strokeWidth: 2.5, color: Colors.white))
+                                      strokeWidth: 2.5,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface))
                               : const Text('حفظ والمتابعة'),
                         ),
                         const SizedBox(height: 8),
@@ -148,7 +121,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
 class _ProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return const Row(
       children: [
         _StepDot(label: '1', done: true),
         _Line(done: true),
@@ -174,19 +147,21 @@ class _StepDot extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: done
-            ? AppColors.accent
+            ? Theme.of(context).colorScheme.primary
             : active
-                ? Colors.white
-                : Colors.white.withOpacity(0.3),
+                ? Theme.of(context).colorScheme.surface
+                : Theme.of(context).colorScheme.surface.withValues(alpha: 0.3),
       ),
       child: Center(
         child: done
-            ? const Icon(Icons.check, size: 16, color: Colors.white)
+            ? Icon(Icons.check,
+                size: 16, color: Theme.of(context).colorScheme.onSurface)
             : Text(label,
-                style: TextStyle(
-                    fontSize: 12,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: active ? AppColors.primary : Colors.white70)),
+                    color: active
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.onSurfaceVariant)),
       ),
     );
   }
@@ -199,7 +174,9 @@ class _Line extends StatelessWidget {
   Widget build(BuildContext context) => Expanded(
       child: Container(
           height: 2,
-          color: done ? AppColors.accent : Colors.white.withOpacity(0.3)));
+          color: done
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(context).colorScheme.surface.withValues(alpha: 0.3)));
 }
 
 class _Card extends StatelessWidget {
@@ -210,13 +187,7 @@ class _Card extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Theme.of(context).cardTheme.color,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.06),
-                blurRadius: 12,
-                offset: const Offset(0, 4)),
-          ],
+          borderRadius: BorderRadius.circular(PortalTokens.radiusPanel),
         ),
         child: child,
       );
@@ -231,22 +202,24 @@ class _AvatarPicker extends StatelessWidget {
           Container(
             width: 80,
             height: 80,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.lightBackground,
+              color: Theme.of(context).scaffoldBackgroundColor,
             ),
-            child:
-                const Icon(Icons.person, size: 44, color: AppColors.lightMuted),
+            child: Icon(Icons.person,
+                size: 44,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           Positioned(
             bottom: 0,
             left: 0,
             child: Container(
               padding: const EdgeInsets.all(6),
-              decoration: const BoxDecoration(
-                  color: AppColors.primary, shape: BoxShape.circle),
-              child:
-                  const Icon(Icons.camera_alt, size: 14, color: Colors.white),
+              decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  shape: BoxShape.circle),
+              child: Icon(Icons.camera_alt,
+                  size: 14, color: Theme.of(context).colorScheme.onSurface),
             ),
           ),
         ],
@@ -259,11 +232,8 @@ class _Label extends StatelessWidget {
   final String text;
   const _Label(this.text);
   @override
-  Widget build(BuildContext context) => Text(text,
-      style: Theme.of(context)
-          .textTheme
-          .titleMedium
-          ?.copyWith());
+  Widget build(BuildContext context) =>
+      Text(text, style: Theme.of(context).textTheme.titleMedium?.copyWith());
 }
 
 class _Field extends StatelessWidget {
@@ -277,22 +247,29 @@ class _Field extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
-      style: const TextStyle(fontSize: 15),
+      style: Theme.of(context).textTheme.bodyMedium,
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(color: AppColors.lightMuted),
-        prefixIcon: Icon(icon, color: AppColors.lightMuted, size: 20),
+        hintStyle: Theme.of(context)
+            .textTheme
+            .bodyMedium
+            ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        prefixIcon: Icon(icon,
+            color: Theme.of(context).colorScheme.onSurfaceVariant, size: 20),
         filled: true,
         fillColor: Theme.of(context).scaffoldBackgroundColor,
         border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.lightBorder)),
+            borderRadius: BorderRadius.circular(PortalTokens.radius),
+            borderSide: BorderSide(
+                color: Theme.of(context).colorScheme.outlineVariant)),
         enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.lightBorder)),
+            borderRadius: BorderRadius.circular(PortalTokens.radius),
+            borderSide: BorderSide(
+                color: Theme.of(context).colorScheme.outlineVariant)),
         focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.primary, width: 2)),
+            borderRadius: BorderRadius.circular(PortalTokens.radius),
+            borderSide: BorderSide(
+                color: Theme.of(context).colorScheme.primary, width: 2)),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       ),

@@ -91,14 +91,17 @@ class _PendingBanner extends StatelessWidget {
               borderRadius: BorderRadius.circular(PortalTokens.radiusSmall)),
           child: Padding(
               padding: PortalTokens.panelPadding,
-              child: PortalNumber(
-                  isRejected
-                      ? 'يرجى إعادة رفع الوصل الصحيح'
-                      : 'المبلغ المستحق: ₪ ${bill.amount}',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyLarge
-                      ?.copyWith(color: ink)))),
+              child: isRejected
+                  ? Text('يرجى إعادة رفع الوصل الصحيح',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(color: ink))
+                  : PortalLabelValue(
+                      label: 'المبلغ المستحق',
+                      value: '₪${bill.amount}',
+                      ink: ink,
+                      prominent: true))),
       const SizedBox(height: PortalTokens.lg),
       ElevatedButton.icon(
           onPressed: () {
@@ -177,8 +180,32 @@ class _UploadReceiptSheetState extends ConsumerState<_UploadReceiptSheet> {
   }
 
   @override
+  Widget build(BuildContext context) => ReceiptUploadView(
+      bill: widget.bill,
+      bytes: _bytes,
+      uploading: _uploading,
+      onPick: _pickImage,
+      onUpload: _upload,
+      onClose: () => Navigator.pop(context));
+}
+
+/// Pure receipt presentation shared by the live sheet and visual state tests.
+/// Service calls, picked bytes and uploading state remain in the original State.
+class ReceiptUploadView extends StatelessWidget {
+  final Bill bill;
+  final Uint8List? bytes;
+  final bool uploading;
+  final VoidCallback onPick, onUpload, onClose;
+  const ReceiptUploadView(
+      {super.key,
+      required this.bill,
+      required this.bytes,
+      required this.uploading,
+      required this.onPick,
+      required this.onUpload,
+      required this.onClose});
+  @override
   Widget build(BuildContext context) {
-    final bill = widget.bill;
     final theme = Theme.of(context);
     return Directionality(
         textDirection: TextDirection.rtl,
@@ -200,11 +227,12 @@ class _UploadReceiptSheetState extends ConsumerState<_UploadReceiptSheet> {
                     IconButton(
                         tooltip: 'إغلاق',
                         icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(context))
+                        onPressed: onClose)
                   ]),
-                  PortalNumber(
-                      'فاتورة ${bill.month} ${bill.year} — ₪ ${bill.amount}',
-                      style: theme.textTheme.bodyMedium),
+                  PortalLabelValue(
+                      label: 'فاتورة ${bill.month} ${bill.year}',
+                      value: '₪${bill.amount}',
+                      prominent: true),
                   const SizedBox(height: PortalTokens.xl),
                   Semantics(
                       button: true,
@@ -215,17 +243,17 @@ class _UploadReceiptSheetState extends ConsumerState<_UploadReceiptSheet> {
                               borderRadius: BorderRadius.circular(
                                   PortalTokens.radiusPanel),
                               side: BorderSide(
-                                  color: _bytes != null
+                                  color: bytes != null
                                       ? theme.colorScheme.primary
                                       : theme.colorScheme.outline)),
                           clipBehavior: Clip.antiAlias,
                           child: InkWell(
-                              onTap: _uploading ? null : _pickImage,
+                              onTap: uploading ? null : onPick,
                               child: SizedBox(
                                   height: PortalTokens.chartHeight,
-                                  child: _bytes != null
+                                  child: bytes != null
                                       ? Stack(fit: StackFit.expand, children: [
-                                          Image.memory(_bytes!,
+                                          Image.memory(bytes!,
                                               fit: BoxFit.cover),
                                           PositionedDirectional(
                                               top: PortalTokens.sm,
@@ -259,13 +287,12 @@ class _UploadReceiptSheetState extends ConsumerState<_UploadReceiptSheet> {
                                             ]))))),
                   const SizedBox(height: PortalTokens.xl),
                   ElevatedButton(
-                      onPressed:
-                          (_bytes == null || _uploading) ? null : _upload,
-                      child: _uploading
+                      onPressed: (bytes == null || uploading) ? null : onUpload,
+                      child: uploading
                           ? const SizedBox.square(
                               dimension: PortalTokens.icon,
                               child: CircularProgressIndicator())
-                          : Text(_bytes == null
+                          : Text(bytes == null
                               ? 'اختر صورة أولاً'
                               : 'ارسال الوصل')),
                 ]))));
@@ -305,9 +332,11 @@ class _BillCard extends StatelessWidget {
             : isRejected
                 ? 'تم رفض الوصل'
                 : 'غير مدفوعة';
-    return PortalRecordRow(
+    return PortalInvoiceRow(
         title: '${bill.month} ${bill.year}',
-        subtitle: isRejected ? 'اضغط لإعادة رفع وصل الدفع' : statusLabel,
+        amount: '₪${bill.amount}',
+        status: statusLabel,
+        tone: statusTone,
         icon: isPaid
             ? Icons.check_circle_outline
             : isPendingReview
@@ -315,9 +344,7 @@ class _BillCard extends StatelessWidget {
                 : isRejected
                     ? Icons.cancel_outlined
                     : Icons.error_outline,
-        trailing: '₪${bill.amount}',
-        statusLabel: statusLabel,
-        statusTone: statusTone,
+        note: isRejected ? 'اضغط لإعادة رفع وصل الدفع' : null,
         onTap: canUpload
             ? () => showModalBottomSheet(
                 context: context,

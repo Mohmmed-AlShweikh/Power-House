@@ -1,0 +1,16 @@
+  ════════════════════════════════════════════
+     FLUTTER LAUNCHER ICONS (v0.14.4)
+  ════════════════════════════════════════════
+
+
+⚠ Warning: flutter_icons has been deprecated please use flutter_launcher_icons instead in your yaml files
+• Creating default icons Android
+• Creating adaptive icons Android
+• Creating adaptive monochrome icons Android
+• Overwriting the default Android launcher icon with a new icon
+• Updating colors.xml with color for adaptive icon background
+• Creating mipmap xml file Android
+• Overwriting default iOS launcher icon with new icon
+No platform provided
+
+✓ Successfully generated launcher icons

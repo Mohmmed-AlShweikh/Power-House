@@ -1,3 +1,4 @@
+import '../../theme/portal_tokens.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -29,7 +30,7 @@ class Base64ImageViewer extends StatelessWidget {
     }
 
     final image = ClipRRect(
-      borderRadius: borderRadius ?? BorderRadius.circular(12),
+      borderRadius: borderRadius ?? BorderRadius.circular(PortalTokens.radius),
       child: Image.memory(
         bytes,
         height: height,
@@ -49,17 +50,22 @@ class _ErrorBox extends StatelessWidget {
     return Container(
       height: 120,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.error.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Theme.of(context).colorScheme.error.withOpacity(0.3)),
+        color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(PortalTokens.radius),
+        border: Border.all(
+            color: Theme.of(context).colorScheme.error.withValues(alpha: 0.3)),
       ),
-      child: const Center(
+      child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.broken_image, size: 32, color: Colors.grey),
-            SizedBox(height: 8),
-            Text('تعذر، لا يمكن عرض الصورة', style: TextStyle(fontSize: 12, color: Colors.grey)),
+            Icon(Icons.broken_image,
+                size: 32,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
+            const SizedBox(height: 8),
+            Text('تعذر، لا يمكن عرض الصورة',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
           ],
         ),
       ),

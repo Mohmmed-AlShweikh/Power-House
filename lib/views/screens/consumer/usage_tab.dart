@@ -216,12 +216,12 @@ class _UsageBody extends StatelessWidget {
           child: AnimatedBuilder(
               animation: anim,
               builder: (_, __) => PortalBarChart(
-                  points: points
+                  points: (period == _Period.monthly ? points.reversed : points)
                       .map((p) => PortalChartPoint(p.label, p.value))
                       .toList(),
                   maximum: maxVal,
                   progress: anim.value,
-                  horizontal: period == _Period.weekly))),
+                  horizontal: false))),
     ]);
   }
 }

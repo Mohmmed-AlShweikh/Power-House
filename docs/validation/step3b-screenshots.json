@@ -1,0 +1,857 @@
+[
+  {
+    "path": "screenshots/redesign/admin/add_bill_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/add_bill_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/ampere_dialog_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/ampere_dialog_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/bill_calculation_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/bill_calculation_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/bills_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/bills_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/complaints_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/complaints_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/diagnostic_error_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/diagnostic_error_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/diagnostic_success_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/diagnostic_success_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/edit_profile_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/edit_profile_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/generator_confirmation_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/generator_confirmation_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/generator_settings_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/generator_settings_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/global_error_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/global_error_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/more_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/more_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/overview_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/overview_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/profile_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/profile_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/receipt_review_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/receipt_review_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/reply_dialog_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/reply_dialog_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/requests_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/requests_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/bills_empty_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/bills_empty_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/bills_error_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/bills_error_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/bills_loading_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/bills_loading_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/complaints_empty_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/complaints_empty_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/complaints_error_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/complaints_error_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/complaints_loading_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/complaints_loading_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/overview_empty_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/overview_empty_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/overview_error_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/overview_error_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/overview_loading_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/overview_loading_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/requests_empty_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/requests_empty_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/requests_error_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/requests_error_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/requests_loading_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/requests_loading_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/subscribers_empty_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/subscribers_empty_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/subscribers_error_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/subscribers_error_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/subscribers_loading_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/subscribers_loading_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/superadmin_empty_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/superadmin_empty_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/superadmin_error_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/superadmin_error_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/superadmin_loading_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/states/superadmin_loading_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/subscriber_details_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/subscriber_details_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/subscribers_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/subscribers_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/superadmin_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/superadmin_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/time_picker_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin/time_picker_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/admin_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/auth/forgot_empty_id_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/auth/forgot_empty_id_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/auth/forgot_guidance_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/auth/forgot_guidance_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/auth/login_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/auth/login_error_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/auth/login_error_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/auth/login_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/auth/login_loading_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/auth/login_loading_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/auth/register_consumer_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/auth/register_consumer_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/auth/register_loading_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/auth/register_loading_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/auth/register_owner_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/auth/register_owner_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/auth/register_success_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/auth/register_success_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/auth/register_validation_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/auth/register_validation_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/auth/setup_source_only_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/auth/setup_source_only_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/bills_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/bills_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/complaint_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/complaint_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/complaint_validation_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/complaint_validation_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/complaints_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/complaints_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/edit_profile_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/edit_profile_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/notifications_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/notifications_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/profile_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/profile_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/bills_empty_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/bills_empty_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/bills_error_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/bills_error_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/bills_loading_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/bills_loading_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/complaints_empty_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/complaints_empty_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/complaints_error_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/complaints_error_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/complaints_loading_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/complaints_loading_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/home_empty_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/home_empty_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/home_error_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/home_error_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/home_loading_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/home_loading_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/notifications_empty_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/notifications_empty_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/notifications_error_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/notifications_error_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/notifications_loading_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/notifications_loading_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/profile_empty_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/profile_empty_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/profile_error_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/profile_error_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/profile_loading_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/profile_loading_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/usage_empty_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/usage_empty_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/usage_error_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/usage_error_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/usage_loading_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/states/usage_loading_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/upload_loading_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/upload_loading_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/upload_receipt_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/upload_receipt_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/upload_selected_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/upload_selected_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/usage_daily_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/usage_daily_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/usage_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/usage_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/usage_weekly_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer/usage_weekly_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/consumer_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "path": "screenshots/redesign/details/admin_price_dark.png",
+    "width": 1020,
+    "height": 90
+  },
+  {
+    "path": "screenshots/redesign/details/admin_price_light.png",
+    "width": 1020,
+    "height": 90
+  },
+  {
+    "path": "screenshots/redesign/details/admin_switch_dark.png",
+    "width": 180,
+    "height": 144
+  },
+  {
+    "path": "screenshots/redesign/details/admin_switch_light.png",
+    "width": 180,
+    "height": 144
+  },
+  {
+    "path": "screenshots/redesign/navigation_alternatives.png",
+    "width": 1440,
+    "height": 920
+  }
+]

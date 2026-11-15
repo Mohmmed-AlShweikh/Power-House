@@ -40,7 +40,12 @@ dev_dependencies:
 flutter_icons:
   android: true
   ios: true
-  image_path: assets/logo.jpg
+  image_path: assets/brand/approved-a/ios-icon-1024.png
+  adaptive_icon_background: "#F3F1EB"
+  adaptive_icon_foreground_inset: 0
+  adaptive_icon_foreground: assets/brand/approved-a/adaptive-foreground-432.png
+  adaptive_icon_monochrome: assets/brand/approved-a/adaptive-monochrome-432.png
+  remove_alpha_ios: true
 
 flutter:
   uses-material-design: true
@@ -62,8 +67,15 @@ flutter:
         - asset: assets/fonts/NotoSans-Regular.ttf
 
 flutter_native_splash:
-  color: "#0d47a1"
-  image: assets/logo.jpg
+  color: "#F3F1EB"
+  color_dark: "#13262A"
+  image: assets/brand/approved-a/mark-primary-384.png
+  image_dark: assets/brand/approved-a/mark-reversed-384.png
+  android_12:
+    color: "#F3F1EB"
+    color_dark: "#13262A"
+    image: assets/brand/approved-a/adaptive-foreground-432.png
+    image_dark: assets/brand/approved-a/mark-reversed-384.png
   android: true
   ios: true
   web: false

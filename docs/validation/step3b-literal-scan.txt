@@ -1,0 +1,2 @@
+rg -n "TextStyle\(|Color\(0x|Colors\.|AppColors|LinearGradient" lib/views lib/main.dart lib/services/local_notification_service.dart
+Result: no matches. Protected providers and legacy config/theme builder remain unchanged and are not runtime UI styling sources. Native color resources/pubspec are exported UI assets from the approved tokens.

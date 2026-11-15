@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../config/colors.dart';
+import '../../../theme/portal_tokens.dart';
+import '../../widgets/portal_components.dart';
+import '../../widgets/portal_number.dart';
 import '../../../models/bill_model.dart';
 import '../../../models/user_model.dart';
 import '../../../providers/data_provider.dart';
@@ -27,11 +28,14 @@ class SubscriberDetailsScreen extends ConsumerWidget {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
-          foregroundColor: Colors.white,
+          foregroundColor: Theme.of(context).colorScheme.onSurface,
           elevation: 0,
           title: Text(
             sub.name.isNotEmpty ? sub.name : 'تفاصيل المشترك',
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.w700),
           ),
           leading: const BackButton(),
         ),
@@ -55,12 +59,11 @@ class SubscriberDetailsScreen extends ConsumerWidget {
       children: [
         _SubInfoCard(sub: sub),
         const SizedBox(height: 20),
-
         if (pendingReview.isNotEmpty) ...[
           _SectionHeader(
             title: 'طلبات الدفع المعلقة',
             count: pendingReview.length,
-            color: AppColors.warning,
+            color: PortalTone.warning.colors(context).$1,
             icon: Icons.pending_actions,
           ),
           const SizedBox(height: 8),
@@ -76,11 +79,10 @@ class SubscriberDetailsScreen extends ConsumerWidget {
               )),
           const SizedBox(height: 8),
         ],
-
         _SectionHeader(
           title: 'الفواتير المستحقة',
           count: due.length,
-          color: AppColors.error,
+          color: PortalTone.danger.colors(context).$1,
           icon: Icons.receipt_long,
         ),
         const SizedBox(height: 8),
@@ -89,14 +91,14 @@ class SubscriberDetailsScreen extends ConsumerWidget {
         else
           ...due.map((b) => Padding(
                 padding: const EdgeInsets.only(bottom: 10),
-                child: _BillInfoCard(bill: b, color: AppColors.error),
+                child: _BillInfoCard(
+                    bill: b, color: PortalTone.danger.colors(context).$1),
               )),
         const SizedBox(height: 16),
-
         _SectionHeader(
           title: 'الفواتير المدفوعة',
           count: paid.length,
-          color: AppColors.success,
+          color: PortalTone.success.colors(context).$1,
           icon: Icons.check_circle_outline,
         ),
         const SizedBox(height: 8),
@@ -105,7 +107,8 @@ class SubscriberDetailsScreen extends ConsumerWidget {
         else
           ...paid.map((b) => Padding(
                 padding: const EdgeInsets.only(bottom: 10),
-                child: _BillInfoCard(bill: b, color: AppColors.success),
+                child: _BillInfoCard(
+                    bill: b, color: PortalTone.success.colors(context).$1),
               )),
         const SizedBox(height: 24),
       ],
@@ -125,24 +128,18 @@ class _SubInfoCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2))
-        ],
+        borderRadius: BorderRadius.circular(PortalTokens.radiusPanel),
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 28,
-            backgroundColor: AppColors.primary.withOpacity(0.12),
+            backgroundColor:
+                Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
             child: Text(
               sub.name.isNotEmpty ? sub.name[0] : '؟',
-              style: const TextStyle(
-                  color: AppColors.primary,
-                  fontSize: 22,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.w700),
             ),
           ),
@@ -152,28 +149,39 @@ class _SubInfoCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(sub.name.isNotEmpty ? sub.name : 'بدون اسم',
-                    style: const TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.w700)),
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
                 if (sub.phone.isNotEmpty)
                   Row(children: [
-                    const Icon(Icons.phone,
-                        size: 12, color: AppColors.lightMuted),
+                    Icon(Icons.phone,
+                        size: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
                     const SizedBox(width: 4),
                     Text(sub.phone,
-                        style: const TextStyle(
-                            fontSize: 12, color: AppColors.lightMuted)),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant)),
                   ]),
                 if (sub.address.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Row(children: [
-                    const Icon(Icons.location_on_outlined,
-                        size: 12, color: AppColors.lightMuted),
+                    Icon(Icons.location_on_outlined,
+                        size: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(sub.address,
-                          style: const TextStyle(
-                              fontSize: 12, color: AppColors.lightMuted)),
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant)),
                     ),
                   ]),
                 ],
@@ -182,13 +190,15 @@ class _SubInfoCard extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(PortalTokens.radius),
                   ),
                   child: Text('${sub.ampereLimit} أمبير',
-                      style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.primary,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
                           fontWeight: FontWeight.w600)),
                 ),
               ],
@@ -197,21 +207,24 @@ class _SubInfoCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: (isActive ? AppColors.success : AppColors.error)
-                  .withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
+              color: (isActive
+                      ? PortalTone.success.colors(context).$1
+                      : PortalTone.danger.colors(context).$1)
+                  .withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(PortalTokens.radiusPanel),
             ),
             child: Text(
               isActive ? 'نشط' : 'موقوف',
-              style: TextStyle(
-                  fontSize: 12,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: isActive ? AppColors.success : AppColors.error),
+                  color: isActive
+                      ? PortalTone.success.colors(context).$1
+                      : PortalTone.danger.colors(context).$1),
             ),
           ),
         ],
       ),
-    ).animate().fadeIn().slideY(begin: 0.1, end: 0, duration: 300.ms);
+    );
   }
 }
 
@@ -233,29 +246,29 @@ class _SectionHeader extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(PortalTokens.radiusSmall),
           ),
           child: Icon(icon, size: 16, color: color),
         ),
         const SizedBox(width: 8),
         Text(title,
-            style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: color)),
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(fontWeight: FontWeight.w700, color: color)),
         const SizedBox(width: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(10),
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(PortalTokens.radius),
           ),
           child: Text('$count',
-              style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: color)),
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(fontWeight: FontWeight.w700, color: color)),
         ),
       ],
     );
@@ -268,74 +281,13 @@ class _PaymentRequestCard extends StatelessWidget {
   const _PaymentRequestCard({required this.bill, required this.onView});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.warning.withOpacity(0.4), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2))
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(9),
-            decoration: BoxDecoration(
-              color: AppColors.warning.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child:
-                const Icon(Icons.receipt, size: 20, color: AppColors.warning),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('${bill.month} ${bill.year}',
-                    style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 2),
-                Text('₪${bill.amount} • إيصال بانتظار المراجعة',
-                    style: const TextStyle(
-                        fontSize: 12, color: AppColors.lightMuted)),
-              ],
-            ),
-          ),
-          ElevatedButton(
-            onPressed: onView,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              minimumSize: Size.zero,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-              elevation: 0,
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('مراجعة',
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white)),
-                SizedBox(width: 2),
-                Icon(Icons.chevron_left, size: 16, color: Colors.white),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ).animate().fadeIn().slideX(begin: 0.05, end: 0, duration: 250.ms);
-  }
+  Widget build(BuildContext context) => PortalInvoiceRow(
+      title: '${bill.month} ${bill.year}',
+      amount: '₪${bill.amount}',
+      status: 'إيصال بانتظار المراجعة',
+      tone: PortalTone.warning,
+      icon: Icons.pending_actions_outlined,
+      footer: ElevatedButton(onPressed: onView, child: const Text('مراجعة')));
 }
 
 class _BillInfoCard extends StatelessWidget {
@@ -346,61 +298,15 @@ class _BillInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isPaid = bill.status == BillStatus.paid;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2))
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(9),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-                isPaid ? Icons.check_circle_outline : Icons.receipt_long,
-                size: 20,
-                color: color),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('${bill.month} ${bill.year}',
-                    style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 2),
-                Text('₪${bill.amount} • ${bill.kwh.toStringAsFixed(1)} كيلوواط',
-                    style: const TextStyle(
-                        fontSize: 12, color: AppColors.lightMuted)),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              isPaid ? 'مدفوعة' : 'مستحقة',
-              style: TextStyle(
-                  fontSize: 11, fontWeight: FontWeight.w600, color: color),
-            ),
-          ),
-        ],
-      ),
-    ).animate().fadeIn();
+    return PortalInvoiceRow(
+        title: '${bill.month} ${bill.year}',
+        amount: '₪${bill.amount}',
+        note: '${bill.kwh.toStringAsFixed(1)} كيلوواط',
+        status: isPaid ? 'مدفوع' : 'غير مدفوع',
+        tone: isPaid ? PortalTone.success : PortalTone.danger,
+        accent: color,
+        icon:
+            isPaid ? Icons.check_circle_outline : Icons.receipt_long_outlined);
   }
 }
 
@@ -413,23 +319,24 @@ class _EmptyBills extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
       decoration: BoxDecoration(
-        color: AppColors.success.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.success.withOpacity(0.25)),
+        color: PortalTone.success.colors(context).$1.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(PortalTokens.radius),
+        border: Border.all(
+            color:
+                PortalTone.success.colors(context).$1.withValues(alpha: 0.25)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.check_circle_outline,
-              size: 18, color: AppColors.success),
+          Icon(Icons.check_circle_outline,
+              size: 18, color: PortalTone.success.colors(context).$1),
           const SizedBox(width: 10),
           Text(message,
-              style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.success,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: PortalTone.success.colors(context).$1,
                   fontWeight: FontWeight.w500)),
         ],
       ),
-    ).animate().fadeIn();
+    );
   }
 }
 
@@ -479,7 +386,8 @@ class _ReceiptReviewDialogState extends ConsumerState<ReceiptReviewDialog> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(PortalTokens.radiusPanel)),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -491,11 +399,11 @@ class _ReceiptReviewDialogState extends ConsumerState<ReceiptReviewDialog> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.warning.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
+                      color: PortalTone.warning.colors(context).$2,
+                      borderRadius: BorderRadius.circular(PortalTokens.radius),
                     ),
-                    child: const Icon(Icons.receipt,
-                        size: 20, color: AppColors.warning),
+                    child: Icon(Icons.receipt,
+                        size: 20, color: PortalTone.warning.colors(context).$1),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -503,12 +411,12 @@ class _ReceiptReviewDialogState extends ConsumerState<ReceiptReviewDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(widget.subscriberName,
-                            style: const TextStyle(
-                                fontSize: 15, fontWeight: FontWeight.w700)),
-                        Text(
-                            '${widget.bill.month} ${widget.bill.year} • ₪${widget.bill.amount}',
-                            style: const TextStyle(
-                                fontSize: 12, color: AppColors.lightMuted)),
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(fontWeight: FontWeight.w700)),
+                        PortalNumber('${widget.bill.month} ${widget.bill.year}',
+                            style: Theme.of(context).textTheme.bodySmall),
                       ],
                     ),
                   ),
@@ -516,14 +424,20 @@ class _ReceiptReviewDialogState extends ConsumerState<ReceiptReviewDialog> {
                     icon: const Icon(Icons.close, size: 20),
                     onPressed: () => Navigator.pop(context),
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+                    constraints: const BoxConstraints(
+                        minWidth: PortalTokens.target,
+                        minHeight: PortalTokens.target),
                   ),
                 ],
               ),
+              PortalLabelValue(
+                  label: 'المبلغ',
+                  value: '₪${widget.bill.amount}',
+                  prominent: true),
               const SizedBox(height: 16),
               if (widget.bill.receiptBase64 != null) ...[
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(PortalTokens.radius),
                   child: Base64ImageViewer(
                       base64String: widget.bill.receiptBase64!, height: 220),
                 ),
@@ -533,17 +447,27 @@ class _ReceiptReviewDialogState extends ConsumerState<ReceiptReviewDialog> {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 28),
                   decoration: BoxDecoration(
-                    color: AppColors.lightMuted.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(12),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(PortalTokens.radius),
                   ),
-                  child: const Column(
+                  child: Column(
                     children: [
                       Icon(Icons.image_not_supported,
-                          size: 36, color: AppColors.lightMuted),
-                      SizedBox(height: 8),
+                          size: 36,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant),
+                      const SizedBox(height: 8),
                       Text('لا توجد صورة إيصال',
-                          style: TextStyle(
-                              fontSize: 13, color: AppColors.lightMuted)),
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant)),
                     ],
                   ),
                 ),
@@ -561,14 +485,16 @@ class _ReceiptReviewDialogState extends ConsumerState<ReceiptReviewDialog> {
                       child: OutlinedButton.icon(
                         onPressed: () => _act(BillStatus.rejected),
                         icon: const Icon(Icons.close, size: 16),
-                        label: const Text('رفض',
-                            style: TextStyle(fontSize: 13)),
+                        label: Text('رفض',
+                            style: Theme.of(context).textTheme.bodySmall),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.error,
-                          side: const BorderSide(color: AppColors.error),
+                          foregroundColor: PortalTone.danger.colors(context).$1,
+                          side: BorderSide(
+                              color: PortalTone.danger.colors(context).$1),
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
+                              borderRadius:
+                                  BorderRadius.circular(PortalTokens.radius)),
                         ),
                       ),
                     ),
@@ -577,14 +503,18 @@ class _ReceiptReviewDialogState extends ConsumerState<ReceiptReviewDialog> {
                       child: ElevatedButton.icon(
                         onPressed: () => _act(BillStatus.paid),
                         icon: const Icon(Icons.check, size: 16),
-                        label: const Text('قبول',
-                            style: TextStyle(fontSize: 13)),
+                        label: const Text('قبول'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.success,
-                          minimumSize: Size.zero,
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimary,
+                          minimumSize: const Size(
+                              PortalTokens.target, PortalTokens.target),
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
+                              borderRadius:
+                                  BorderRadius.circular(PortalTokens.radius)),
                         ),
                       ),
                     ),
