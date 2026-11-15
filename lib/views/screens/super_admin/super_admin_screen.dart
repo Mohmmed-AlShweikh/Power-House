@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../theme/portal_tokens.dart';
 import '../../widgets/portal_components.dart';
+import '../../widgets/portal_reason_dialog.dart';
 import '../../../models/user_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/data_provider.dart';
@@ -197,6 +198,11 @@ class SuperAdminScreen extends ConsumerWidget {
           ),
 
           // ── Body ────────────────────────────────────────────────────────────
+          Padding(
+              padding: const EdgeInsets.all(PortalTokens.lg),
+              child: PortalActionButton(
+                  label: 'إدارة طلبات المولدات',
+                  onPressed: () => context.go('/generator-requests'))),
           Expanded(
             child: pendingAsync.when(
               data: (owners) => owners.isEmpty
@@ -280,13 +286,15 @@ class _OwnerRequestCardState extends ConsumerState<_OwnerRequestCard> {
   bool _loading = false;
 
   Future<void> _act(bool approve) async {
+    final reason = approve ? null : await requestRejectionReason(context);
+    if (!mounted || (!approve && reason == null)) return;
     setState(() => _loading = true);
     try {
       if (approve) {
         await FirebaseService().approveUser(widget.owner.uid);
         NotificationService().notifyUserApproved(widget.owner.uid);
       } else {
-        await FirebaseService().rejectUser(widget.owner.uid);
+        await FirebaseService().rejectUser(widget.owner.uid, reason: reason!);
         NotificationService().notifyUserRejected(widget.owner.uid);
       }
       if (mounted) {

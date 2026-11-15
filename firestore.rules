@@ -1,64 +1,168 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    function callerRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '');
+    function signed() { return request.auth != null; }
+    function userPath(uid) { return /databases/$(database)/documents/users/$(uid); }
+    function genPath(gid) { return /databases/$(database)/documents/generators/$(gid); }
+    function me() { return get(userPath(request.auth.uid)).data; }
+    function gid(data) { return data.get('generatorId', null) == null || data.get('generatorId', '') == '' ? 'default' : data.generatorId; }
+    function consumer(data) { return data.get('role', '') in ['user', 'consumer']; }
+    function superAdmin() { return signed() && me().get('role', '') == 'super_admin'; }
+    function generatorAvailable(id) {
+      return (id == 'default' && !exists(genPath(id))) ||
+        (get(genPath(id)).data.status == 'approved' &&
+         get(genPath(id)).data.subscriptionStatus == 'active');
     }
-
-    function isSuperAdmin() {
-      return request.auth != null && callerRole() == 'super_admin';
+    function approved() {
+      return signed() && me().get('status', '') == 'approved' &&
+        me().get('subscriptionStatus', 'active') == 'active' && generatorAvailable(gid(me()));
     }
-
-    function isGeneratorOwner() {
-      return request.auth != null && callerRole() == 'generator_owner';
+    function owner() {
+      return approved() && me().get('role', '') in ['generator_owner', 'admin'];
     }
-
-    function isAdminLevel() {
-      return isSuperAdmin() || isGeneratorOwner();
+    function same(data) { return gid(data) == gid(me()); }
+    function member(uid, id) {
+      return exists(userPath(uid)) && gid(get(userPath(uid)).data) == id;
     }
-
+    function consumerMember(uid, id) {
+      return member(uid, id) && consumer(get(userPath(uid)).data);
+    }
+    function newTenant(data) {
+      return data.generatorId is string && data.generatorId.size() > 0 && same(data);
+    }
+    function verifiedPhone(data) {
+      return signed() && data.phone is string && data.phone.size() > 0 &&
+        data.phone == request.auth.token.get('phone_number', '');
+    }
+    function validUser(data) {
+      return data.keys().hasOnly(['name', 'phone', 'address', 'role', 'status',
+        'subscriptionStatus', 'generatorId', 'ampereLimit', 'createdAt']) &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 120 &&
+        data.createdAt is int && data.ampereLimit == 0 &&
+        data.status == 'pending' && data.generatorId is string && data.generatorId.size() > 0;
+    }
+    function canEnroll(data, uid) {
+      return signed() && request.auth.uid == uid && verifiedPhone(data) && validUser(data) &&
+        ((data.role == 'generator_owner' && data.generatorId == uid &&
+          data.subscriptionStatus == 'active' &&
+          getAfter(genPath(uid)).data.ownerUid == uid &&
+          getAfter(genPath(uid)).data.status == 'pending') ||
+         (data.role == 'user' && data.subscriptionStatus == 'inactive' && generatorAvailable(data.generatorId) &&
+          get(/databases/$(database)/documents/generatorDirectory/$(data.generatorId)).data.status == 'approved' &&
+          get(/databases/$(database)/documents/generatorDirectory/$(data.generatorId)).data.subscriptionStatus == 'active'));
+    }
     match /users/{uid} {
-      // Public read — required for demo mode to work + harmless (name/address/idNumber only)
-      allow read: if true;
-      // Only the user themselves can create their doc during registration
-      allow create: if request.auth != null && request.auth.uid == uid;
-      // Only the user, super admin, or generator owner can update
-      allow update: if request.auth != null && (
-        request.auth.uid == uid ||
-        isSuperAdmin() ||
-        isGeneratorOwner()
-      );
-      allow delete: if isSuperAdmin();
+      allow get: if signed() && (uid == request.auth.uid || superAdmin() ||
+        (owner() && consumer(resource.data) && same(resource.data)));
+      allow list: if superAdmin() || (owner() && consumer(resource.data) && same(resource.data));
+      allow create: if superAdmin() || canEnroll(request.resource.data, uid);
+      allow update: if superAdmin() ||
+        (signed() && uid == request.auth.uid &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'address', 'phone'])) ||
+        (owner() && consumer(resource.data) && same(resource.data) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'name', 'address', 'phone', 'status', 'subscriptionStatus', 'ampereLimit',
+            'rejectionReason', 'password', 'passwordUpdatedAt']) &&
+          request.resource.data.status in ['pending', 'approved', 'rejected'] &&
+          request.resource.data.subscriptionStatus in ['active', 'inactive']);
+      allow delete: if superAdmin();
     }
-
-    match /system/{doc} {
-      allow read: if true;
-      allow write: if isAdminLevel();
+    match /generators/{id} {
+      allow get: if superAdmin() || (signed() && gid(me()) == id);
+      allow list: if superAdmin();
+      allow create: if superAdmin() ||
+        (signed() && id == request.auth.uid && !exists(userPath(request.auth.uid)) &&
+          request.resource.data.keys().hasOnly(['name', 'sector', 'ownerUid', 'status',
+            'subscriptionStatus', 'rejectionReason', 'createdAt', 'isOn', 'pricePerKwh']) &&
+          request.resource.data.name is string && request.resource.data.name.size() > 0 &&
+          request.resource.data.name.size() <= 120 &&
+          request.resource.data.sector is string && request.resource.data.sector.size() > 0 &&
+          request.resource.data.sector.size() <= 120 && request.resource.data.createdAt is int &&
+          request.resource.data.ownerUid == request.auth.uid && request.resource.data.status == 'pending' &&
+          request.resource.data.subscriptionStatus == 'active' && request.resource.data.rejectionReason == '' &&
+          request.resource.data.isOn == false && request.resource.data.pricePerKwh == 2 &&
+          getAfter(userPath(request.auth.uid)).data.role == 'generator_owner' &&
+          getAfter(userPath(request.auth.uid)).data.status == 'pending' &&
+          getAfter(userPath(request.auth.uid)).data.generatorId == id);
+      allow update: if superAdmin() || (owner() && gid(me()) == id &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'isOn', 'pricePerKwh', 'lastChanged', 'lastOnAt', 'lastOffAt', 'scheduledOnAt', 'scheduledOffAt']));
+      allow delete: if superAdmin();
     }
-
-    match /bills/{billId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null;
+    match /generatorDirectory/{id} {
+      allow read: if signed();
+      allow create, update: if superAdmin() &&
+        request.resource.data.keys().hasAll(['name', 'sector', 'status', 'subscriptionStatus']) &&
+        request.resource.data.keys().hasOnly(['name', 'sector', 'status', 'subscriptionStatus']) &&
+        request.resource.data.name == getAfter(genPath(id)).data.name &&
+        request.resource.data.sector == getAfter(genPath(id)).data.sector &&
+        request.resource.data.status == getAfter(genPath(id)).data.status &&
+        request.resource.data.subscriptionStatus == getAfter(genPath(id)).data.subscriptionStatus;
+      allow delete: if superAdmin();
     }
-
-    match /consumption/{docId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+    match /system/{id} {
+      allow read: if superAdmin() || (id == 'generator' && approved() && gid(me()) == 'default');
+      allow create, update: if superAdmin() || (id == 'generator' && owner() && gid(me()) == 'default' &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'isOn', 'pricePerKwh', 'lastChanged', 'lastOnAt', 'lastOffAt', 'scheduledOnAt', 'scheduledOffAt']));
+      allow delete: if superAdmin();
     }
-
-    match /alerts/{alertId} {
-      allow read, update: if request.auth != null &&
-        (resource.data.userId == request.auth.uid || isAdminLevel());
-      allow create: if request.auth != null;
-      allow delete: if request.auth != null &&
-        resource.data.userId == request.auth.uid;
+    function own(data) { return approved() && data.userId == request.auth.uid && same(data); }
+    match /bills/{id} {
+      allow read: if superAdmin() || (owner() && same(resource.data)) || own(resource.data);
+      allow create: if superAdmin() || (owner() && newTenant(request.resource.data) &&
+        consumerMember(request.resource.data.userId, gid(me())) &&
+        request.resource.data.amount is int && request.resource.data.amount >= 0 &&
+        request.resource.data.kwh is number && request.resource.data.kwh >= 0 &&
+        request.resource.data.status == 'pending');
+      allow update: if superAdmin() || (owner() && same(resource.data) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
+        request.resource.data.status in ['paid', 'rejected', 'pending', 'pendingReview']) ||
+        (own(resource.data) && resource.data.status in ['pending', 'rejected'] &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['receiptBase64', 'status']) &&
+          request.resource.data.status == 'pendingReview' && request.resource.data.receiptBase64 is string &&
+          request.resource.data.receiptBase64.size() > 0 && request.resource.data.receiptBase64.size() < 1000000);
+      allow delete: if superAdmin();
     }
-
     match /complaints/{id} {
-      allow read, create: if request.auth != null;
-      allow update: if request.auth != null && isAdminLevel();
+      allow read: if superAdmin() || (owner() && same(resource.data)) || own(resource.data);
+      allow create: if superAdmin() || (approved() && newTenant(request.resource.data) &&
+        request.resource.data.userId == request.auth.uid && request.resource.data.status == 'open' &&
+        request.resource.data.keys().hasOnly(['generatorId', 'userId', 'userName', 'text', 'status', 'createdAt']) &&
+        request.resource.data.userName == me().name && request.resource.data.text is string &&
+        request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 4000);
+      allow update: if superAdmin() || (owner() && same(resource.data) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'reply', 'replyAt']) &&
+        request.resource.data.status in ['open', 'inProgress', 'resolved']) ||
+        (own(resource.data) && resource.data.status == 'open' &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text']) &&
+          request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 4000);
+      allow delete: if superAdmin();
+    }
+    match /consumption/{uid} {
+      allow read: if superAdmin() || (owner() && same(resource.data)) ||
+        (approved() && uid == request.auth.uid && same(resource.data));
+      allow create, update: if superAdmin() || (owner() && newTenant(request.resource.data) &&
+        uid == request.resource.data.userId && consumerMember(uid, gid(me())) &&
+        (!exists(/databases/$(database)/documents/consumption/$(uid)) || same(resource.data)) &&
+        request.resource.data.keys().hasOnly(['generatorId', 'userId', 'monthlyUsage', 'dailyUsage',
+          'month', 'updatedAt', 'weeklyUsage']) && request.resource.data.monthlyUsage is number &&
+        request.resource.data.dailyUsage is number && request.resource.data.monthlyUsage >= 0 &&
+        request.resource.data.dailyUsage >= 0);
+      allow delete: if superAdmin();
+    }
+    match /alerts/{id} {
+      allow read: if superAdmin() || (signed() && same(resource.data) && resource.data.userId == request.auth.uid) ||
+        (owner() && same(resource.data));
+      allow create: if superAdmin() || (signed() && newTenant(request.resource.data) &&
+        request.resource.data.keys().hasOnly(['generatorId', 'userId', 'title', 'body', 'type', 'read', 'createdAt']) &&
+        request.resource.data.read == false && member(request.resource.data.userId, gid(me())) &&
+        ((owner()) || (request.resource.data.userId == get(genPath(gid(me()))).data.ownerUid &&
+          ((me().status == 'pending' && request.resource.data.type == 'newConsumerRequest') ||
+           (approved() && request.resource.data.type == 'complaint')))));
+      allow update: if superAdmin() || (signed() && same(resource.data) && resource.data.userId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']) && request.resource.data.read is bool);
+      allow delete: if superAdmin() || (signed() && same(resource.data) && resource.data.userId == request.auth.uid);
     }
   }
 }

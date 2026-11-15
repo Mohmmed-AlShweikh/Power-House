@@ -56,6 +56,8 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
     _alertsSub = FirebaseFirestore.instance
         .collection('alerts')
         .where('userId', isEqualTo: uid)
+        .where('generatorId',
+            isEqualTo: ref.read(authProvider).profile?.generatorId ?? 'default')
         .snapshots()
         .listen((snapshot) {
       for (final change in snapshot.docChanges) {
@@ -1667,7 +1669,7 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
             const SizedBox(height: 16),
 
             // ID Number field with live validation
-            Text('رقم هوية المشترك',
+            Text('هوية المشترك أو هاتفه مع رمز الدولة',
                 style: Theme.of(context)
                     .textTheme
                     .bodySmall
@@ -1679,10 +1681,11 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
                 Expanded(
                   child: TextField(
                     controller: _idCtrl,
-                    keyboardType: TextInputType.number,
+                    keyboardType: TextInputType.phone,
+                    textDirection: TextDirection.ltr,
                     style: Theme.of(context).textTheme.bodyMedium,
                     decoration: InputDecoration(
-                      hintText: 'أدخل رقم الهوية',
+                      hintText: 'رقم الهوية أو +970…',
                       hintStyle: Theme.of(context)
                           .textTheme
                           .bodyMedium

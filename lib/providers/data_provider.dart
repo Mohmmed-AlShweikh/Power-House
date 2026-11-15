@@ -7,6 +7,13 @@ import '../models/bill_model.dart';
 import '../models/alert_model.dart';
 import '../models/complaint_model.dart';
 import '../models/user_model.dart';
+import 'tenant_provider.dart';
+import '../models/generator_model.dart';
+
+T settledValue<T>(AsyncValue<T> state, T fallback) =>
+    state.isLoading || state.hasError
+        ? fallback
+        : state.valueOrNull ?? fallback;
 
 Stream<T> _safelyHandlePermissionDenied<T>(Stream<T> stream, T fallbackValue) {
   return stream.transform(StreamTransformer.fromHandlers(
@@ -48,10 +55,8 @@ class GeneratorState {
 }
 
 final generatorProvider = StreamProvider<GeneratorState>((ref) {
-  final db = FirebaseFirestore.instance;
-  return db.collection('system').doc('generator').snapshots().map((s) {
-    if (!s.exists) return const GeneratorState();
-    final d = s.data()!;
+  final db = ref.watch(firestoreProvider);
+  return watchGenerator(db, ref.watch(tenantIdProvider)).map((d) {
     DateTime? parseTimestamp(dynamic value) {
       if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
       return null;
@@ -81,12 +86,7 @@ final currentPriceProvider = Provider<double>((ref) {
 // Bills — no orderBy to avoid composite index requirement; sort client-side
 final billsProvider = StreamProvider.family<List<Bill>, String>((ref, userId) {
   if (userId.isEmpty) return Stream.value(const <Bill>[]);
-  final db = FirebaseFirestore.instance;
-  return db
-      .collection('bills')
-      .where('userId', isEqualTo: userId)
-      .snapshots()
-      .map((s) {
+  return scopedQuery(ref, 'bills', userId: userId).snapshots().map((s) {
     final list = s.docs.map((d) => Bill.fromMap(d.id, d.data())).toList();
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return list;
@@ -94,9 +94,8 @@ final billsProvider = StreamProvider.family<List<Bill>, String>((ref, userId) {
 });
 
 final allBillsProvider = StreamProvider<List<Bill>>((ref) {
-  final db = FirebaseFirestore.instance;
   return _safelyHandlePermissionDenied(
-    db.collection('bills').snapshots().map((s) {
+    scopedQuery(ref, 'bills').snapshots().map((s) {
       final list = s.docs.map((d) => Bill.fromMap(d.id, d.data())).toList();
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return list;
@@ -109,12 +108,7 @@ final allBillsProvider = StreamProvider<List<Bill>>((ref) {
 final alertsProvider =
     StreamProvider.family<List<AppAlert>, String>((ref, userId) {
   if (userId.isEmpty) return Stream.value(const <AppAlert>[]);
-  final db = FirebaseFirestore.instance;
-  return db
-      .collection('alerts')
-      .where('userId', isEqualTo: userId)
-      .snapshots()
-      .map((s) {
+  return scopedQuery(ref, 'alerts', userId: userId).snapshots().map((s) {
     final list = s.docs.map((d) => AppAlert.fromMap(d.id, d.data())).toList();
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return list;
@@ -122,42 +116,45 @@ final alertsProvider =
 });
 
 // Active subscribers (generator owner view)
-// Fetches ALL users and filters 100% client-side — zero Firestore query constraints.
+// Tenant constrained on the server; role/status presentation filtering follows.
 final subscribersProvider = StreamProvider<List<UserProfile>>((ref) {
-  final db = FirebaseFirestore.instance;
-  return db.collection('users').snapshots().map((s) {
-    final list = s.docs
-        .map((d) => UserProfile.fromMap(d.id, d.data()))
-        .where((u) =>
-            u.role == UserRole.consumer &&
-            u.approvalStatus == ApprovalStatus.approved)
-        .toList();
-    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return list;
-  });
+  return scopedQuery(ref, 'users')
+      .where('role', whereIn: ['user', 'consumer'])
+      .snapshots()
+      .map((s) {
+        final list = s.docs
+            .map((d) => UserProfile.fromMap(d.id, d.data()))
+            .where((u) =>
+                u.role == UserRole.consumer &&
+                u.approvalStatus == ApprovalStatus.approved)
+            .toList();
+        list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        return list;
+      });
 });
 
 // Pending regular users (awaiting generator owner approval)
-// Fetches ALL users and filters 100% client-side — zero Firestore query constraints.
+// Tenant constrained on the server; role/status presentation filtering follows.
 final pendingUsersProvider = StreamProvider<List<UserProfile>>((ref) {
-  final db = FirebaseFirestore.instance;
-  return db.collection('users').snapshots().map((s) {
-    final list = s.docs
-        .map((d) => UserProfile.fromMap(d.id, d.data()))
-        .where((u) =>
-            u.role == UserRole.consumer &&
-            u.approvalStatus == ApprovalStatus.pending)
-        .toList();
-    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return list;
-  });
+  return scopedQuery(ref, 'users')
+      .where('role', whereIn: ['user', 'consumer'])
+      .snapshots()
+      .map((s) {
+        final list = s.docs
+            .map((d) => UserProfile.fromMap(d.id, d.data()))
+            .where((u) =>
+                u.role == UserRole.consumer &&
+                u.approvalStatus == ApprovalStatus.pending)
+            .toList();
+        list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        return list;
+      });
 });
 
 // Pending generator owners (awaiting super admin approval)
-// Fetches ALL users and filters 100% client-side — zero Firestore query constraints.
+// Tenant constrained on the server; role/status presentation filtering follows.
 final pendingGeneratorOwnersProvider = StreamProvider<List<UserProfile>>((ref) {
-  final db = FirebaseFirestore.instance;
-  return db.collection('users').snapshots().map((s) {
+  return scopedQuery(ref, 'users').snapshots().map((s) {
     final list = s.docs
         .map((d) => UserProfile.fromMap(d.id, d.data()))
         .where((u) =>
@@ -173,12 +170,7 @@ final pendingGeneratorOwnersProvider = StreamProvider<List<UserProfile>>((ref) {
 final consumerComplaintsProvider =
     StreamProvider.family<List<Complaint>, String>((ref, userId) {
   if (userId.isEmpty) return Stream.value(const <Complaint>[]);
-  final db = FirebaseFirestore.instance;
-  return db
-      .collection('complaints')
-      .where('userId', isEqualTo: userId)
-      .snapshots()
-      .map((s) {
+  return scopedQuery(ref, 'complaints', userId: userId).snapshots().map((s) {
     final list = s.docs.map((d) => Complaint.fromMap(d.id, d.data())).toList();
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return list;
@@ -187,8 +179,7 @@ final consumerComplaintsProvider =
 
 // Complaints — sort client-side to avoid index requirement
 final complaintsProvider = StreamProvider<List<Complaint>>((ref) {
-  final db = FirebaseFirestore.instance;
-  return db.collection('complaints').snapshots().map((s) {
+  return scopedQuery(ref, 'complaints').snapshots().map((s) {
     final list = s.docs.map((d) => Complaint.fromMap(d.id, d.data())).toList();
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return list;
@@ -200,10 +191,8 @@ final highlightedBillProvider = StateProvider<String?>((ref) => null);
 
 // uid → name lookup map for bills tab
 final subscribersMapProvider = StreamProvider<Map<String, String>>((ref) {
-  final db = FirebaseFirestore.instance;
   return _safelyHandlePermissionDenied(
-    db
-        .collection('users')
+    scopedQuery(ref, 'users')
         .where('role', whereIn: ['user', 'consumer'])
         .snapshots()
         .map((s) =>
@@ -288,10 +277,13 @@ class ConsumptionData {
 final consumptionProvider =
     StreamProvider.family<ConsumptionData, String>((ref, userId) {
   if (userId.isEmpty) return Stream.value(const ConsumptionData());
-  final db = FirebaseFirestore.instance;
+  final db = ref.watch(firestoreProvider);
   return db.collection('consumption').doc(userId).snapshots().map((s) {
     if (!s.exists) return const ConsumptionData();
     final d = s.data()!;
+    if (normalizedGeneratorId(d['generatorId']) != ref.read(tenantIdProvider)) {
+      throw StateError('سجل استهلاك لمولد آخر');
+    }
     return ConsumptionData(
       monthlyUsage: (d['monthlyUsage'] ?? 0).toDouble(),
       dailyUsage: (d['dailyUsage'] ?? 0).toDouble(),
@@ -438,9 +430,9 @@ List<MonthlyUsagePoint> _buildMonthlyUsagePoints(
 
 final consumptionHistoryProvider =
     Provider.family<ConsumptionHistory, String>((ref, userId) {
-  final bills = ref.watch(billsProvider(userId)).valueOrNull ?? const <Bill>[];
-  final consumption = ref.watch(consumptionProvider(userId)).valueOrNull ??
-      const ConsumptionData();
+  final bills = settledValue(ref.watch(billsProvider(userId)), const <Bill>[]);
+  final consumption = settledValue(
+      ref.watch(consumptionProvider(userId)), const ConsumptionData());
   final price = ref.watch(currentPriceProvider);
   return ConsumptionHistory(
     daily: _buildDailyUsagePoints(consumption, price),
@@ -469,9 +461,10 @@ const Color _kActivitySuccess = Color(0xFF16A34A);
 const Color _kActivityError = Color(0xFFDC2626);
 
 final recentActivitiesProvider = Provider<List<ActivityItem>>((ref) {
-  final bills = ref.watch(allBillsProvider).valueOrNull ?? [];
-  final complaints = ref.watch(complaintsProvider).valueOrNull ?? [];
-  final subscribers = ref.watch(subscribersProvider).valueOrNull ?? [];
+  final bills = settledValue(ref.watch(allBillsProvider), <Bill>[]);
+  final complaints = settledValue(ref.watch(complaintsProvider), <Complaint>[]);
+  final subscribers =
+      settledValue(ref.watch(subscribersProvider), <UserProfile>[]);
 
   final subsMap = {for (final s in subscribers) s.uid: s.name};
 

@@ -37,6 +37,8 @@ class _ConsumerShellState extends ConsumerState<ConsumerShell> {
     _alertsSub = FirebaseFirestore.instance
         .collection('alerts')
         .where('userId', isEqualTo: uid)
+        .where('generatorId',
+            isEqualTo: ref.read(authProvider).profile?.generatorId ?? 'default')
         .snapshots()
         .listen((snapshot) {
       for (final change in snapshot.docChanges) {

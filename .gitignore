@@ -43,3 +43,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Local security emulator tooling/artifacts
+/tools/rules-tests/node_modules/
+**/firebase-debug.log
+**/firestore-debug.log
+**/ui-debug.log

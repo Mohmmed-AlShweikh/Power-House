@@ -215,6 +215,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 TextButton(
                     onPressed: () => context.go('/register'),
                     child: const Text('ليس لديك حساب؟ سجّل الآن')),
+                OutlinedButton.icon(
+                    onPressed: () => context.go('/phone'),
+                    icon: const Icon(Icons.phone_outlined),
+                    label: const Text('الدخول برقم الهاتف')),
               ])),
         ]);
   }

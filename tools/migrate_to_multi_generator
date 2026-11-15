@@ -1,0 +1,141 @@
+#!/usr/bin/env python3
+"""Offline planner by default. Explicit --apply + project confirmation writes.
+Never invoked against production by automated tests or application startup.
+"""
+import argparse
+import base64
+import datetime as dt
+import json
+from pathlib import Path
+
+DEFAULT = 'default'
+OWNERS = {'generator_owner', 'admin'}
+TENANT_COLLECTIONS = {'users', 'bills', 'complaints', 'alerts', 'consumption'}
+
+def plan_backup(backup, owner_uid=None, name='المولد الافتراضي', sector='القطاع الافتراضي'):
+    docs = {row['path']: row['data'] for row in backup['documents']}
+    changes, blockers = [], []
+    owners = sorted(path.split('/')[1] for path, data in docs.items()
+                    if path.startswith('users/') and len(path.split('/')) == 2
+                    and data.get('role') in OWNERS and data.get('generatorId', DEFAULT) in (None, '', DEFAULT))
+    chosen = owner_uid or next((uid for uid in owners if docs['users/'+uid].get('status') == 'approved'), owners[0] if owners else '')
+    if not chosen or 'users/'+chosen not in docs or docs['users/'+chosen].get('role') not in OWNERS:
+        blockers.append('No valid default owner. Supply --default-owner-uid for an existing owner in this backup.')
+    gen = docs.get('generators/default')
+    if gen is None:
+        # Only operational fields from system/generator are copied; no PII.
+        source = docs.get('system/generator', {})
+        fields = {'isOn', 'pricePerKwh', 'lastChanged', 'lastOnAt', 'lastOffAt', 'scheduledOnAt', 'scheduledOffAt'}
+        approved = docs.get('users/'+chosen, {}).get('status') == 'approved'
+        gen = {key: value for key, value in source.items() if key in fields}
+        gen.update(name=name, sector=sector, ownerUid=chosen,
+                   status='approved' if approved else 'pending', subscriptionStatus='active',
+                   rejectionReason='', createdAt=int(dt.datetime.now(dt.timezone.utc).timestamp()*1000))
+        changes.append({'path':'generators/default', 'operation':'create', 'data':gen})
+    public = {key:gen[key] for key in ['name','sector','status','subscriptionStatus']}
+    if 'generatorDirectory/default' not in docs:
+        changes.append({'path':'generatorDirectory/default','operation':'create','data':public})
+    elif docs['generatorDirectory/default'] != public:
+        blockers.append('Existing default directory differs from its private projection; review manually, no automatic overwrite.')
+    for path, data in docs.items():
+        parts=path.split('/')
+        if len(parts) != 2 or parts[0] not in TENANT_COLLECTIONS: continue
+        if parts[0]=='users' and data.get('role')=='super_admin': continue
+        delta={}
+        if not data.get('generatorId'):
+            uid=data.get('userId')
+            if uid and docs.get('users/'+uid, {}).get('generatorId',DEFAULT) not in (None,'',DEFAULT):
+                blockers.append(f'{path}: missing tenant but target user has explicit non-default membership; manual review required.')
+                continue
+            delta['generatorId']=DEFAULT
+        if parts[0]=='consumption' and isinstance(data.get('weeklyUsage'),list):
+            weekly=[{**row, 'generatorId':row.get('generatorId') or data.get('generatorId') or DEFAULT} for row in data['weeklyUsage']]
+            if weekly != data['weeklyUsage']: delta['weeklyUsage']=weekly
+        if delta: changes.append({'path':path,'operation':'update','data':delta})
+    return {'defaultOwnerUid':chosen,'assumption':'Missing tenant belongs to default; explicit tenants are preserved.',
+            'blockers':blockers,'changes':changes}
+
+def encode(value):
+    if isinstance(value, dt.datetime) and hasattr(value, 'rfc3339'): return {'__firestore_type__':'timestamp','value':value.rfc3339()}
+    if isinstance(value, dt.datetime): return {'__firestore_type__':'datetime','value':value.isoformat()}
+    if isinstance(value, bytes): return {'__firestore_type__':'bytes','value':base64.b64encode(value).decode()}
+    if hasattr(value,'path'): return {'__firestore_type__':'reference','value':value.path}
+    if hasattr(value,'latitude'): return {'__firestore_type__':'geopoint','latitude':value.latitude,'longitude':value.longitude}
+    raise TypeError(type(value).__name__)
+
+def decode(value, db):
+    if isinstance(value,list): return [decode(v,db) for v in value]
+    if not isinstance(value,dict): return value
+    kind=value.get('__firestore_type__')
+    if kind=='timestamp':
+        from google.api_core.datetime_helpers import DatetimeWithNanoseconds
+        return DatetimeWithNanoseconds.from_rfc3339(value['value'])
+    if kind=='datetime': return dt.datetime.fromisoformat(value['value'])
+    if kind=='bytes': return base64.b64decode(value['value'])
+    if kind=='reference': return db.document(value['value'])
+    if kind=='geopoint':
+        from google.cloud.firestore_v1 import GeoPoint
+        return GeoPoint(value['latitude'],value['longitude'])
+    return {k:decode(v,db) for k,v in value.items()}
+
+def connect(project):
+    import firebase_admin
+    from firebase_admin import firestore
+    app=firebase_admin.initialize_app(options={'projectId':project})
+    return firestore.client(app=app)
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--backup',type=Path,help='Local typed JSON export; planning is offline')
+    parser.add_argument('--export',type=Path,help='EXPLICIT manual read-only export of every collection/subcollection')
+    parser.add_argument('--project')
+    flags=parser.add_mutually_exclusive_group()
+    flags.add_argument('--dry-run',action='store_true',help='Default: print plan; no SDK/network')
+    flags.add_argument('--apply',action='store_true')
+    parser.add_argument('--confirm-project')
+    parser.add_argument('--default-owner-uid')
+    parser.add_argument('--name',default='المولد الافتراضي')
+    parser.add_argument('--sector',default='القطاع الافتراضي')
+    args=parser.parse_args()
+    if args.export:
+        if args.apply or args.backup or not args.project: parser.error('--export requires --project and cannot combine with --apply/--backup')
+        if args.export.exists(): parser.error('Refusing to overwrite an existing backup')
+        db=connect(args.project); rows=[]
+        def visit(collection):
+            for snapshot in collection.stream():
+                rows.append({'path':snapshot.reference.path,'data':snapshot.to_dict()})
+                for child in snapshot.reference.collections(): visit(child)
+        for collection in db.collections(): visit(collection)
+        args.export.write_text(json.dumps({'projectId':args.project,'documents':rows},default=encode,ensure_ascii=False,indent=2)+'\n')
+        args.export.chmod(0o600)
+        print('Exported',len(rows),'documents. Store this backup securely; never commit it.')
+        return
+    if not args.backup: parser.error('--backup is required for offline dry-run/apply')
+    backup=json.loads(args.backup.read_text())
+    plan=plan_backup(backup,args.default_owner_uid,args.name,args.sector)
+    print(json.dumps(plan,ensure_ascii=False,indent=2))
+    if not args.apply: return
+    if not args.project or args.confirm_project != args.project or backup.get('projectId') != args.project:
+        parser.error('Apply requires --project and identical --confirm-project and backup.projectId')
+    if plan['blockers']: parser.error('Resolve plan blockers before applying')
+    db=connect(args.project)
+    originals={r['path']:decode(r['data'],db) for r in backup['documents']}
+    pending=[]
+    # Verify all affected documents before any write; preserve update preconditions.
+    for change in plan['changes']:
+        snap=db.document(change['path']).get()
+        if change['operation']=='create' and snap.exists: raise RuntimeError('Concurrent create: '+change['path'])
+        if change['operation']=='update' and (not snap.exists or snap.to_dict()!=originals[change['path']]):
+            raise RuntimeError('Changed since backup: '+change['path'])
+        pending.append((change,snap))
+    from google.cloud.firestore_v1 import LastUpdateOption
+    for offset in range(0,len(pending),400):
+        batch=db.batch()
+        for change,snap in pending[offset:offset+400]:
+            payload=decode(change['data'],db)
+            if change['operation']=='create': batch.create(snap.reference,payload)
+            else: batch.update(snap.reference,payload,option=LastUpdateOption(snap.update_time))
+        batch.commit()
+    print('Applied',len(pending),'non-destructive changes. No document/collection was deleted.')
+
+if __name__=='__main__': main()

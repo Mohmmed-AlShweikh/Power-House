@@ -1,7 +1,10 @@
+import 'generator_model.dart';
+
 enum ComplaintStatus { open, inProgress, resolved }
 
 class Complaint {
   final String id;
+  final String generatorId;
   final String userId;
   final String userName;
   final String text;
@@ -12,6 +15,7 @@ class Complaint {
 
   const Complaint({
     required this.id,
+    this.generatorId = defaultGeneratorId,
     required this.userId,
     required this.userName,
     required this.text,
@@ -24,6 +28,7 @@ class Complaint {
   factory Complaint.fromMap(String id, Map<String, dynamic> map) {
     return Complaint(
       id: id,
+      generatorId: normalizedGeneratorId(map['generatorId']),
       userId: map['userId'] ?? '',
       userName: map['userName'] ?? '',
       text: map['text'] ?? '',

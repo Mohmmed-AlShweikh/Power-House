@@ -1,0 +1,2 @@
+# Optional, manual migration/export only; not an app dependency.
+firebase-admin>=6.5,<8

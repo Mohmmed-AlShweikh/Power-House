@@ -1,3 +1,5 @@
+import 'generator_model.dart';
+
 enum UserRole { superAdmin, admin, consumer }
 
 enum SubscriptionStatus { active, inactive, pending }
@@ -6,6 +8,8 @@ enum ApprovalStatus { pending, approved, rejected }
 
 class UserProfile {
   final String uid;
+  final String? generatorId;
+  final String rejectionReason;
   final String idNumber;
   final String phone;
   final String name;
@@ -18,6 +22,8 @@ class UserProfile {
 
   const UserProfile({
     required this.uid,
+    this.generatorId = defaultGeneratorId,
+    this.rejectionReason = '',
     this.idNumber = '',
     this.phone = '',
     required this.name,
@@ -32,6 +38,10 @@ class UserProfile {
   factory UserProfile.fromMap(String uid, Map<String, dynamic> map) {
     return UserProfile(
       uid: uid,
+      generatorId: _parseRole(map['role']) == UserRole.superAdmin
+          ? null
+          : normalizedGeneratorId(map['generatorId']),
+      rejectionReason: map['rejectionReason'] as String? ?? '',
       idNumber: map['idNumber'] ?? map['phone'] ?? '',
       phone: map['phone'] ?? '',
       name: map['name'] ?? '',
@@ -45,6 +55,9 @@ class UserProfile {
   }
 
   Map<String, dynamic> toMap() => {
+        if (role != UserRole.superAdmin)
+          'generatorId': generatorId ?? defaultGeneratorId,
+        'rejectionReason': rejectionReason,
         'idNumber': idNumber,
         'phone': phone,
         'name': name,
@@ -66,6 +79,8 @@ class UserProfile {
   }) =>
       UserProfile(
         uid: uid,
+        generatorId: generatorId,
+        rejectionReason: rejectionReason,
         idNumber: idNumber,
         phone: phone ?? this.phone,
         name: name ?? this.name,

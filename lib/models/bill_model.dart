@@ -1,7 +1,10 @@
+import 'generator_model.dart';
+
 enum BillStatus { pending, pendingReview, paid, rejected }
 
 class Bill {
   final String id;
+  final String generatorId;
   final String userId;
   final String month;
   final int year;
@@ -14,6 +17,7 @@ class Bill {
 
   const Bill({
     required this.id,
+    this.generatorId = defaultGeneratorId,
     required this.userId,
     required this.month,
     required this.year,
@@ -29,6 +33,7 @@ class Bill {
     final weekValue = map['weekNumber'];
     return Bill(
       id: id,
+      generatorId: normalizedGeneratorId(map['generatorId']),
       userId: map['userId'] ?? '',
       month: map['month'] ?? '',
       year: map['year'] ?? 2024,
@@ -45,6 +50,7 @@ class Bill {
 
   Map<String, dynamic> toMap() {
     final data = {
+      'generatorId': generatorId,
       'userId': userId,
       'month': month,
       'year': year,

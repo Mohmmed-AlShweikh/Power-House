@@ -8,29 +8,44 @@ String? authRedirect({
   required bool loading,
   required bool loggedIn,
   required UserProfile? profile,
+  bool needsRegistration = false,
+  bool tenantLoading = false,
+  bool tenantAvailable = true,
+  bool accountError = false,
 }) {
   if (!startupResolved || (loggedIn && profile == null && loading)) {
     return path == '/splash' ? null : '/splash';
   }
+  if (loggedIn && needsRegistration) {
+    return path == '/onboarding' ? null : '/onboarding';
+  }
+  if (loggedIn && accountError) {
+    return path == '/account-status' ? null : '/account-status';
+  }
   if (loggedIn && profile != null) {
+    if (profile.role != UserRole.superAdmin) {
+      if (profile.approvalStatus != ApprovalStatus.approved ||
+          profile.subscriptionStatus != SubscriptionStatus.active) {
+        return path == '/account-status' ? null : '/account-status';
+      }
+      if (tenantLoading) return path == '/splash' ? null : '/splash';
+      if (!tenantAvailable) {
+        return path == '/account-status' ? null : '/account-status';
+      }
+    }
     final correctPath = switch (profile.role) {
       UserRole.superAdmin => '/super_admin',
       UserRole.admin => '/admin',
       UserRole.consumer => '/consumer',
     };
-    if (path == '/splash' || path == '/login' || path == '/register') {
-      return correctPath;
-    }
-    if (profile.role == UserRole.superAdmin && path != '/super_admin') {
-      return '/super_admin';
-    }
-    if (profile.role == UserRole.admin && path == '/consumer') {
-      return '/admin';
-    }
-    if (profile.role == UserRole.consumer && path == '/admin') {
-      return '/consumer';
-    }
-  } else if (!loading && path != '/login' && path != '/register') {
+    final allowed = profile.role == UserRole.superAdmin
+        ? <String>{'/super_admin', '/generator-requests'}
+        : <String>{correctPath};
+    return allowed.contains(path) ? null : correctPath;
+  } else if (!loading &&
+      path != '/login' &&
+      path != '/register' &&
+      path != '/phone') {
     return '/login';
   }
   return null;

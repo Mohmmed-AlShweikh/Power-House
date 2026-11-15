@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
 import '../services/notification_service.dart';
-import '../services/firebase_service.dart';
+import '../services/tenant_store.dart';
 
 class AuthState {
   final User? user;
@@ -12,6 +12,7 @@ class AuthState {
   final bool loading;
   // Remains false until the first auth event and profile check finish.
   final bool startupResolved;
+  final bool needsRegistration;
   final bool isDemo;
   final String? error;
 
@@ -20,23 +21,26 @@ class AuthState {
     this.profile,
     this.loading = true,
     this.startupResolved = false,
+    this.needsRegistration = false,
     this.isDemo = false,
     this.error,
   });
 
   AuthState copyWith({
-    User? user,
-    UserProfile? profile,
+    Object? user = const _Sentinel(),
+    Object? profile = const _Sentinel(),
     bool? loading,
     bool? startupResolved,
+    bool? needsRegistration,
     bool? isDemo,
     Object? error = const _Sentinel(),
   }) =>
       AuthState(
-        user: user ?? this.user,
-        profile: profile ?? this.profile,
+        user: user is _Sentinel ? this.user : user as User?,
+        profile: profile is _Sentinel ? this.profile : profile as UserProfile?,
         loading: loading ?? this.loading,
         startupResolved: startupResolved ?? this.startupResolved,
+        needsRegistration: needsRegistration ?? this.needsRegistration,
         isDemo: isDemo ?? this.isDemo,
         error: error is _Sentinel ? this.error : error as String?,
       );
@@ -97,13 +101,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final _db = FirebaseFirestore.instance;
   StreamSubscription? _authSub;
   StreamSubscription? _profileSub;
-  bool _seeding = false;
-  bool _registering = false;
 
   static String _toEmail(String id) => '${id.trim()}@powershare.app';
-
-  static const _superAdminId = '1234567890';
-  static const _superAdminPass = 'Admin@2024!';
 
   void _init() async {
     // Timeout safety net
@@ -111,23 +110,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (state.loading) state = state.copyWith(loading: false);
     });
 
-    // Seed super admin account then start listener
-    _seeding = true;
-    await _seedSuperAdmin();
-    _seeding = false;
-
+    // Privileged accounts are provisioned only by a trusted administrator.
     _authSub = _auth.authStateChanges().listen((u) async {
-      if (_seeding || _registering) return;
       if (u == null) {
         state = state.copyWith(
             user: null,
             profile: null,
             loading: false,
             startupResolved: true,
+            needsRegistration: false,
             error: const _Sentinel());
         return;
       }
-      state = state.copyWith(user: u, loading: true);
+      state = state.copyWith(
+          user: u,
+          profile: null,
+          loading: true,
+          startupResolved: false,
+          needsRegistration: false);
       await _loadAndCheckProfile(u.uid);
       if (mounted) state = state.copyWith(startupResolved: true);
     }, onError: (_) {
@@ -135,106 +135,37 @@ class AuthNotifier extends StateNotifier<AuthState> {
     });
   }
 
-  Future<void> _seedSuperAdmin() async {
-    try {
-      // Check if already in Firestore
-      final q = await _db
-          .collection('users')
-          .where('role', isEqualTo: 'super_admin')
-          .limit(1)
-          .get()
-          .timeout(const Duration(seconds: 4));
-
-      if (q.docs.isNotEmpty) return; // already seeded
-
-      // Try to create the Firebase Auth account
-      try {
-        final cred = await _auth.createUserWithEmailAndPassword(
-          email: _toEmail(_superAdminId),
-          password: _superAdminPass,
-        );
-        await _db.collection('users').doc(cred.user!.uid).set({
-          'idNumber': _superAdminId,
-          'name': 'المشرف العام',
-          'address': '',
-          'role': 'super_admin',
-          'status': 'approved',
-          'subscriptionStatus': 'active',
-          'ampereLimit': 0,
-          'createdAt': DateTime.now().millisecondsSinceEpoch,
-        });
-        await _auth.signOut();
-      } on FirebaseAuthException catch (e) {
-        if (e.code == 'email-already-in-use') {
-          // Auth exists but Firestore doc missing — sign in, fix, sign out
-          try {
-            final c = await _auth.signInWithEmailAndPassword(
-              email: _toEmail(_superAdminId),
-              password: _superAdminPass,
-            );
-            await _db.collection('users').doc(c.user!.uid).set({
-              'idNumber': _superAdminId,
-              'name': 'المشرف العام',
-              'address': '',
-              'role': 'super_admin',
-              'status': 'approved',
-              'subscriptionStatus': 'active',
-              'ampereLimit': 0,
-              'createdAt': DateTime.now().millisecondsSinceEpoch,
-            }, SetOptions(merge: true));
-            await _auth.signOut();
-          } catch (_) {}
-        }
-      }
-    } catch (_) {
-      // Network or permissions issue — continue without seed
-    }
-  }
-
   Future<void> _loadAndCheckProfile(String uid) async {
-    _profileSub?.cancel();
-    try {
-      final doc = await _db.collection('users').doc(uid).get();
+    await _profileSub?.cancel();
+    void apply(DocumentSnapshot<Map<String, dynamic>> doc) {
+      if (!mounted || _auth.currentUser?.uid != uid) return;
       if (!doc.exists) {
-        await _auth.signOut();
         state = state.copyWith(
-            user: null,
-            profile: null,
-            loading: false,
-            error: 'الحساب غير موجود في النظام. تواصل مع المشرف.');
+            profile: null, needsRegistration: true, loading: false);
         return;
       }
-      final p = UserProfile.fromMap(uid, doc.data()!);
-      switch (p.approvalStatus) {
-        case ApprovalStatus.pending:
-          await _auth.signOut();
-          final msg = p.role == UserRole.admin
-              ? 'طلبك قيد المراجعة من قِبل المشرف العام.'
-              : 'طلبك قيد المراجعة من قِبل صاحب المولد.';
+      state = state.copyWith(
+          profile: UserProfile.fromMap(uid, doc.data()!),
+          needsRegistration: false,
+          loading: false,
+          error: null);
+    }
+
+    try {
+      apply(await _db.collection('users').doc(uid).get());
+      if (!mounted || _auth.currentUser?.uid != uid) return;
+      _profileSub = _db.collection('users').doc(uid).snapshots().listen(apply,
+          onError: (_) {
+        if (mounted) {
           state = state.copyWith(
-              user: null, profile: null, loading: false, error: msg);
-          break;
-        case ApprovalStatus.rejected:
-          await _auth.signOut();
-          state = state.copyWith(
-              user: null,
-              profile: null,
-              loading: false,
-              error: 'تم رفض طلبك من قِبل المشرف. تواصل معه للمزيد.');
-          break;
-        case ApprovalStatus.approved:
-          state = state.copyWith(profile: p, loading: false);
-          _profileSub =
-              _db.collection('users').doc(uid).snapshots().listen((s) {
-            if (s.exists) {
-              state =
-                  state.copyWith(profile: UserProfile.fromMap(uid, s.data()!));
-            }
-          });
-          break;
-      }
+              loading: false, error: 'تعذّر تحميل الحساب. حاول مجدداً.');
+        }
+      });
     } catch (_) {
-      state = state.copyWith(loading: false);
+      if (mounted) {
+        state = state.copyWith(
+            loading: false, error: 'تعذّر تحميل الحساب. حاول مجدداً.');
+      }
     }
   }
 
@@ -264,6 +195,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Admin resets a user's password and sends them a notification.
   Future<String?> adminResetPassword(String uid, String newPassword) async {
     try {
+      await TenantStore(_db, () => _auth.currentUser?.uid)
+          .checkedDocument('users', uid);
       await _db.collection('users').doc(uid).update({
         'password': newPassword,
         'passwordUpdatedAt': DateTime.now().millisecondsSinceEpoch,
@@ -276,53 +209,32 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Returns null on success, Arabic error message on failure.
-  Future<String?> register({
-    required String idNumber,
-    required String name,
-    required String address,
-    required String password,
-    required UserRole role,
-  }) async {
-    _registering = true;
-    state = state.copyWith(loading: true, error: null);
-    try {
-      final cred = await _auth.createUserWithEmailAndPassword(
-        email: _toEmail(idNumber),
-        password: password,
-      );
-      final uid = cred.user!.uid;
-      final firestoreRole = role == UserRole.admin ? 'generator_owner' : 'user';
-      await _db.collection('users').doc(uid).set({
-        'idNumber': idNumber,
-        'name': name,
-        'address': address,
-        'role': firestoreRole,
-        'status': 'pending',
-        'subscriptionStatus': 'inactive',
-        'ampereLimit': 0,
-        'createdAt': DateTime.now().millisecondsSinceEpoch,
-      });
-      await _auth.signOut();
-      // Send registration notification
-      if (role == UserRole.admin) {
-        NotificationService().notifySuperAdminNewOwner();
-      } else {
-        NotificationService().notifyAllAdminsNewConsumer();
-      }
-      state = state.copyWith(loading: false, error: null);
-      _registering = false;
-      return null;
-    } on FirebaseAuthException catch (e) {
-      final msg = _friendlyError(e.code);
-      state = state.copyWith(loading: false, error: msg);
-      _registering = false;
-      return msg;
-    } catch (_) {
-      const msg = 'تعذّر إنشاء الحساب. حاول مجدداً.';
-      state = state.copyWith(loading: false, error: msg);
-      _registering = false;
-      return msg;
+  Future<String?> register(
+          {required String idNumber,
+          required String name,
+          required String address,
+          required String password,
+          required UserRole role}) async =>
+      'يلزم التحقق من رقم الهاتف لإنشاء حساب جديد';
+
+  Future<void> enrollOwner(String name, String sector) async {
+    final user = _auth.currentUser;
+    if (user == null || user.phoneNumber == null) {
+      throw StateError('تحقق من الهاتف أولاً');
     }
+    await TenantStore(_db, () => user.uid).enrollOwner(
+        uid: user.uid, phone: user.phoneNumber!, name: name, sector: sector);
+    await _loadAndCheckProfile(user.uid);
+  }
+
+  Future<void> enrollConsumer(String name, String gid) async {
+    final user = _auth.currentUser;
+    if (user == null || user.phoneNumber == null) {
+      throw StateError('تحقق من الهاتف أولاً');
+    }
+    await TenantStore(_db, () => user.uid).enrollConsumer(
+        uid: user.uid, phone: user.phoneNumber!, name: name, generatorId: gid);
+    await _loadAndCheckProfile(user.uid);
   }
 
   Future<void> demoLogin(UserRole role) async {
@@ -362,7 +274,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> signOut() async {
     _profileSub?.cancel();
     if (!state.isDemo) await _auth.signOut();
-    state = const AuthState(loading: false);
+    state = const AuthState(loading: false, startupResolved: true);
+  }
+
+  Future<void> reloadProfile() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid != null) await _loadAndCheckProfile(uid);
   }
 
   void clearError() => state = state.copyWith(error: null);

@@ -1,130 +1,87 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'tenant_store.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
-  NotificationService._internal();
+  NotificationService._internal()
+      : _db = FirebaseFirestore.instance,
+        _uid = (() => FirebaseAuth.instance.currentUser?.uid);
+  NotificationService.forTesting(this._db, this._uid);
+  final FirebaseFirestore _db;
+  final String? Function() _uid;
+  TenantStore get _store => TenantStore(_db, _uid);
 
-  final _db = FirebaseFirestore.instance;
-
-  Future<void> addAlert({
-    required String userId,
-    required String title,
-    required String body,
-    required String type,
-  }) async {
-    try {
-      await _db.collection('alerts').add({
-        'userId': userId,
-        'title': title,
-        'body': body,
-        'type': type,
-        'read': false,
-        'createdAt': DateTime.now().millisecondsSinceEpoch,
-      });
-    } catch (_) {}
+  Future<void> addAlert(
+      {required String userId,
+      required String title,
+      required String body,
+      required String type}) async {
+    final who = await _store.actor();
+    final gid =
+        who.superAdmin ? await _store.targetGenerator(userId) : who.generatorId;
+    await _db.collection('alerts').add({
+      'generatorId': gid,
+      'userId': userId,
+      'title': title,
+      'body': body,
+      'type': type,
+      'read': false,
+      'createdAt': DateTime.now().millisecondsSinceEpoch
+    });
   }
 
-  Future<void> notifySuperAdminNewOwner() async {
-    try {
-      final snap = await _db
-          .collection('users')
-          .where('role', isEqualTo: 'super_admin')
-          .limit(1)
-          .get();
-      if (snap.docs.isEmpty) return;
-      final uid = snap.docs.first.id;
-      await addAlert(
-        userId: uid,
-        title: 'طلب تسجيل جديد',
-        body: 'قام صاحب مولد جديد بتقديم طلب انضمام، يرجى المراجعة.',
-        type: 'newOwnerRequest',
-      );
-    } catch (_) {}
+  // Super-admin's real-time generator request list is the private request inbox.
+  // Pending owners must never enumerate super-admin or other users' profiles.
+  Future<void> notifySuperAdminNewOwner() async {}
+
+  Future<void> _notifyOwner(String title, String body, String type) async {
+    final who = await _store.actor();
+    final generator =
+        await _db.collection('generators').doc(who.generatorId).get();
+    final uid = generator.data()?['ownerUid'] as String?;
+    if (uid == null || uid.isEmpty) return;
+    await addAlert(userId: uid, title: title, body: body, type: type);
   }
 
-  Future<void> notifyAllAdminsNewConsumer() async {
-    try {
-      final snap = await _db
-          .collection('users')
-          .where('role', isEqualTo: 'generator_owner')
-          .where('status', isEqualTo: 'approved')
-          .get();
-      for (final doc in snap.docs) {
-        await addAlert(
-          userId: doc.id,
-          title: 'طلب انضمام جديد',
-          body: 'قام مستخدم جديد بتقديم طلب انضمام لمولدك، يرجى المراجعة.',
-          type: 'newConsumerRequest',
-        );
-      }
-    } catch (_) {}
-  }
-
-  Future<void> notifyUserApproved(String uid) async {
-    await addAlert(
+  Future<void> notifyAllAdminsNewConsumer() => _notifyOwner(
+      'طلب انضمام جديد',
+      'قام مستخدم جديد بتقديم طلب انضمام لمولدك، يرجى المراجعة.',
+      'newConsumerRequest');
+  Future<void> notifyAdminNewComplaint(String consumerName) => _notifyOwner(
+      'شكوى جديدة 📢',
+      'قام $consumerName بتقديم شكوى جديدة، يرجى المراجعة.',
+      'complaint');
+  Future<void> notifyUserApproved(String uid) => addAlert(
       userId: uid,
       title: 'تم قبول طلبك 🎉',
-      body: 'تهانينا! تم تفعيل حسابك بنجاح. يمكنك الآن تسجيل الدخول إلى التطبيق.',
-      type: 'requestApproved',
-    );
-  }
-
-  Future<void> notifyUserRejected(String uid) async {
-    await addAlert(
+      body: 'تم تفعيل حسابك بنجاح.',
+      type: 'requestApproved');
+  Future<void> notifyUserRejected(String uid) => addAlert(
       userId: uid,
       title: 'تحديث بشأن طلبك',
-      body: 'نعتذر منك، لم يتم الموافقة على طلب انضمامك للتطبيق.',
-      type: 'requestRejected',
-    );
-  }
-
-  Future<void> notifyPasswordReset(String uid) async {
-    await addAlert(
+      body: 'لم تتم الموافقة على طلب انضمامك.',
+      type: 'requestRejected');
+  Future<void> notifyPasswordReset(String uid) => addAlert(
       userId: uid,
       title: 'تم تغيير كلمة المرور',
-      body: 'تم تعديل كلمة المرور الخاصة بحسابك. إذا لم تكن أنت من قام بذلك، يرجى التواصل مع الدعم.',
-      type: 'passwordReset',
-    );
-  }
+      body: 'تم تعديل كلمة المرور الخاصة بحسابك.',
+      type: 'passwordReset');
 
-  // Notify all generator owners when a consumer submits a new complaint
-  Future<void> notifyAdminNewComplaint(String consumerName) async {
-    try {
-      final snap = await _db
-          .collection('users')
-          .where('role', isEqualTo: 'generator_owner')
-          .where('status', isEqualTo: 'approved')
-          .get();
-      for (final doc in snap.docs) {
-        await addAlert(
-          userId: doc.id,
-          title: 'شكوى جديدة 📢',
-          body: 'قام $consumerName بتقديم شكوى جديدة، يرجى المراجعة.',
-          type: 'complaint',
-        );
-      }
-    } catch (_) {}
-  }
-
-  // Notify all users when generator state changes
   Future<void> notifyAllUsersGeneratorState(bool isOn) async {
-    try {
-      final snap = await _db
-          .collection('users')
-          .where('role', isEqualTo: 'consumer')
-          .where('status', isEqualTo: 'approved')
-          .get();
-      for (final doc in snap.docs) {
-        await addAlert(
-          userId: doc.id,
+    final snap = await (await _store.query('users'))
+        .where('role', whereIn: ['user', 'consumer'])
+        .where('status', isEqualTo: 'approved')
+        .get();
+    for (final user in snap.docs) {
+      await addAlert(
+          userId: user.id,
           title: isOn ? 'تشغيل المولد ✅' : 'إيقاف المولد ⚠️',
           body: isOn
               ? 'تم تشغيل المولد. التيار الكهربائي متوفر الآن.'
               : 'تم إيقاف المولد مؤقتاً. التيار الكهربائي مقطوع حالياً.',
-          type: isOn ? 'generatorOn' : 'generatorOff',
-        );
-      }
-    } catch (_) {}
+          type: isOn ? 'generatorOn' : 'generatorOff');
+    }
   }
 }
