@@ -1,0 +1,5 @@
+Base: c03b05a05d92942b52bfcf44767095292110e13d (fix/auth-startup-flash)
+App source changed: lib/views/screens/admin/admin_screen.dart only.
+No services/models/providers/Firestore schema/rules/auth/dependency changes.
+Analyzer before/after: 0 errors, 18 inherited warnings, 21 infos; no new issues.
+54 tests passed; only the unchanged legacy Counter increments smoke test fails.

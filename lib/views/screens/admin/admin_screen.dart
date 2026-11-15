@@ -27,9 +27,17 @@ class AdminScreen extends ConsumerStatefulWidget {
   ConsumerState<AdminScreen> createState() => _AdminScreenState();
 }
 
-class _AdminScreenState extends ConsumerState<AdminScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabs;
+class _AdminScreenState extends ConsumerState<AdminScreen> {
+  int _index = 0;
+  final _visited = <int>{0};
+
+  void _selectTab(int index) {
+    setState(() {
+      _index = index;
+      _visited.add(index);
+    });
+  }
+
   bool _moreVisible = false;
   bool _generatorOn = true;
   StreamSubscription<QuerySnapshot>? _alertsSub;
@@ -39,7 +47,6 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 6, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _startListening());
   }
 
@@ -72,13 +79,12 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
   @override
   void dispose() {
     _alertsSub?.cancel();
-    _tabs.dispose();
     super.dispose();
   }
 
   void _jumpToBillsTab(String billId) {
     ref.read(highlightedBillProvider.notifier).state = billId;
-    _tabs.animateTo(3);
+    _selectTab(3);
   }
 
   Future<void> _showMore(BuildContext context) async {
@@ -113,14 +119,14 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
                               title: const Text('الطلبات'),
                               onTap: () {
                                 Navigator.pop(sheetContext);
-                                _tabs.animateTo(1);
+                                _selectTab(1);
                               }),
                           ListTile(
                               leading: const Icon(Icons.person_outline),
                               title: const Text('ملفي'),
                               onTap: () {
                                 Navigator.pop(sheetContext);
-                                _tabs.animateTo(5);
+                                _selectTab(5);
                               }),
                           ListTile(
                               leading: const Icon(Icons.tune_outlined),
@@ -165,7 +171,6 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    Widget existingAppearance(Widget child) => child;
     return Theme(
         data: buildPortalTheme(theme.brightness),
         child: Builder(builder: (context) {
@@ -173,60 +178,73 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
           return Scaffold(
               body: Stack(children: [
             Column(children: [
-              AnimatedBuilder(
-                  animation: _tabs,
-                  builder: (_, __) => PortalIdentityBar(
-                      title: [
-                        'نظرة عامة',
-                        'الطلبات',
-                        'المشتركون',
-                        'الفواتير',
-                        'الشكاوى',
-                        'ملفي'
-                      ][_tabs.index],
-                      subtitle: profile != null && profile.name.isNotEmpty
-                          ? profile.name
-                          : 'مولد حي البيرة')),
+              PortalIdentityBar(
+                  title: [
+                    'نظرة عامة',
+                    'الطلبات',
+                    'المشتركون',
+                    'الفواتير',
+                    'الشكاوى',
+                    'ملفي'
+                  ][_index],
+                  subtitle: profile != null && profile.name.isNotEmpty
+                      ? profile.name
+                      : 'مولد حي البيرة'),
               Expanded(
-                  child: TabBarView(controller: _tabs, children: [
-                _DashboardTab(onToggle: (v) async {
-                  await FirebaseService().toggleGenerator(v);
-                  await NotificationService().notifyAllUsersGeneratorState(v);
-                }),
-                existingAppearance(const _PendingUsersTab()),
-                existingAppearance(
-                    _SubscribersTab(onJumpToBill: _jumpToBillsTab)),
-                existingAppearance(const _BillsTab()),
-                existingAppearance(const _ComplaintsTab()),
-                existingAppearance(const _AdminProfileTab()),
-              ])),
+                  child: IndexedStack(
+                      key: const ValueKey('admin-pages'),
+                      index: _index,
+                      children: [
+                        _DashboardTab(onToggle: (v) async {
+                          await FirebaseService().toggleGenerator(v);
+                          await NotificationService()
+                              .notifyAllUsersGeneratorState(v);
+                        }),
+                        _visited.contains(1)
+                            ? const _PendingUsersTab()
+                            : const SizedBox.shrink(),
+                        _visited.contains(2)
+                            ? _SubscribersTab(onJumpToBill: _jumpToBillsTab)
+                            : const SizedBox.shrink(),
+                        _visited.contains(3)
+                            ? const _BillsTab()
+                            : const SizedBox.shrink(),
+                        _visited.contains(4)
+                            ? const _ComplaintsTab()
+                            : const SizedBox.shrink(),
+                        _visited.contains(5)
+                            ? const _AdminProfileTab()
+                            : const SizedBox.shrink(),
+                      ]
+                          .asMap()
+                          .entries
+                          .map((entry) => TickerMode(
+                                enabled: entry.key == _index,
+                                child: entry.value,
+                              ))
+                          .toList())),
             ]),
             PositionedDirectional(
                 start: 0,
                 end: 0,
                 bottom: MediaQuery.paddingOf(context).bottom,
-                child: AnimatedBuilder(
-                    animation: _tabs,
-                    builder: (_, __) {
-                      final selected = _moreVisible
-                          ? 4
-                          : switch (_tabs.index) {
-                              0 => 0,
-                              2 => 1,
-                              3 => 2,
-                              4 => 3,
-                              _ => 4
-                            };
-                      return PortalFloatingNavigation(
-                          items: adminNavItems,
-                          selected: selected,
-                          onSelected: (i) {
-                            if (i == 4) {
-                              _showMore(context);
-                            } else {
-                              _tabs.animateTo([0, 2, 3, 4][i]);
-                            }
-                          });
+                child: PortalFloatingNavigation(
+                    items: adminNavItems,
+                    selected: _moreVisible
+                        ? 4
+                        : switch (_index) {
+                            0 => 0,
+                            2 => 1,
+                            3 => 2,
+                            4 => 3,
+                            _ => 4,
+                          },
+                    onSelected: (i) {
+                      if (i == 4) {
+                        _showMore(context);
+                      } else {
+                        _selectTab([0, 2, 3, 4][i]);
+                      }
                     })),
           ]));
         }));

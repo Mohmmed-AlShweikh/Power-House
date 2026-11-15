@@ -1,0 +1,13 @@
+# Task 4: synchronize main-tab navigation
+
+Branch `fix/tab-swipe`, created from `fix/auth-startup-flash` at c03b05a. This branch intentionally does not merge the separate visual/keyboard branch.
+
+Cause: the admin had a swipeable TabBarView with six logical indices, but five bottom items. During a drag, TabController.index and the visually dominant page can differ until the swipe settles; animateTo changes the selected index before the page animation finishes. RTL reverses the physical swipe direction, while the intermediate requests page is in the six-page order but belongs under More in the five-item bar. ConsumerShell already uses IndexedStack and has no page swipe behavior.
+
+Admin now uses one integer index for its IndexedStack, title and bottom selection. No PageView/TabBarView/swipe recognizer remains, so NeverScrollableScrollPhysics is unnecessary. Vertical lists and horizontal filter/chart scrolling remain usable. Pages are built on first visit and retained thereafter; inactive page tickers are disabled. More remains the same modal menu, requests/profile map to its bottom item, cancelling restores the previous selection, and settings/theme/return retain the current page. Subscriber bill shortcuts select the same bill destination and preserve the existing highlight provider write. No existing destination/action was removed.
+
+Six widget tests cover both themes and RTL drags in both directions on every consumer/admin destination, visible page bounds/type, index/title/selection, all More items, back dismissal, requests/profile, settings/theme return, retained subscriber search and bill filter, lazy creation and the subscriber-to-bill shortcut. No production Firebase operations occur. The full run passes 54 tests (37 redesign + 11 auth startup + 6 navigation); the sole failure remains the unchanged legacy Counter increments smoke test. Analyzer stays at 0 errors, 18 inherited warnings and 21 infos with no new diagnostics.
+
+Admin state goldens were refreshed for the new deterministic navigation timing: loading spinner frames differ, error stack-trace line numbers shift, and pending-request empty/error now capture the resolved state rather than an intermediate loading frame. The references were then compared again without updating and passed. No tolerance was added.
+
+Assumptions: More is a menu, not an additional new page; existing tab-level Back behavior is preserved. Consumer source needs no change because it already uses IndexedStack. Widget tests were run; no Android emulator/physical swipe test was available. No services, models, providers, auth, rules, Firestore schema or dependency changes.
