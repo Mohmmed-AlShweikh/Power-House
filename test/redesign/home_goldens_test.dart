@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' as ui;
+import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -89,7 +91,57 @@ void main() {
                         scheduledOnAt: DateTime(2026, 1, 1, 8),
                         scheduledOffAt: DateTime(2026, 1, 1, 20),
                       ))),
-              billsProvider('').overrideWith((ref) => Stream.value([bill])),
+              billsProvider('')
+                  .overrideWith((ref) => Stream.value(role == UserRole.admin
+                      ? [bill]
+                      : [
+                          bill,
+                          Bill(
+                              id: 'review',
+                              userId: '',
+                              month: 'أكتوبر',
+                              year: 2025,
+                              amount: 310,
+                              kwh: 155,
+                              status: BillStatus.pendingReview,
+                              createdAt: now),
+                          Bill(
+                              id: 'rejected',
+                              userId: '',
+                              month: 'سبتمبر',
+                              year: 2025,
+                              amount: 246,
+                              kwh: 123,
+                              status: BillStatus.rejected,
+                              createdAt: now),
+                          Bill(
+                              id: 'paid',
+                              userId: '',
+                              month: 'أغسطس',
+                              year: 2025,
+                              amount: 268,
+                              kwh: 134,
+                              status: BillStatus.paid,
+                              createdAt: now),
+                        ])),
+              consumerComplaintsProvider('')
+                  .overrideWith((ref) => Stream.value([
+                        Complaint(
+                            id: 'complaint',
+                            userId: '',
+                            userName: 'محمد أحمد',
+                            text: 'أرجو مراجعة انقطاع التشغيل مساء أمس.',
+                            status: ComplaintStatus.resolved,
+                            createdAt: DateTime(2026, 11, 12),
+                            reply: 'تمت مراجعة الشكوى وإعادة التشغيل.'),
+                        Complaint(
+                            id: 'open',
+                            userId: '',
+                            userName: 'محمد أحمد',
+                            text: 'استفسار عن قراءة الاستهلاك هذا الشهر.',
+                            status: ComplaintStatus.open,
+                            createdAt: DateTime(2026, 11, 14)),
+                      ])),
               alertsProvider('').overrideWith((ref) => Stream.value([
                     AppAlert(
                         id: 'fixture',
@@ -180,8 +232,34 @@ void main() {
           }
         }
 
+        Future<void> capture(String surface) async {
+          auditText();
+          await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
+          expect(tester.takeException(), isNull);
+          await expectLater(
+              find.byKey(const ValueKey('golden')),
+              matchesGoldenFile(
+                  '../../screenshots/redesign/consumer/${surface}_${brightness.name}.png'));
+        }
+
+        Future<void> zoom(String key, String surface) async {
+          final boundary = tester
+              .renderObject<RenderRepaintBoundary>(find.byKey(ValueKey(key)));
+          await tester.runAsync(() async {
+            final img = await boundary.toImage(pixelRatio: 3);
+            final bytes = await img.toByteData(format: ui.ImageByteFormat.png);
+            final dir = Directory('screenshots/redesign/details')
+              ..createSync(recursive: true);
+            File('${dir.path}/${surface}_${brightness.name}.png')
+                .writeAsBytesSync(bytes!.buffer.asUint8List());
+            img.dispose();
+          });
+        }
+
         auditText();
         if (role == UserRole.admin) {
+          await zoom('generator-switch-zoom', 'admin_switch');
+          await zoom('generator-price-zoom', 'admin_price');
           for (final label in [
             'المشتركون',
             'الفواتير',
@@ -216,6 +294,61 @@ void main() {
           await tester.tap(find.byKey(const ValueKey('nav-الملف')));
           await tester.pumpAndSettle();
           expect(find.text('تسجيل الخروج'), findsWidgets);
+          await capture('profile');
+          for (final item in [
+            ('تعديل البيانات', 'edit_profile'),
+            ('إرسال شكوى', 'complaint'),
+            ('شكاواي', 'complaints')
+          ]) {
+            await tester.ensureVisible(find.text(item.$1).first);
+            await tester.tap(find.text(item.$1).first);
+            await tester.pumpAndSettle();
+            await capture(item.$2);
+            if (item.$2 == 'complaint') {
+              // Existing empty validation only; never submit a complaint or hit Firebase.
+              await tester
+                  .tap(find.widgetWithText(ElevatedButton, 'إرسال الشكوى'));
+              await tester.pumpAndSettle();
+              expect(find.text('يرجى كتابة نص الشكوى'), findsOneWidget);
+              await capture('complaint_validation');
+            }
+            await tester.tap(find.byIcon(Icons.close).last);
+            await tester.pumpAndSettle();
+          }
+          for (final item in [('الفواتير', 'bills'), ('الاستهلاك', 'usage')]) {
+            await tester.tap(find.byKey(ValueKey('nav-${item.$1}')));
+            await tester.pumpAndSettle();
+            await capture(item.$2);
+            if (item.$2 == 'bills') {
+              await tester.tap(find.text('ارسال وصل').first);
+              await tester.pumpAndSettle();
+              expect(find.text('اختر صورة أولاً'), findsOneWidget);
+              await capture('upload_receipt');
+              await tester.tap(find.byIcon(Icons.close).last);
+              await tester.pumpAndSettle();
+              // Rejected bill retains the original receipt action too.
+              await tester.tap(find.text('تم رفض الوصل').first);
+              await tester.pumpAndSettle();
+              expect(find.text('اختر صورة أولاً'), findsOneWidget);
+              await tester.tap(find.byIcon(Icons.close).last);
+              await tester.pumpAndSettle();
+            } else {
+              for (final period in [
+                ('يومي', 'usage_daily'),
+                ('أسبوعي', 'usage_weekly')
+              ]) {
+                await tester.tap(find.text(period.$1));
+                await tester.pumpAndSettle();
+                await capture(period.$2);
+              }
+            }
+          }
+          await tester.tap(find.byTooltip('الإشعارات').first);
+          await tester.pumpAndSettle();
+          expect(find.text('مسح الكل'), findsOneWidget);
+          await capture('notifications');
+          Navigator.of(tester.element(find.text('مسح الكل'))).pop();
+          await tester.pumpAndSettle();
           await tester.tap(find.byKey(const ValueKey('nav-الرئيسية')));
           await tester.pumpAndSettle();
         }

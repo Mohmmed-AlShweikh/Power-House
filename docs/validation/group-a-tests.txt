@@ -1,0 +1,27 @@
+00:00 +0: loading /workspace/Power-House/test/redesign/home_goldens_test.dart
+00:00 +0: /workspace/Power-House/test/redesign/home_goldens_test.dart: (setUpAll)
+00:00 +0: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:00 +1: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:00 +2: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:00 +3: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:00 +4: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:00 +5: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:01 +6: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:01 +7: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:01 +8: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:01 +9: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:03 +10: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:03 +11: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:03 +12: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:03 +13: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:03 +14: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_dark
+00:05 +15: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual empty surfaces dark
+00:06 +16: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual empty surfaces dark
+00:06 +17: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden admin_dark
+00:07 +18: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual empty surfaces light
+00:07 +19: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual loading surfaces dark
+00:07 +20: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual loading surfaces light
+00:08 +21: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual error surfaces dark
+00:08 +22: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual error surfaces light
+00:09 +23: /workspace/Power-House/test/redesign/consumer_states_test.dart: (tearDownAll)
+00:09 +23: All tests passed!

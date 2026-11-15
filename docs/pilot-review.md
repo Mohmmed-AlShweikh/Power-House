@@ -1,3 +1,5 @@
+> Historical checkpoint at commit `2e0d255`. Current consumer screenshots and font observations are described in [step-3-consumer.md](step-3-consumer.md). Admin remains at the pilot checkpoint apart from the requested shared switch contrast.
+
 # Pilot revision — approval checkpoint before Step 3
 
 Only consumer home and admin overview have been redesigned. Step 3 has not started. The four PNGs are full-size actual Flutter golden renders at 430 × 1280, not HTML approximations or Android screenshots. Data providers are faked in tests only. No Firebase initialization or writes occur in these tests.

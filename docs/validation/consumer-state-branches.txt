@@ -1,0 +1,1 @@
+Error/empty fallbacks unchanged: bills -> لا توجد فواتير بعد; usage -> لا توجد بيانات استهلاك بعد; notifications -> لا توجد إشعارات; complaints error -> تعذّر تحميل الشكاوى. Loading remains loading. Generator error/off remains off.

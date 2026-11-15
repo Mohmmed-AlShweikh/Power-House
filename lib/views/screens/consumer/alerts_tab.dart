@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/alert_model.dart';
 import '../../../providers/data_provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../services/firebase_service.dart';
-import '../../../config/colors.dart';
+import '../../../theme/portal_tokens.dart';
 
 class AlertsTab extends ConsumerWidget {
   const AlertsTab({super.key});
@@ -30,21 +29,19 @@ class AlertsTab extends ConsumerWidget {
             automaticallyImplyLeading: false,
             title: Row(
               children: [
-                Text('التنبيهات',
-                    style: theme.textTheme.titleLarge
-                        ?.copyWith(color: Colors.white)),
+                Text('التنبيهات', style: theme.textTheme.titleLarge),
                 const SizedBox(width: 8),
                 if (unreadCount > 0)
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                        color: AppColors.error,
-                        borderRadius: BorderRadius.circular(10)),
+                        color: PortalTone.danger.colors(context).$1,
+                        borderRadius:
+                            BorderRadius.circular(PortalTokens.radius)),
                     child: Text('$unreadCount',
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.surface,
                             fontWeight: FontWeight.w700)),
                   ),
               ],
@@ -63,7 +60,8 @@ class AlertsTab extends ConsumerWidget {
                               textDirection: TextDirection.rtl,
                               child: AlertDialog(
                                 shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16)),
+                                    borderRadius: BorderRadius.circular(
+                                        PortalTokens.radiusPanel)),
                                 title: const Text('مسح جميع التنبيهات؟'),
                                 content: const Text(
                                     'سيتم حذف جميع التنبيهات نهائياً.'),
@@ -76,8 +74,12 @@ class AlertsTab extends ConsumerWidget {
                                     onPressed: () =>
                                         Navigator.pop(context, true),
                                     style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.error,
-                                        minimumSize: Size.zero,
+                                        backgroundColor: PortalTone.danger
+                                            .colors(context)
+                                            .$1,
+                                        minimumSize: const Size(
+                                            PortalTokens.target,
+                                            PortalTokens.target),
                                         padding: const EdgeInsets.symmetric(
                                             horizontal: 16, vertical: 8)),
                                     child: const Text('مسح الكل'),
@@ -90,9 +92,14 @@ class AlertsTab extends ConsumerWidget {
                             await FirebaseService().deleteAllAlerts(uid);
                           }
                         },
-                        child: const Text('مسح الكل',
-                            style:
-                                TextStyle(color: Colors.white70, fontSize: 13)),
+                        child: Text('مسح الكل',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant)),
                       ),
                 loading: () => const SizedBox.shrink(),
                 error: (_, __) => const SizedBox.shrink(),
@@ -100,7 +107,7 @@ class AlertsTab extends ConsumerWidget {
             ],
           ),
           SliverPadding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(PortalTokens.lg),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 alertsAsync.when(
@@ -133,7 +140,7 @@ class _EmptyAlerts extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = AppColors.mutedFor(Theme.of(context).brightness);
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 60),
       child: Column(
@@ -142,7 +149,10 @@ class _EmptyAlerts extends StatelessWidget {
           Icon(Icons.notifications_none, size: 52, color: muted),
           const SizedBox(height: 12),
           Text('لا توجد تنبيهات',
-              style: TextStyle(color: muted, fontSize: 15)),
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: muted)),
         ],
       ),
     );
@@ -153,47 +163,43 @@ class _AlertCard extends StatelessWidget {
   final AppAlert alert;
   const _AlertCard({required this.alert});
 
-  Color get _color => switch (alert.type) {
-        AlertType.generatorOn => AppColors.success,
-        AlertType.generatorOff => AppColors.error,
-        AlertType.lowFuel => AppColors.warning,
-        AlertType.newBill => AppColors.primary,
-        AlertType.receiptApproved => AppColors.success,
-        AlertType.receiptRejected => AppColors.error,
-        AlertType.newSubscriber => AppColors.primary,
-        AlertType.complaint => AppColors.warning,
-        AlertType.newOwnerRequest => AppColors.primary,
-        AlertType.newConsumerRequest => AppColors.primary,
-        AlertType.requestApproved => AppColors.success,
-        AlertType.requestRejected => AppColors.error,
-        AlertType.passwordReset => AppColors.warning,
+  Color _color(BuildContext context) => switch (alert.type) {
+        AlertType.generatorOn => PortalTone.working.colors(context).$1,
+        AlertType.generatorOff => PortalTone.stopped.colors(context).$1,
+        AlertType.lowFuel => PortalTone.warning.colors(context).$1,
+        AlertType.newBill => Theme.of(context).colorScheme.primary,
+        AlertType.receiptApproved => PortalTone.success.colors(context).$1,
+        AlertType.receiptRejected => PortalTone.danger.colors(context).$1,
+        AlertType.newSubscriber => Theme.of(context).colorScheme.primary,
+        AlertType.complaint => PortalTone.warning.colors(context).$1,
+        AlertType.newOwnerRequest => Theme.of(context).colorScheme.primary,
+        AlertType.newConsumerRequest => Theme.of(context).colorScheme.primary,
+        AlertType.requestApproved => PortalTone.success.colors(context).$1,
+        AlertType.requestRejected => PortalTone.danger.colors(context).$1,
+        AlertType.passwordReset => PortalTone.warning.colors(context).$1,
       };
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(PortalTokens.lg),
       decoration: BoxDecoration(
         color: alert.read
             ? Theme.of(context).cardTheme.color
-            : _color.withOpacity(0.04),
-        borderRadius: BorderRadius.circular(14),
-        border: alert.read ? null : Border.all(color: _color.withOpacity(0.3)),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2))
-        ],
+            : _color(context).withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(PortalTokens.radiusPanel),
+        border: alert.read
+            ? null
+            : Border.all(color: _color(context).withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(PortalTokens.md),
             decoration: BoxDecoration(
-                color: _color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10)),
-            child: Icon(_iconFor(alert.type), size: 20, color: _color),
+                color: _color(context).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(PortalTokens.radius)),
+            child: Icon(_iconFor(alert.type), size: 20, color: _color(context)),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -204,38 +210,36 @@ class _AlertCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(alert.title,
-                          style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: alert.read
-                                  ? FontWeight.w500
-                                  : FontWeight.w700,
-                              )),
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(
+                                  fontWeight: alert.read
+                                      ? FontWeight.w500
+                                      : FontWeight.w700)),
                     ),
                     if (!alert.read)
                       Container(
                           width: 7,
                           height: 7,
                           decoration: BoxDecoration(
-                              color: _color, shape: BoxShape.circle)),
+                              color: _color(context), shape: BoxShape.circle)),
                   ],
                 ),
                 const SizedBox(height: 2),
                 Text(alert.body,
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.mutedFor(
-                            Theme.of(context).brightness))),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant)),
               ],
             ),
           ),
           const SizedBox(width: 8),
           Text(_timeAgo(alert.createdAt),
-              style: TextStyle(
-                  fontSize: 11,
-                  color: AppColors.mutedFor(Theme.of(context).brightness))),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
         ],
       ),
-    ).animate().fadeIn();
+    );
   }
 
   IconData _iconFor(AlertType t) => switch (t) {
@@ -264,51 +268,85 @@ class _AlertCard extends StatelessWidget {
 class _MockAlerts extends StatelessWidget {
   const _MockAlerts();
 
-  static const _items = [
-    (Icons.power, AppColors.success, 'تشغيل المولد', 'تم تشغيل المولد',
-        'منذ ساعتين', false),
-    (Icons.warning_amber, AppColors.warning, 'انتهاء وقود قريباً',
-        'متبقي 20% من الوقود', 'منذ 5 ساعات', true),
-    (Icons.receipt, AppColors.primary, 'فاتورة جديدة', 'فاتورة يوليو ₪284',
-        'أمس', true),
-    (Icons.power_off, AppColors.error, 'إيقاف المولد', 'إيقاف مؤقت لصيانة',
-        'أمس', true),
-    (Icons.check_circle, AppColors.success, 'تأكيد إيصال',
-        'تم قبول إيصال يونيو', 'قبل يومين', true),
-    (Icons.person_add, AppColors.primary, 'مشترك جديد',
-        'تمت إضافة مشترك جديد', 'قبل أسبوع', true),
-  ];
+  static List<(IconData, Color, String, String, String, bool)> _items(
+          BuildContext context) =>
+      [
+        (
+          Icons.power,
+          PortalTone.success.colors(context).$1,
+          'تشغيل المولد',
+          'تم تشغيل المولد',
+          'منذ ساعتين',
+          false
+        ),
+        (
+          Icons.warning_amber,
+          PortalTone.warning.colors(context).$1,
+          'انتهاء وقود قريباً',
+          'متبقي 20% من الوقود',
+          'منذ 5 ساعات',
+          true
+        ),
+        (
+          Icons.receipt,
+          Theme.of(context).colorScheme.primary,
+          'فاتورة جديدة',
+          'فاتورة يوليو ₪284',
+          'أمس',
+          true
+        ),
+        (
+          Icons.power_off,
+          PortalTone.danger.colors(context).$1,
+          'إيقاف المولد',
+          'إيقاف مؤقت لصيانة',
+          'أمس',
+          true
+        ),
+        (
+          Icons.check_circle,
+          PortalTone.success.colors(context).$1,
+          'تأكيد إيصال',
+          'تم قبول إيصال يونيو',
+          'قبل يومين',
+          true
+        ),
+        (
+          Icons.person_add,
+          Theme.of(context).colorScheme.primary,
+          'مشترك جديد',
+          'تمت إضافة مشترك جديد',
+          'قبل أسبوع',
+          true
+        ),
+      ];
 
   @override
   Widget build(BuildContext context) {
     return Column(
-      children: _items
+      children: _items(context)
           .map((i) => Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(PortalTokens.lg),
                   decoration: BoxDecoration(
                     color: i.$6
                         ? Theme.of(context).cardTheme.color
-                        : i.$2.withOpacity(0.04),
-                    borderRadius: BorderRadius.circular(14),
+                        : i.$2.withValues(alpha: 0.04),
+                    borderRadius:
+                        BorderRadius.circular(PortalTokens.radiusPanel),
                     border: i.$6
                         ? null
-                        : Border.all(color: i.$2.withOpacity(0.3)),
-                    boxShadow: [
-                      BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2))
-                    ],
+                        : Border.all(color: i.$2.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(PortalTokens.md),
                         decoration: BoxDecoration(
-                            color: i.$2.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(10)),
+                            color: i.$2.withValues(alpha: 0.1),
+                            borderRadius:
+                                BorderRadius.circular(PortalTokens.radius)),
                         child: Icon(i.$1, size: 20, color: i.$2),
                       ),
                       const SizedBox(width: 14),
@@ -320,36 +358,43 @@ class _MockAlerts extends StatelessWidget {
                               children: [
                                 Expanded(
                                   child: Text(i.$3,
-                                      style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: i.$6
-                                              ? FontWeight.w500
-                                              : FontWeight.w700)),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                              fontWeight: i.$6
+                                                  ? FontWeight.w500
+                                                  : FontWeight.w700)),
                                 ),
                                 if (!i.$6)
                                   Container(
                                       width: 7,
                                       height: 7,
                                       decoration: BoxDecoration(
-                                          color: i.$2,
-                                          shape: BoxShape.circle)),
+                                          color: i.$2, shape: BoxShape.circle)),
                               ],
                             ),
                             const SizedBox(height: 2),
                             Text(i.$4,
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.mutedFor(
-                                        Theme.of(context).brightness))),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant)),
                           ],
                         ),
                       ),
                       const SizedBox(width: 8),
                       Text(i.$5,
-                          style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.mutedFor(
-                                  Theme.of(context).brightness))),
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant)),
                     ],
                   ),
                 ),

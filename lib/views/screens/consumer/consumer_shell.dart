@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../theme/portal_theme.dart';
-import '../../../theme/portal_tokens.dart';
 import '../../widgets/portal_components.dart';
 import '../../../services/local_notification_service.dart';
 import 'home_tab.dart';
@@ -69,21 +68,17 @@ class _ConsumerShellState extends ConsumerState<ConsumerShell> {
 
   @override
   Widget build(BuildContext context) {
-    final reserved =
-        PortalTokens.navHeight + MediaQuery.paddingOf(context).bottom;
     final tabs = [
       const HomeTab(),
-      Padding(
-          padding: EdgeInsets.only(bottom: reserved), child: const UsageTab()),
-      Padding(
-          padding: EdgeInsets.only(bottom: reserved), child: const BillsTab()),
-      Padding(
-          padding: EdgeInsets.only(bottom: reserved),
-          child: const ProfileTab()),
+      const UsageTab(),
+      const BillsTab(),
+      const ProfileTab(),
     ];
     return Scaffold(
         body: Stack(children: [
-      IndexedStack(index: _index, children: tabs),
+      Theme(
+          data: buildPortalTheme(Theme.of(context).brightness),
+          child: IndexedStack(index: _index, children: tabs)),
       PositionedDirectional(
           start: 0,
           end: 0,

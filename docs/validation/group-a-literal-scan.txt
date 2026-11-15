@@ -1,0 +1,2 @@
+rg -n "TextStyle\(|Color\(0x|Colors\.|AppColors" lib/views/screens/consumer lib/views/widgets/notification_bell.dart lib/views/widgets/portal_components.dart
+Result: no matches (rg exit 1). Scope: completed consumer surfaces and shared status/notification components; not the unreviewed admin/auth group.

@@ -1,0 +1,91 @@
+ docs/consumer-screenshots.md                       |   50 +
+ docs/pilot-review.md                               |    2 +
+ docs/reachability.md                               |   90 ++
+ docs/step-3-consumer.md                            |   56 +
+ docs/validation/consumer-state-branches.txt        |    1 +
+ docs/validation/font-sizes-consumer_dark.json      | 1442 +++++++++++++++++++-
+ docs/validation/font-sizes-consumer_light.json     | 1442 +++++++++++++++++++-
+ docs/validation/group-a-analyzer.txt               |  183 +++
+ docs/validation/group-a-literal-scan.txt           |    2 +
+ docs/validation/group-a-scope.json                 |   45 +
+ docs/validation/group-a-screenshots.json           |  322 +++++
+ docs/validation/group-a-tests.txt                  |   27 +
+ lib/theme/portal_tokens.dart                       |    3 +
+ lib/views/screens/consumer/alerts_tab.dart         |  255 ++--
+ lib/views/screens/consumer/bills_tab.dart          |  645 +++------
+ lib/views/screens/consumer/consumer_shell.dart     |   17 +-
+ lib/views/screens/consumer/home_tab.dart           |    8 +-
+ lib/views/screens/consumer/profile_tab.dart        |  792 +++++------
+ lib/views/screens/consumer/usage_tab.dart          |  508 ++-----
+ lib/views/widgets/notification_bell.dart           |  281 +---
+ lib/views/widgets/portal_components.dart           |   71 +-
+ screenshots/redesign/admin_dark.png                |  Bin 72980 -> 73000 bytes
+ screenshots/redesign/admin_light.png               |  Bin 71656 -> 71676 bytes
+ screenshots/redesign/consumer/bills_dark.png       |  Bin 0 -> 63048 bytes
+ screenshots/redesign/consumer/bills_light.png      |  Bin 0 -> 61889 bytes
+ screenshots/redesign/consumer/complaint_dark.png   |  Bin 0 -> 58222 bytes
+ screenshots/redesign/consumer/complaint_light.png  |  Bin 0 -> 58109 bytes
+ .../consumer/complaint_validation_dark.png         |  Bin 0 -> 58653 bytes
+ .../consumer/complaint_validation_light.png        |  Bin 0 -> 58499 bytes
+ screenshots/redesign/consumer/complaints_dark.png  |  Bin 0 -> 50539 bytes
+ screenshots/redesign/consumer/complaints_light.png |  Bin 0 -> 50088 bytes
+ .../redesign/consumer/edit_profile_dark.png        |  Bin 0 -> 57487 bytes
+ .../redesign/consumer/edit_profile_light.png       |  Bin 0 -> 57516 bytes
+ .../redesign/consumer/notifications_dark.png       |  Bin 0 -> 40920 bytes
+ .../redesign/consumer/notifications_light.png      |  Bin 0 -> 40318 bytes
+ screenshots/redesign/consumer/profile_dark.png     |  Bin 0 -> 60893 bytes
+ screenshots/redesign/consumer/profile_light.png    |  Bin 0 -> 60723 bytes
+ .../redesign/consumer/states/bills_empty_dark.png  |  Bin 0 -> 23118 bytes
+ .../redesign/consumer/states/bills_empty_light.png |  Bin 0 -> 22902 bytes
+ .../redesign/consumer/states/bills_error_dark.png  |  Bin 0 -> 23118 bytes
+ .../redesign/consumer/states/bills_error_light.png |  Bin 0 -> 22902 bytes
+ .../consumer/states/bills_loading_dark.png         |  Bin 0 -> 22024 bytes
+ .../consumer/states/bills_loading_light.png        |  Bin 0 -> 21752 bytes
+ .../consumer/states/complaints_empty_dark.png      |  Bin 0 -> 60991 bytes
+ .../consumer/states/complaints_empty_light.png     |  Bin 0 -> 60643 bytes
+ .../consumer/states/complaints_error_dark.png      |  Bin 0 -> 60991 bytes
+ .../consumer/states/complaints_error_light.png     |  Bin 0 -> 60643 bytes
+ .../consumer/states/complaints_loading_dark.png    |  Bin 0 -> 60991 bytes
+ .../consumer/states/complaints_loading_light.png   |  Bin 0 -> 60643 bytes
+ .../redesign/consumer/states/home_empty_dark.png   |  Bin 0 -> 58018 bytes
+ .../redesign/consumer/states/home_empty_light.png  |  Bin 0 -> 57393 bytes
+ .../redesign/consumer/states/home_error_dark.png   |  Bin 0 -> 58018 bytes
+ .../redesign/consumer/states/home_error_light.png  |  Bin 0 -> 57393 bytes
+ .../redesign/consumer/states/home_loading_dark.png |  Bin 0 -> 57998 bytes
+ .../consumer/states/home_loading_light.png         |  Bin 0 -> 57052 bytes
+ .../consumer/states/notifications_empty_dark.png   |  Bin 0 -> 60552 bytes
+ .../consumer/states/notifications_empty_light.png  |  Bin 0 -> 60389 bytes
+ .../consumer/states/notifications_error_dark.png   |  Bin 0 -> 60552 bytes
+ .../consumer/states/notifications_error_light.png  |  Bin 0 -> 60389 bytes
+ .../consumer/states/notifications_loading_dark.png |  Bin 0 -> 60552 bytes
+ .../states/notifications_loading_light.png         |  Bin 0 -> 60389 bytes
+ .../consumer/states/profile_empty_dark.png         |  Bin 0 -> 61076 bytes
+ .../consumer/states/profile_empty_light.png        |  Bin 0 -> 60730 bytes
+ .../consumer/states/profile_error_dark.png         |  Bin 0 -> 61076 bytes
+ .../consumer/states/profile_error_light.png        |  Bin 0 -> 60730 bytes
+ .../consumer/states/profile_loading_dark.png       |  Bin 0 -> 61076 bytes
+ .../consumer/states/profile_loading_light.png      |  Bin 0 -> 60730 bytes
+ .../redesign/consumer/states/usage_empty_dark.png  |  Bin 0 -> 21159 bytes
+ .../redesign/consumer/states/usage_empty_light.png |  Bin 0 -> 20993 bytes
+ .../redesign/consumer/states/usage_error_dark.png  |  Bin 0 -> 21159 bytes
+ .../redesign/consumer/states/usage_error_light.png |  Bin 0 -> 20993 bytes
+ .../consumer/states/usage_loading_dark.png         |  Bin 0 -> 19157 bytes
+ .../consumer/states/usage_loading_light.png        |  Bin 0 -> 18992 bytes
+ .../redesign/consumer/upload_receipt_dark.png      |  Bin 0 -> 68752 bytes
+ .../redesign/consumer/upload_receipt_light.png     |  Bin 0 -> 67605 bytes
+ screenshots/redesign/consumer/usage_daily_dark.png |  Bin 0 -> 50112 bytes
+ .../redesign/consumer/usage_daily_light.png        |  Bin 0 -> 49649 bytes
+ screenshots/redesign/consumer/usage_dark.png       |  Bin 0 -> 51788 bytes
+ screenshots/redesign/consumer/usage_light.png      |  Bin 0 -> 51205 bytes
+ .../redesign/consumer/usage_weekly_dark.png        |  Bin 0 -> 52468 bytes
+ .../redesign/consumer/usage_weekly_light.png       |  Bin 0 -> 51827 bytes
+ screenshots/redesign/consumer_dark.png             |  Bin 70115 -> 70295 bytes
+ screenshots/redesign/consumer_light.png            |  Bin 68845 -> 69068 bytes
+ screenshots/redesign/details/admin_price_dark.png  |  Bin 0 -> 7323 bytes
+ screenshots/redesign/details/admin_price_light.png |  Bin 0 -> 7208 bytes
+ screenshots/redesign/details/admin_switch_dark.png |  Bin 0 -> 3953 bytes
+ .../redesign/details/admin_switch_light.png        |  Bin 0 -> 3888 bytes
+ test/redesign/chart_test.dart                      |   67 +
+ test/redesign/consumer_states_test.dart            |  138 ++
+ test/redesign/home_goldens_test.dart               |  135 +-
+ 90 files changed, 4935 insertions(+), 1647 deletions(-)

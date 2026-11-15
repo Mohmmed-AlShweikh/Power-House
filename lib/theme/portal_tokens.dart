@@ -30,6 +30,9 @@ abstract final class PortalTokens {
   static const darkDangerFill = Color(0xFF4C302F);
   // Working is blue, not the teal brand family or the green success family.
   static const working = Color(0xFF2459A6);
+  // Both switch parts exceed 3:1 against light and dark working heroes.
+  static const generatorSwitchTrack = Color(0xFFB0C9FF);
+  static const generatorSwitchThumb = Color(0xFFFFFFFF);
   static const workingFill = Color(0xFFEAF1FC);
   static const darkWorking = Color(0xFFB0C9FF);
   static const darkWorkingFill = Color(0xFF233653);

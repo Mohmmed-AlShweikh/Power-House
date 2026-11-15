@@ -95,7 +95,8 @@ class HomeTab extends ConsumerWidget {
             body: Column(children: [
           PortalIdentityBar(
               title: 'الرئيسية',
-              subtitle: '${_greeting()}، ${profile?.name ?? 'زائر'}',
+              subtitle:
+                  '${_greeting()}، ${profile?.name ?? 'زائر'}${(profile?.address ?? '').isNotEmpty ? '\n${profile!.address}' : ''}',
               actions: [NotificationBell(iconColor: palette.onSurface)]),
           Expanded(
               child: ListView(
@@ -111,11 +112,6 @@ class HomeTab extends ConsumerWidget {
                     lastChanged: lastChanged,
                     scheduledOnAt: scheduledOnAt,
                     scheduledOffAt: scheduledOffAt),
-                if ((profile?.address ?? '').isNotEmpty)
-                  Padding(
-                      padding: const EdgeInsets.only(top: PortalTokens.md),
-                      child: Text(profile!.address,
-                          style: Theme.of(context).textTheme.bodySmall)),
                 PortalSection('الاستهلاك الشهري ($currentMonth)'),
                 PortalMetricPair(
                     first: PortalMetric(

@@ -1,0 +1,322 @@
+[
+  {
+    "file": "screenshots/redesign/consumer/bills_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/bills_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/complaint_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/complaint_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/complaint_validation_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/complaint_validation_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/complaints_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/complaints_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/edit_profile_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/edit_profile_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/notifications_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/notifications_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/profile_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/profile_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/bills_empty_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/bills_empty_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/bills_error_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/bills_error_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/bills_loading_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/bills_loading_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/complaints_empty_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/complaints_empty_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/complaints_error_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/complaints_error_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/complaints_loading_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/complaints_loading_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/home_empty_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/home_empty_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/home_error_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/home_error_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/home_loading_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/home_loading_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/notifications_empty_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/notifications_empty_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/notifications_error_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/notifications_error_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/notifications_loading_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/notifications_loading_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/profile_empty_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/profile_empty_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/profile_error_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/profile_error_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/profile_loading_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/profile_loading_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/usage_empty_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/usage_empty_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/usage_error_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/usage_error_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/usage_loading_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/states/usage_loading_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/upload_receipt_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/upload_receipt_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/usage_daily_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/usage_daily_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/usage_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/usage_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/usage_weekly_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer/usage_weekly_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer_dark.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/consumer_light.png",
+    "width": 430,
+    "height": 1280
+  },
+  {
+    "file": "screenshots/redesign/details/admin_price_dark.png",
+    "width": 324,
+    "height": 66
+  },
+  {
+    "file": "screenshots/redesign/details/admin_price_light.png",
+    "width": 324,
+    "height": 66
+  },
+  {
+    "file": "screenshots/redesign/details/admin_switch_dark.png",
+    "width": 180,
+    "height": 144
+  },
+  {
+    "file": "screenshots/redesign/details/admin_switch_light.png",
+    "width": 180,
+    "height": 144
+  }
+]

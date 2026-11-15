@@ -1,0 +1,45 @@
+{
+  "protected_sources_unchanged_from_checkpoint": true,
+  "protected_paths": [
+    "lib/providers",
+    "lib/services",
+    "lib/models",
+    "lib/config/router.dart",
+    "lib/main.dart",
+    "firestore.rules",
+    "pubspec.yaml",
+    "pubspec.lock"
+  ],
+  "original_method_comparisons": [
+    {
+      "source": "lib/views/screens/consumer/consumer_shell.dart",
+      "method": "_startListening",
+      "same_body_ignoring_whitespace_and_const": true
+    },
+    {
+      "source": "lib/views/screens/consumer/usage_tab.dart",
+      "method": "_selectPeriod",
+      "same_body_ignoring_whitespace_and_const": true
+    },
+    {
+      "source": "lib/views/screens/consumer/usage_tab.dart",
+      "method": "_buildPoints",
+      "same_body_ignoring_whitespace_and_const": true
+    },
+    {
+      "source": "lib/views/screens/consumer/bills_tab.dart",
+      "method": "_pickImage",
+      "same_body_ignoring_whitespace_and_const": true
+    },
+    {
+      "source": "lib/views/screens/consumer/bills_tab.dart",
+      "method": "_upload",
+      "same_body_ignoring_whitespace_and_const": true
+    },
+    {
+      "source": "lib/views/screens/consumer/profile_tab.dart",
+      "method": "_submit",
+      "same_body_ignoring_whitespace_and_const": true
+    }
+  ]
+}

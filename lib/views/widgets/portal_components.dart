@@ -221,11 +221,30 @@ class PortalGeneratorPanel extends StatelessWidget {
                 tooltip: 'تحديث السعر والجدول',
                 icon: Icon(Icons.tune_outlined, color: ink)),
           if (onToggle != null)
-            Switch(
-                value: isOn,
-                onChanged: onToggle,
-                activeTrackColor: PortalTokens.darkWorking,
-                activeThumbColor: PortalTokens.working),
+            RepaintBoundary(
+                key: const ValueKey('generator-switch-zoom'),
+                child: ColoredBox(
+                    color: fill,
+                    child: Switch(
+                      value: isOn,
+                      onChanged: onToggle,
+                      activeTrackColor: PortalTokens.generatorSwitchTrack,
+                      activeThumbColor: PortalTokens.generatorSwitchThumb,
+                      inactiveTrackColor: PortalTone.stopped.colors(context).$1,
+                      inactiveThumbColor:
+                          Theme.of(context).colorScheme.onSurface,
+                      trackOutlineColor: const WidgetStatePropertyAll(
+                          PortalTokens.transparent),
+                      thumbIcon: WidgetStateProperty.resolveWith((states) =>
+                          Icon(
+                              states.contains(WidgetState.selected)
+                                  ? Icons.check
+                                  : Icons.remove,
+                              size: PortalTokens.lg,
+                              color: isOn
+                                  ? PortalTokens.working
+                                  : PortalTone.stopped.colors(context).$2)),
+                    ))),
         ]),
         const SizedBox(height: PortalTokens.lg),
         Text(isOn ? 'المولد يعمل الآن' : 'المولد متوقف',
@@ -235,7 +254,12 @@ class PortalGeneratorPanel extends StatelessWidget {
         if (tariff != null || schedule != null) ...[
           const SizedBox(height: PortalTokens.lg),
           if (tariff != null)
-            PortalNumber(tariff!, style: text.labelLarge?.copyWith(color: ink)),
+            RepaintBoundary(
+                key: const ValueKey('generator-price-zoom'),
+                child: ColoredBox(
+                    color: fill,
+                    child: PortalNumber(tariff!,
+                        style: text.labelLarge?.copyWith(color: ink)))),
           if (schedule != null)
             PortalNumber(schedule!,
                 style: text.bodySmall?.copyWith(color: ink)),
@@ -311,7 +335,10 @@ class PortalDataRow extends StatelessWidget {
               child:
                   Text(label, style: Theme.of(context).textTheme.bodyMedium)),
           const SizedBox(width: PortalTokens.sm),
-          PortalNumber(value, style: Theme.of(context).textTheme.titleMedium),
+          Expanded(
+              child: PortalNumber(value,
+                  textAlign: TextAlign.end,
+                  style: Theme.of(context).textTheme.titleMedium)),
         ]),
       );
 }
@@ -411,4 +438,34 @@ class PortalErrorState extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       PortalEmptyState(message, icon: Icons.error_outline);
+}
+
+/// Scrollable content under the approved floating navigation.
+class PortalPage extends StatelessWidget {
+  final String title, subtitle;
+  final List<Widget> children, actions;
+  final bool reserveNavigation;
+  const PortalPage(
+      {super.key,
+      required this.title,
+      required this.subtitle,
+      required this.children,
+      this.actions = const [],
+      this.reserveNavigation = true});
+  @override
+  Widget build(BuildContext context) => Scaffold(
+          body: Column(children: [
+        PortalIdentityBar(title: title, subtitle: subtitle, actions: actions),
+        Expanded(
+            child: ListView(
+                padding: EdgeInsetsDirectional.fromSTEB(
+                    PortalTokens.gutter,
+                    PortalTokens.sm,
+                    PortalTokens.gutter,
+                    (reserveNavigation
+                            ? PortalTokens.navClearance
+                            : PortalTokens.xl) +
+                        MediaQuery.paddingOf(context).bottom),
+                children: children)),
+      ]));
 }
