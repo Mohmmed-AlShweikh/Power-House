@@ -52,7 +52,7 @@
  docs/consumer-screenshots.md                       |   13 +-
  docs/findings.md                                   |    8 +-
  docs/reachability.md                               |   11 +-
- docs/step-3-admin.md                               |   62 +
+ docs/step-3-admin.md                               |   64 +
  docs/step-3-consumer.md                            |    2 +
  docs/validation/android-apk-signature.txt          |    8 +
  docs/validation/android-apk.json                   |   52 +
@@ -63,13 +63,15 @@
  docs/validation/font-sizes-consumer_dark.json      |  224 +-
  docs/validation/font-sizes-consumer_light.json     |  224 +-
  docs/validation/native-icons.txt                   |   16 +
- docs/validation/native-splash.txt                  |   22 +
+ docs/validation/native-splash.txt                  |   21 +
  docs/validation/step3b-all-tests.txt               |  177 ++
  docs/validation/step3b-analyzer.txt                |   43 +
+ docs/validation/step3b-diff-stat.txt               |  270 +++
  docs/validation/step3b-literal-scan.txt            |    2 +
  docs/validation/step3b-scope.json                  |   73 +
  docs/validation/step3b-screenshots.json            |  857 +++++++
  docs/validation/step3b-tests.txt                   |   41 +
+ docs/visual-tests.md                               |    7 +
  .../AppIcon.appiconset/Icon-App-1024x1024@1x.png   |  Bin 192420 -> 12093 bytes
  .../AppIcon.appiconset/Icon-App-20x20@1x.png       |  Bin 555 -> 675 bytes
  .../AppIcon.appiconset/Icon-App-20x20@2x.png       |  Bin 1402 -> 1144 bytes
@@ -105,7 +107,7 @@
  ios/Runner/Info.plist                              |    2 +-
  lib/main.dart                                      |   30 +-
  lib/services/local_notification_service.dart       |    4 +-
- lib/views/screens/admin/admin_screen.dart          | 2462 +++++++++-----------
+ lib/views/screens/admin/admin_screen.dart          | 2500 +++++++++-----------
  .../screens/admin/subscriber_details_screen.dart   |  368 ++-
  lib/views/screens/consumer/bills_tab.dart          |   79 +-
  lib/views/screens/consumer/home_tab.dart           |    9 +-
@@ -118,6 +120,7 @@
  lib/views/widgets/base64_image_viewer.dart         |   22 +-
  lib/views/widgets/portal_chart.dart                |    4 +-
  lib/views/widgets/portal_components.dart           |  165 +-
+ lib/views/widgets/portal_number.dart               |    2 +-
  pubspec.yaml                                       |   18 +-
  screenshots/redesign/admin/add_bill_dark.png       |  Bin 0 -> 78573 bytes
  screenshots/redesign/admin/add_bill_light.png      |  Bin 0 -> 77507 bytes
@@ -153,42 +156,42 @@
  screenshots/redesign/admin/reply_dialog_light.png  |  Bin 0 -> 40887 bytes
  screenshots/redesign/admin/requests_dark.png       |  Bin 0 -> 33215 bytes
  screenshots/redesign/admin/requests_light.png      |  Bin 0 -> 32810 bytes
- .../redesign/admin/states/bills_empty_dark.png     |  Bin 0 -> 22221 bytes
- .../redesign/admin/states/bills_empty_light.png    |  Bin 0 -> 21906 bytes
- .../redesign/admin/states/bills_error_dark.png     |  Bin 0 -> 73309 bytes
- .../redesign/admin/states/bills_error_light.png    |  Bin 0 -> 73294 bytes
- .../redesign/admin/states/bills_loading_dark.png   |  Bin 0 -> 17880 bytes
- .../redesign/admin/states/bills_loading_light.png  |  Bin 0 -> 17596 bytes
- .../admin/states/complaints_empty_dark.png         |  Bin 0 -> 18074 bytes
- .../admin/states/complaints_empty_light.png        |  Bin 0 -> 17930 bytes
- .../admin/states/complaints_error_dark.png         |  Bin 0 -> 18074 bytes
- .../admin/states/complaints_error_light.png        |  Bin 0 -> 17930 bytes
- .../admin/states/complaints_loading_dark.png       |  Bin 0 -> 18074 bytes
- .../admin/states/complaints_loading_light.png      |  Bin 0 -> 17930 bytes
- .../redesign/admin/states/overview_empty_dark.png  |  Bin 0 -> 68208 bytes
- .../redesign/admin/states/overview_empty_light.png |  Bin 0 -> 67176 bytes
- .../redesign/admin/states/overview_error_dark.png  |  Bin 0 -> 67432 bytes
- .../redesign/admin/states/overview_error_light.png |  Bin 0 -> 66445 bytes
- .../admin/states/overview_loading_dark.png         |  Bin 0 -> 67507 bytes
- .../admin/states/overview_loading_light.png        |  Bin 0 -> 66185 bytes
+ .../redesign/admin/states/bills_empty_dark.png     |  Bin 0 -> 32030 bytes
+ .../redesign/admin/states/bills_empty_light.png    |  Bin 0 -> 31924 bytes
+ .../redesign/admin/states/bills_error_dark.png     |  Bin 0 -> 43122 bytes
+ .../redesign/admin/states/bills_error_light.png    |  Bin 0 -> 42647 bytes
+ .../redesign/admin/states/bills_loading_dark.png   |  Bin 0 -> 18385 bytes
+ .../redesign/admin/states/bills_loading_light.png  |  Bin 0 -> 18212 bytes
+ .../admin/states/complaints_empty_dark.png         |  Bin 0 -> 35470 bytes
+ .../admin/states/complaints_empty_light.png        |  Bin 0 -> 34328 bytes
+ .../admin/states/complaints_error_dark.png         |  Bin 0 -> 55684 bytes
+ .../admin/states/complaints_error_light.png        |  Bin 0 -> 54889 bytes
+ .../admin/states/complaints_loading_dark.png       |  Bin 0 -> 18621 bytes
+ .../admin/states/complaints_loading_light.png      |  Bin 0 -> 18527 bytes
+ .../redesign/admin/states/overview_empty_dark.png  |  Bin 0 -> 68195 bytes
+ .../redesign/admin/states/overview_empty_light.png |  Bin 0 -> 67254 bytes
+ .../redesign/admin/states/overview_error_dark.png  |  Bin 0 -> 67413 bytes
+ .../redesign/admin/states/overview_error_light.png |  Bin 0 -> 66529 bytes
+ .../admin/states/overview_loading_dark.png         |  Bin 0 -> 67490 bytes
+ .../admin/states/overview_loading_light.png        |  Bin 0 -> 66184 bytes
  .../redesign/admin/states/requests_empty_dark.png  |  Bin 0 -> 17163 bytes
  .../redesign/admin/states/requests_empty_light.png |  Bin 0 -> 17011 bytes
  .../redesign/admin/states/requests_error_dark.png  |  Bin 0 -> 17163 bytes
  .../redesign/admin/states/requests_error_light.png |  Bin 0 -> 17011 bytes
  .../admin/states/requests_loading_dark.png         |  Bin 0 -> 17163 bytes
  .../admin/states/requests_loading_light.png        |  Bin 0 -> 17011 bytes
- .../admin/states/subscribers_empty_dark.png        |  Bin 0 -> 68512 bytes
- .../admin/states/subscribers_empty_light.png       |  Bin 0 -> 67567 bytes
- .../admin/states/subscribers_error_dark.png        |  Bin 0 -> 67724 bytes
- .../admin/states/subscribers_error_light.png       |  Bin 0 -> 66852 bytes
- .../admin/states/subscribers_loading_dark.png      |  Bin 0 -> 67793 bytes
- .../admin/states/subscribers_loading_light.png     |  Bin 0 -> 66497 bytes
+ .../admin/states/subscribers_empty_dark.png        |  Bin 0 -> 25776 bytes
+ .../admin/states/subscribers_empty_light.png       |  Bin 0 -> 25503 bytes
+ .../admin/states/subscribers_error_dark.png        |  Bin 0 -> 73654 bytes
+ .../admin/states/subscribers_error_light.png       |  Bin 0 -> 73722 bytes
+ .../admin/states/subscribers_loading_dark.png      |  Bin 0 -> 19274 bytes
+ .../admin/states/subscribers_loading_light.png     |  Bin 0 -> 19078 bytes
  .../admin/states/superadmin_empty_dark.png         |  Bin 0 -> 26747 bytes
  .../admin/states/superadmin_empty_light.png        |  Bin 0 -> 25982 bytes
  .../admin/states/superadmin_error_dark.png         |  Bin 0 -> 30302 bytes
  .../admin/states/superadmin_error_light.png        |  Bin 0 -> 29735 bytes
- .../admin/states/superadmin_loading_dark.png       |  Bin 0 -> 18761 bytes
- .../admin/states/superadmin_loading_light.png      |  Bin 0 -> 18498 bytes
+ .../admin/states/superadmin_loading_dark.png       |  Bin 0 -> 17645 bytes
+ .../admin/states/superadmin_loading_light.png      |  Bin 0 -> 17499 bytes
  .../redesign/admin/subscriber_details_dark.png     |  Bin 0 -> 54985 bytes
  .../redesign/admin/subscriber_details_light.png    |  Bin 0 -> 54541 bytes
  screenshots/redesign/admin/subscribers_dark.png    |  Bin 0 -> 34968 bytes
@@ -233,24 +236,34 @@
  .../redesign/consumer/edit_profile_light.png       |  Bin 57516 -> 60261 bytes
  screenshots/redesign/consumer/profile_dark.png     |  Bin 60893 -> 63329 bytes
  screenshots/redesign/consumer/profile_light.png    |  Bin 60723 -> 63146 bytes
- .../consumer/states/complaints_empty_dark.png      |  Bin 60991 -> 63409 bytes
- .../consumer/states/complaints_empty_light.png     |  Bin 60643 -> 63073 bytes
- .../consumer/states/complaints_error_dark.png      |  Bin 60991 -> 63409 bytes
- .../consumer/states/complaints_error_light.png     |  Bin 60643 -> 63073 bytes
- .../consumer/states/complaints_loading_dark.png    |  Bin 60991 -> 63409 bytes
- .../consumer/states/complaints_loading_light.png   |  Bin 60643 -> 63073 bytes
- .../consumer/states/notifications_empty_dark.png   |  Bin 60552 -> 62974 bytes
- .../consumer/states/notifications_empty_light.png  |  Bin 60389 -> 62817 bytes
- .../consumer/states/notifications_error_dark.png   |  Bin 60552 -> 62974 bytes
- .../consumer/states/notifications_error_light.png  |  Bin 60389 -> 62817 bytes
- .../consumer/states/notifications_loading_dark.png |  Bin 60552 -> 62974 bytes
- .../states/notifications_loading_light.png         |  Bin 60389 -> 62817 bytes
- .../consumer/states/profile_empty_dark.png         |  Bin 61076 -> 63492 bytes
- .../consumer/states/profile_empty_light.png        |  Bin 60730 -> 63159 bytes
- .../consumer/states/profile_error_dark.png         |  Bin 61076 -> 63492 bytes
- .../consumer/states/profile_error_light.png        |  Bin 60730 -> 63159 bytes
- .../consumer/states/profile_loading_dark.png       |  Bin 61076 -> 63492 bytes
- .../consumer/states/profile_loading_light.png      |  Bin 60730 -> 63159 bytes
+ .../redesign/consumer/states/bills_empty_dark.png  |  Bin 23118 -> 22550 bytes
+ .../redesign/consumer/states/bills_empty_light.png |  Bin 22902 -> 22524 bytes
+ .../redesign/consumer/states/bills_error_dark.png  |  Bin 23118 -> 22550 bytes
+ .../redesign/consumer/states/bills_error_light.png |  Bin 22902 -> 22524 bytes
+ .../consumer/states/bills_loading_dark.png         |  Bin 22024 -> 22526 bytes
+ .../consumer/states/bills_loading_light.png        |  Bin 21752 -> 22428 bytes
+ .../consumer/states/complaints_empty_dark.png      |  Bin 60991 -> 31278 bytes
+ .../consumer/states/complaints_empty_light.png     |  Bin 60643 -> 31003 bytes
+ .../consumer/states/complaints_error_dark.png      |  Bin 60991 -> 29190 bytes
+ .../consumer/states/complaints_error_light.png     |  Bin 60643 -> 28811 bytes
+ .../consumer/states/complaints_loading_dark.png    |  Bin 60991 -> 26433 bytes
+ .../consumer/states/complaints_loading_light.png   |  Bin 60643 -> 26222 bytes
+ .../redesign/consumer/states/home_loading_dark.png |  Bin 57998 -> 56935 bytes
+ .../consumer/states/home_loading_light.png         |  Bin 57052 -> 56001 bytes
+ .../consumer/states/notifications_empty_dark.png   |  Bin 60552 -> 31149 bytes
+ .../consumer/states/notifications_empty_light.png  |  Bin 60389 -> 30827 bytes
+ .../consumer/states/notifications_error_dark.png   |  Bin 60552 -> 31149 bytes
+ .../consumer/states/notifications_error_light.png  |  Bin 60389 -> 30827 bytes
+ .../consumer/states/notifications_loading_dark.png |  Bin 60552 -> 28859 bytes
+ .../states/notifications_loading_light.png         |  Bin 60389 -> 28559 bytes
+ .../consumer/states/profile_empty_dark.png         |  Bin 61076 -> 62974 bytes
+ .../consumer/states/profile_empty_light.png        |  Bin 60730 -> 62817 bytes
+ .../consumer/states/profile_error_dark.png         |  Bin 61076 -> 62974 bytes
+ .../consumer/states/profile_error_light.png        |  Bin 60730 -> 62817 bytes
+ .../consumer/states/profile_loading_dark.png       |  Bin 61076 -> 62974 bytes
+ .../consumer/states/profile_loading_light.png      |  Bin 60730 -> 62817 bytes
+ .../consumer/states/usage_loading_dark.png         |  Bin 19157 -> 18221 bytes
+ .../consumer/states/usage_loading_light.png        |  Bin 18992 -> 18128 bytes
  .../redesign/consumer/upload_loading_dark.png      |  Bin 0 -> 55376 bytes
  .../redesign/consumer/upload_loading_light.png     |  Bin 0 -> 54720 bytes
  .../redesign/consumer/upload_receipt_dark.png      |  Bin 68752 -> 73300 bytes
@@ -265,6 +278,10 @@
  screenshots/redesign/consumer_light.png            |  Bin 69068 -> 72357 bytes
  screenshots/redesign/details/admin_price_dark.png  |  Bin 7323 -> 8202 bytes
  screenshots/redesign/details/admin_price_light.png |  Bin 7208 -> 8091 bytes
- test/redesign/admin_surfaces_test.dart             |  629 +++++
+ test/redesign/admin_surfaces_test.dart             |  649 +++++
+ test/redesign/consumer_states_test.dart            |   21 +
  test/redesign/home_goldens_test.dart               |   38 +-
- 269 files changed, 4511 insertions(+), 2804 deletions(-)
+ test/redesign/navigation_review_test.dart          |    2 +
+ tool/test_visual.sh                                |   18 +
+ tool/visual_clock.c                                |   15 +
+ 286 files changed, 4888 insertions(+), 2821 deletions(-)

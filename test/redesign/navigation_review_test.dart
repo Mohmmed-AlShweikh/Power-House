@@ -34,6 +34,8 @@ void main() {
     expect(
         PortalNumber.isolate('سعر kWh: ₪2.00'), 'سعر \u2066kWh: ₪2.00\u2069');
     expect(PortalNumber.isolate('₪3408'), '\u2066₪3408\u2069');
+    expect(PortalNumber.isolate('+970591234567'), '\u2066+970591234567\u2069');
+    expect(PortalNumber.isolate('-3408'), '\u2066-3408\u2069');
   });
 
   testWidgets('three navigation structures side by side, both roles and themes',

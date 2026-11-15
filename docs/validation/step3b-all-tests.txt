@@ -1,7 +1,7 @@
 00:00 +0: loading /workspace/Power-House/test/widget_test.dart
 00:00 +0: /workspace/Power-House/test/widget_test.dart: Counter increments smoke test
 ══╡ EXCEPTION CAUGHT BY WIDGETS LIBRARY ╞═══════════════════════════════════════════════════════════
-The following StateError was thrown building GeneratorPortalApp(dirty, state: _ConsumerState#f9b8c):
+The following StateError was thrown building GeneratorPortalApp(dirty, state: _ConsumerState#c9a70):
 Bad state: No ProviderScope found
 
 The relevant error-causing widget was:
@@ -137,41 +137,41 @@ unexpected.
   Test failed. See exception logs above.
   The test description was: Counter increments smoke test
 
-00:02 +1 -1: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
-00:02 +2 -1: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
-00:02 +3 -1: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:01 +1 -1: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:01 +2 -1: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:01 +3 -1: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
 00:02 +4 -1: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
 00:02 +5 -1: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
 00:02 +6 -1: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
 00:02 +7 -1: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
 00:02 +8 -1: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
-00:04 +9 -1: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
-00:05 +10 -1: /workspace/Power-House/test/redesign/navigation_review_test.dart: three navigation structures side by side, both roles and themes
-00:05 +11 -1: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_dark
-00:05 +12 -1: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_dark
-00:05 +13 -1: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_dark
-00:05 +14 -1: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_dark
-00:07 +15 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey dark
-00:08 +16 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey dark
-00:09 +17 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey dark
-00:11 +18 -1: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual empty surfaces dark
-00:12 +19 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: auth and source-only setup dark
-00:12 +20 -1: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual empty surfaces light
-00:13 +21 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: superadmin populated, diagnostic dialog and global error dark
-00:13 +22 -1: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual loading surfaces dark
-00:13 +23 -1: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual loading surfaces dark
-00:13 +24 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin empty dark
-00:14 +25 -1: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual loading surfaces light
-00:14 +26 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin loading dark
-00:14 +27 -1: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual error surfaces dark
-00:14 +28 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin error dark
-00:15 +29 -1: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual error surfaces light
+00:02 +9 -1: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:04 +10 -1: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:04 +11 -1: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:04 +12 -1: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:04 +13 -1: /workspace/Power-House/test/redesign/navigation_review_test.dart: navigation PortalNavAlternative.focusWindow: 320dp, RTL and 48dp targets
+00:04 +14 -1: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_dark
+00:06 +15 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey dark
+00:07 +16 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey dark
+00:08 +17 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey dark
+00:09 +18 -1: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual empty surfaces dark
+00:11 +19 -1: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual empty surfaces dark
+00:11 +20 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: superadmin populated, diagnostic dialog and global error dark
+00:11 +21 -1: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual empty surfaces light
+00:11 +22 -1: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual empty surfaces light
+00:12 +23 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin empty dark
+00:12 +24 -1: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual loading surfaces dark
+00:12 +25 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin loading dark
+00:13 +26 -1: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual loading surfaces light
+00:13 +27 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin error dark
+00:14 +28 -1: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual error surfaces dark
+00:14 +29 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey light
 00:15 +30 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey light
-00:17 +31 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: auth and source-only setup light
-00:18 +32 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: superadmin populated, diagnostic dialog and global error light
+00:16 +31 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: auth and source-only setup light
+00:17 +32 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: superadmin populated, diagnostic dialog and global error light
 00:18 +33 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: receipt preview and busy presentation light
 00:18 +34 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin empty light
 00:18 +35 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin loading light
 00:19 +36 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin error light
 00:19 +37 -1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: (tearDownAll)
-00:20 +37 -1: Some tests failed.
+00:19 +37 -1: Some tests failed.

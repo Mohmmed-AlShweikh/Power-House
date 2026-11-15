@@ -548,10 +548,27 @@ void main() {
             recentActivitiesProvider.overrideWith((ref) => []),
           ], child: _Frame(brightness: brightness, child: child)));
           await _precache(tester);
+          await tester.pump();
           await tester.pump(const Duration(milliseconds: 400));
+          await tester.pump(const Duration(milliseconds: 800));
+          await tester.pump();
         }
 
         Future<void> capture(String name) async {
+          final typeName = {
+            'subscribers': '_SubscribersTab',
+            'bills': '_BillsTab',
+            'complaints': '_ComplaintsTab',
+            'requests': '_PendingUsersTab'
+          }[name];
+          if (typeName != null) {
+            final page = find.byWidgetPredicate(
+                (widget) => widget.runtimeType.toString() == typeName);
+            expect(page, findsOneWidget);
+            final center = tester.getCenter(page);
+            expect(center.dx, inInclusiveRange(0, 430),
+                reason: '$name must be the visible page, not an offscreen tab');
+          }
           expect(tester.takeException(), isNull);
           _auditText(tester);
           await expectLater(
@@ -568,7 +585,10 @@ void main() {
           ('الشكاوى', 'complaints')
         ]) {
           await tester.tap(find.byKey(ValueKey('nav-${destination.$1}')));
+          await tester.pump();
           await tester.pump(const Duration(milliseconds: 400));
+          await tester.pump(const Duration(milliseconds: 800));
+          await tester.pump();
           await capture(destination.$2);
         }
         await tester.tap(find.byKey(const ValueKey('nav-المزيد')));

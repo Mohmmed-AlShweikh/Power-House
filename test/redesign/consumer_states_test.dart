@@ -83,8 +83,21 @@ void main() {
                 context);
           }
         });
+        await tester.pump();
         await tester.pump(const Duration(milliseconds: 400));
+        await tester.pump(const Duration(milliseconds: 800));
         Future<void> capture(String name) async {
+          if (name == 'complaints' || name == 'notifications') {
+            final title =
+                find.text(name == 'complaints' ? 'شكاواي' : 'الإشعارات').last;
+            final center = tester.getCenter(title);
+            expect(center.dy, greaterThanOrEqualTo(0));
+            expect(center.dy, lessThan(1280));
+          }
+          if (name == 'complaints' && state == 'error') {
+            expect(tester.getCenter(find.text('تعذّر تحميل الشكاوى')).dy,
+                lessThan(1280));
+          }
           expect(tester.takeException(), isNull);
           for (final element in find.byType(Text).evaluate()) {
             final widget = element.widget as Text;
@@ -108,17 +121,25 @@ void main() {
           ('الملف', 'profile')
         ]) {
           await tester.tap(find.byKey(ValueKey('nav-${destination.$1}')));
+          await tester.pump();
           await tester.pump(const Duration(milliseconds: 400));
+          await tester.pump(const Duration(milliseconds: 800));
           await capture(destination.$2);
         }
         await tester.ensureVisible(find.text('شكاواي'));
         await tester.tap(find.text('شكاواي'));
+        await tester.pump();
         await tester.pump(const Duration(milliseconds: 400));
+        await tester.pump(const Duration(milliseconds: 800));
         await capture('complaints');
         Navigator.of(tester.element(find.text('شكاواي').last)).pop();
+        await tester.pump();
         await tester.pump(const Duration(milliseconds: 400));
+        await tester.pump(const Duration(milliseconds: 800));
         await tester.tap(find.byTooltip('الإشعارات').first);
+        await tester.pump();
         await tester.pump(const Duration(milliseconds: 400));
+        await tester.pump(const Duration(milliseconds: 800));
         await capture('notifications');
         // Record that error fallbacks remain deliberately identical to baseline.
         if (state == 'error' || state == 'empty') {

@@ -41,7 +41,7 @@
 | `android/app/src/main/res/` | PNG/XML/styles لأيقونة وsplash فاتح/داكن وmonochrome وإشعار |
 | `ios/Runner/Assets.xcassets/` وLaunchScreen.storyboard | أصول أيقونة وsplash مولدة |
 | `ios/Runner/Info.plist` | اسم العرض العربي فقط |
-| `test/` و`docs/` و`screenshots/` | أدلة واختبارات ولقطات مطلوبة |
+| `test/` و`tool/` و`docs/` و`screenshots/` | أدلة واختبارات ولقطات مطلوبة |
 
 المسح في `validation/step3b-literal-scan.txt` لا يجد `Color(0x...)` أو `Colors.*` أو `AppColors` أو `TextStyle(...)` أو `LinearGradient` في `lib/views/` وmain وmetadata الإشعارات. ألوان ActivityItem والـThemeData القديمة داخل ملفات providers المحمية/config القديمة لم تُغيّر؛ التطبيق يستعمل الثيم الجديد من main.
 
@@ -60,3 +60,5 @@
 نجح `flutter build apk --debug --no-pub` للنسخة الأخيرة. الملف المحلي: `build/app/outputs/flutter-apk/app-debug.apk`، حجمه 157,380,658 بايت (نحو 150MiB)، ويدعم arm64-v8a / armeabi-v7a / x86_64، Android API24+. فحص `apksigner verify --verbose` ينجح؛ موارد icon/splash وmonochrome API33+ موجودة داخل APK. الاسم «بوابة المولدات»، التطبيق ID والإصدار كما في الأصل. التوقيع تجريبي وفق إعداد المشروع الأصلي؛ لم تُنشر النسخة في أي متجر أو مستودع بعيد.
 
 السجل في `validation/android-build.txt`، وبصمة SHA256 وقائمة الموارد في `validation/android-apk.json`. إعداد البناء احتاج JDK21 كاملًا وAndroid platforms 34/35/36 وNDK28.2/CMake3.22 داخل مساحة الأدوات، دون تعديل إعدادات Gradle للمشروع أو اعتمادياته. تهيئة البيئة لا تعني اختبار التطبيق على جهاز. التحقق الأصلي من الأيقونة/الـsplash والإشعارات وتشغيل التطبيق ما زال غير منفّذ هنا؛ لا جهاز/محاكي متاح.
+
+لتكرار المقارنات استخدم `tool/test_visual.sh`؛ يثبّت وقت عملية الاختبار فقط لأن التحية تتغير حسب الساعة. التفاصيل في `visual-tests.md`. لا تتغير ساعة التطبيق أو منطق التحية في APK. صُحّحت مواعيد التقاط الحالات لتثبت الاختبارات أن الحوار/التبويب المطلوب ظاهر قبل التصوير.

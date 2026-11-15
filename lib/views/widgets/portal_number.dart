@@ -9,7 +9,7 @@ class PortalNumber extends StatelessWidget {
   const PortalNumber(this.value, {super.key, this.style, this.textAlign});
 
   static final _latinRun =
-      RegExp(r'[A-Za-z0-9₪€$%…—]+(?:[\s:.,/+\-]*[A-Za-z0-9₪€$%…—]+)*');
+      RegExp(r'[A-Za-z0-9₪€$%…—+\-]+(?:[\s:.,/+\-]*[A-Za-z0-9₪€$%…—+\-]+)*');
   static String isolate(String text) => text.replaceAllMapped(
         _latinRun,
         (match) => '\u2066${match[0]}\u2069',

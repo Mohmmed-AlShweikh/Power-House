@@ -709,28 +709,34 @@ class _SubscribersTabState extends ConsumerState<_SubscribersTab> {
               ),
             ),
             Expanded(
-              child: ListView.builder(
-                padding: EdgeInsetsDirectional.fromSTEB(
-                    PortalTokens.gutter,
-                    PortalTokens.lg,
-                    PortalTokens.gutter,
-                    PortalTokens.navClearance +
-                        MediaQuery.paddingOf(context).bottom),
-                itemCount: filtered.length,
-                itemBuilder: (context, i) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _SubscriberCard(
-                    sub: filtered[i],
-                    onJumpToBill: widget.onJumpToBill,
-                    onToggle: (v) async {
-                      await FirebaseService().updateSubscriber(
-                        filtered[i].uid,
-                        status: v ? 'active' : 'inactive',
-                      );
-                    },
-                  ),
-                ),
-              ),
+              child: filtered.isEmpty
+                  ? PortalEmptyState(
+                      _search.isEmpty
+                          ? 'لا يوجد مشتركون'
+                          : 'لا توجد نتائج للبحث',
+                      icon: Icons.people_outline)
+                  : ListView.builder(
+                      padding: EdgeInsetsDirectional.fromSTEB(
+                          PortalTokens.gutter,
+                          PortalTokens.lg,
+                          PortalTokens.gutter,
+                          PortalTokens.navClearance +
+                              MediaQuery.paddingOf(context).bottom),
+                      itemCount: filtered.length,
+                      itemBuilder: (context, i) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _SubscriberCard(
+                          sub: filtered[i],
+                          onJumpToBill: widget.onJumpToBill,
+                          onToggle: (v) async {
+                            await FirebaseService().updateSubscriber(
+                              filtered[i].uid,
+                              status: v ? 'active' : 'inactive',
+                            );
+                          },
+                        ),
+                      ),
+                    ),
             ),
           ],
         );
