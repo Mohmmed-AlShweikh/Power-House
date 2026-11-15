@@ -15,6 +15,7 @@ import '../../../services/local_notification_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../theme/portal_tokens.dart';
 import '../../widgets/portal_components.dart';
+import '../../widgets/portal_keyboard.dart';
 import '../../widgets/portal_number.dart';
 import '../../../theme/portal_theme.dart';
 import '../../widgets/portal_navigation.dart';
@@ -341,7 +342,7 @@ class _DashboardTab extends ConsumerWidget {
     DateTime? scheduledOnAt,
     DateTime? scheduledOffAt,
   ) {
-    showModalBottomSheet(
+    showPortalFormSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -376,11 +377,11 @@ class _DashboardTab extends ConsumerWidget {
         }
 
         return Padding(
-          padding: EdgeInsets.only(
+          padding: const EdgeInsets.only(
             left: 24,
             right: 24,
             top: 24,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+            bottom: 24,
           ),
           child: StatefulBuilder(builder: (context, setState) {
             return SingleChildScrollView(
@@ -747,7 +748,7 @@ class _SubscribersTabState extends ConsumerState<_SubscribersTab> {
   }
 
   void _showAddSheet(BuildContext context) {
-    showModalBottomSheet(
+    showPortalFormSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -755,11 +756,11 @@ class _SubscribersTabState extends ConsumerState<_SubscribersTab> {
       builder: (_) => Directionality(
         textDirection: TextDirection.rtl,
         child: Padding(
-          padding: EdgeInsets.only(
+          padding: const EdgeInsets.only(
             left: 24,
             right: 24,
             top: 24,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+            bottom: 24,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -802,7 +803,7 @@ class _SubscriberCard extends StatelessWidget {
   Future<void> _editAmpere(BuildContext context) async {
     final ctrl = TextEditingController(
         text: sub.ampereLimit > 0 ? '${sub.ampereLimit}' : '');
-    final result = await showDialog<int>(
+    final result = await showPortalFormDialog<int>(
       context: context,
       builder: (_) => Directionality(
         textDirection: TextDirection.rtl,
@@ -1033,7 +1034,7 @@ class _MockSubscribersState extends State<_MockSubscribers> {
     final nameCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
     final addressCtrl = TextEditingController();
-    showModalBottomSheet(
+    showPortalFormSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -1041,11 +1042,11 @@ class _MockSubscribersState extends State<_MockSubscribers> {
       builder: (_) => Directionality(
         textDirection: TextDirection.rtl,
         child: Padding(
-          padding: EdgeInsets.only(
+          padding: const EdgeInsets.only(
             left: 24,
             right: 24,
             top: 24,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+            bottom: 24,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1343,7 +1344,7 @@ class _BillsTabState extends ConsumerState<_BillsTab> {
   }
 
   void _showAddBillSheet(BuildContext context) {
-    showModalBottomSheet(
+    showPortalFormSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -1572,11 +1573,11 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
     final canSubmit = _idValid && !_submitting && !_checking;
 
     return Padding(
-      padding: EdgeInsets.only(
+      padding: const EdgeInsets.only(
         left: 24,
         right: 24,
         top: 24,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 28,
+        bottom: 28,
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -1937,7 +1938,7 @@ class _AdminBillCard extends StatelessWidget {
 
   void _openReviewDialog(BuildContext context) {
     if (bill.status != BillStatus.pendingReview) return;
-    showDialog(
+    showPortalFormDialog(
       context: context,
       builder: (_) => ReceiptReviewDialog(
         bill: bill,
@@ -2365,7 +2366,7 @@ class _ComplaintCard extends StatelessWidget {
 
   void _showReplyDialog(BuildContext context, String complaintId) {
     final ctrl = TextEditingController();
-    showDialog(
+    showPortalFormDialog(
       context: context,
       builder: (_) => Directionality(
         textDirection: TextDirection.rtl,
@@ -2527,7 +2528,7 @@ class _MockComplaintCard extends StatelessWidget {
 
   void _showMockReplyDialog(BuildContext context) {
     final ctrl = TextEditingController();
-    showDialog(
+    showPortalFormDialog(
       context: context,
       builder: (_) => Directionality(
         textDirection: TextDirection.rtl,
@@ -2712,7 +2713,7 @@ class _AdminProfileTab extends ConsumerWidget {
     final addressCtrl = TextEditingController(text: profile?.address ?? '');
     final phoneCtrl = TextEditingController(text: profile?.phone ?? '');
 
-    showModalBottomSheet(
+    showPortalFormSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -2720,11 +2721,11 @@ class _AdminProfileTab extends ConsumerWidget {
       builder: (_) => Directionality(
         textDirection: TextDirection.rtl,
         child: Padding(
-          padding: EdgeInsets.only(
+          padding: const EdgeInsets.only(
             left: 24,
             right: 24,
             top: 24,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+            bottom: 24,
           ),
           child: SingleChildScrollView(
             child: SingleChildScrollView(
