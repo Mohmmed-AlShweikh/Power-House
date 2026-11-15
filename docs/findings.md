@@ -25,3 +25,7 @@ Source review only. These are separate follow-up tasks, not permission to change
 ## Current validation limits
 
 Flutter 3.41.9 / Dart 3.11.5 is now installed outside the checkout, matching SDK-pinned dependencies in the unchanged lockfile. The original counter test was executed on an archived pre-redesign source snapshot and fails with `No ProviderScope found`, followed by its stale counter expectation. It still fails after the redesign; it has not been altered. Baseline analysis has 0 errors, 20 warnings and 261 infos; see the Step 2 report for current checks. Android has no installed emulator, exposed KVM or visible attached USB device here; native launcher/splash validation remains unverified and must not be replaced by browser simulations.
+
+## Pilot review: misleading admin consumption label
+
+The original `work` branch (`caa6d10f132a79fa36bcd44bcf95885d0cc5340d`) labels an admin statistic `كWh هذا الشهر`, but its value is `(stats.unpaidCount + stats.paidCount)` followed by `فاتورة`. This is application code, not a golden-only label. The golden fixture supplies 12 unpaid + 24 paid bills, so the existing expression displays `36 فاتورة`. The visual redesign deliberately preserves this expression and label; a separate logic correction requires authorization outside this phase.

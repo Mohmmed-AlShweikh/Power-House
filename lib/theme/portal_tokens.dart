@@ -59,6 +59,18 @@ abstract final class PortalTokens {
   static const chartBarWidth = 24.0;
   static const chartLabelHeight = 28.0;
   static const chartAxisWidth = 40.0;
+  static const navHeight = 80.0;
+  static const navInset = 16.0;
+  static const navTile = 36.0;
+  static const navLift = 12.0;
+  static const navClearance = navHeight + gutter;
+  static const heroHeight = 232.0;
+  static const smallIconBox = 36.0;
+  static const subtleShadow = Color(0x12000000);
+  static const navLabel =
+      TextStyle(fontSize: 12, height: 1.2, fontWeight: FontWeight.w500);
+  static const navActiveLabel =
+      TextStyle(fontSize: 12, height: 1.2, fontWeight: FontWeight.w700);
   static const zero = 0.0;
   static const motion = Duration(milliseconds: 160);
   static const font = 'PortalArabic';

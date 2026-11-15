@@ -18,6 +18,7 @@ import '../../../config/colors.dart';
 import '../../../theme/portal_tokens.dart';
 import '../../../theme/portal_theme.dart';
 import '../../widgets/portal_components.dart';
+import '../../widgets/portal_navigation.dart';
 import '../../widgets/base64_image_viewer.dart';
 import 'subscriber_details_screen.dart';
 
@@ -30,6 +31,7 @@ class AdminScreen extends ConsumerStatefulWidget {
 class _AdminScreenState extends ConsumerState<AdminScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabs;
+  bool _moreVisible = false;
   bool _generatorOn = true;
   StreamSubscription<QuerySnapshot>? _alertsSub;
   final DateTime _startTime = DateTime.now();
@@ -80,43 +82,72 @@ class _AdminScreenState extends ConsumerState<AdminScreen>
     _tabs.animateTo(3);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    // Keep unreviewed destinations on their existing theme until Step 3.
-    Widget existingAppearance(Widget child) => Theme(
-      data: theme,
-      child: ColoredBox(color: theme.scaffoldBackgroundColor, child: child),
-    );
-
-    return Theme(data: buildPortalTheme(theme.brightness), child: Builder(builder: (context) {
-      final profile = ref.watch(authProvider).profile;
-      return Scaffold(body: Column(children: [
-        PortalIdentityBar(title: 'لوحة الإدارة',
-          subtitle: profile != null && profile.name.isNotEmpty ? profile.name : 'مولد حي البيرة',
-          actions: [
-            IconButton(tooltip: theme.brightness == Brightness.dark ? 'وضع النهار' : 'وضع الليل',
-              icon: Icon(theme.brightness == Brightness.dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
-              onPressed: () => ref.read(themeProvider.notifier).toggle()),
-            IconButton(tooltip: 'تسجيل الخروج', icon: const Icon(Icons.logout),
-              onPressed: () async {
+  Future<void> _showMore(BuildContext context) async {
+    setState(() => _moreVisible = true);
+    await showModalBottomSheet<void>(context: context, isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(top: false,
+        child: SingleChildScrollView(child: Padding(key: const ValueKey('admin-more-menu'), padding: PortalTokens.pagePadding,
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [Expanded(child: Text('المزيد', style: Theme.of(context).textTheme.titleLarge)),
+              IconButton(tooltip: 'إغلاق', onPressed: () => Navigator.pop(sheetContext), icon: const Icon(Icons.close))]),
+            ListTile(leading: const Icon(Icons.pending_actions_outlined), title: const Text('الطلبات'),
+              onTap: () { Navigator.pop(sheetContext); _tabs.animateTo(1); }),
+            ListTile(leading: const Icon(Icons.person_outline), title: const Text('ملفي'),
+              onTap: () { Navigator.pop(sheetContext); _tabs.animateTo(5); }),
+            ListTile(leading: const Icon(Icons.tune_outlined), title: const Text('السعر وجدول التشغيل'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                final gen = ref.read(generatorProvider);
+                _DashboardTab._showGeneratorSettingsSheet(context,
+                  gen.when(data: (g) => g.pricePerKwh, loading: () => 2.0, error: (_, __) => 2.0),
+                  gen.when(data: (g) => g.scheduledOnAt, loading: () => null, error: (_, __) => null),
+                  gen.when(data: (g) => g.scheduledOffAt, loading: () => null, error: (_, __) => null));
+              }),
+            ListTile(leading: const Icon(Icons.brightness_6_outlined), title: const Text('تبديل المظهر'),
+              onTap: () { Navigator.pop(sheetContext); ref.read(themeProvider.notifier).toggle(); }),
+            ListTile(leading: const Icon(Icons.logout), title: const Text('تسجيل الخروج'),
+              onTap: () async {
+                Navigator.pop(sheetContext);
                 await ref.read(authProvider.notifier).signOut();
                 if (context.mounted) context.go('/login');
               }),
-          ]),
-        AnimatedBuilder(animation: _tabs, builder: (_, __) => PortalDestinations(
-          selected: _tabs.index, onSelected: (index) => _tabs.animateTo(index))),
-        Expanded(child: TabBarView(controller: _tabs, children: [
-          _DashboardTab(onToggle: (v) async {
-            await FirebaseService().toggleGenerator(v);
-            await NotificationService().notifyAllUsersGeneratorState(v);
-          }),
-          existingAppearance(const _PendingUsersTab()),
-          existingAppearance(_SubscribersTab(onJumpToBill: _jumpToBillsTab)),
-          existingAppearance(const _BillsTab()),
-          existingAppearance(const _ComplaintsTab()),
-          existingAppearance(const _AdminProfileTab()),
-        ])),
+          ])))));
+    if (mounted) setState(() => _moreVisible = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    Widget existingAppearance(Widget child) => Theme(data: theme,
+      child: Padding(padding: EdgeInsets.only(bottom: PortalTokens.navHeight + MediaQuery.paddingOf(context).bottom),
+        child: ColoredBox(color: theme.scaffoldBackgroundColor, child: child)));
+    return Theme(data: buildPortalTheme(theme.brightness), child: Builder(builder: (context) {
+      final profile = ref.watch(authProvider).profile;
+      return Scaffold(body: Stack(children: [
+        Column(children: [
+          AnimatedBuilder(animation: _tabs, builder: (_, __) => PortalIdentityBar(
+            title: const ['نظرة عامة', 'الطلبات', 'المشتركون', 'الفواتير', 'الشكاوى', 'ملفي'][_tabs.index],
+            subtitle: profile != null && profile.name.isNotEmpty ? profile.name : 'مولد حي البيرة')),
+          Expanded(child: TabBarView(controller: _tabs, children: [
+            _DashboardTab(onToggle: (v) async {
+              await FirebaseService().toggleGenerator(v);
+              await NotificationService().notifyAllUsersGeneratorState(v);
+            }),
+            existingAppearance(const _PendingUsersTab()),
+            existingAppearance(_SubscribersTab(onJumpToBill: _jumpToBillsTab)),
+            existingAppearance(const _BillsTab()),
+            existingAppearance(const _ComplaintsTab()),
+            existingAppearance(const _AdminProfileTab()),
+          ])),
+        ]),
+        PositionedDirectional(start: 0, end: 0, bottom: MediaQuery.paddingOf(context).bottom,
+          child: AnimatedBuilder(animation: _tabs, builder: (_, __) {
+            final selected = _moreVisible ? 4 : switch (_tabs.index) {0 => 0, 2 => 1, 3 => 2, 4 => 3, _ => 4};
+            return PortalFloatingNavigation(items: adminNavItems, selected: selected,
+              onSelected: (i) {
+                if (i == 4) { _showMore(context); } else { _tabs.animateTo([0, 2, 3, 4][i]); }
+              });
+          })),
       ]));
     }));
   }
@@ -170,31 +201,36 @@ class _DashboardTab extends ConsumerWidget {
     final currentMonth = currentMonthArabic();
 
     return SingleChildScrollView(
-      padding: PortalTokens.pagePadding,
+      padding: EdgeInsets.fromLTRB(PortalTokens.gutter, PortalTokens.sm,
+        PortalTokens.gutter, PortalTokens.navClearance + MediaQuery.paddingOf(context).bottom),
       child: Column(children: [
         _GeneratorToggleCard(isOn: isOn, lastChanged: lastChanged,
-          pricePerKwh: currentPrice, scheduledOnAt: scheduledOnAt, scheduledOffAt: scheduledOffAt,
-          onToggle: onToggle,
-          onEdit: () => _showGeneratorSettingsSheet(context, currentPrice, scheduledOnAt, scheduledOffAt)),
-        const PortalSection('ملخص المشتركين'),
-        PortalMetricPair(
-          first: PortalMetric(label: 'المشتركون', value: totalSubs, icon: Icons.people_outline),
-          second: PortalMetric(label: 'نشطون', value: activeSubs, icon: Icons.check_circle_outline)),
-        const SizedBox(height: PortalTokens.md),
-        PortalMetricPair(
-          first: PortalMetric(label: 'شكاوى مفتوحة', value: complaintsCount, icon: Icons.chat_bubble_outline),
-          second: PortalMetric(label: 'كWh هذا الشهر',
-            value: stats.unpaidCount > 0 || stats.paidCount > 0 ? '${stats.unpaidCount + stats.paidCount} فاتورة' : '-',
-            icon: Icons.electric_bolt_outlined)),
+          pricePerKwh: currentPrice, scheduledOnAt: scheduledOnAt,
+          scheduledOffAt: scheduledOffAt, onToggle: onToggle),
         PortalSection('ملخص فواتير $currentMonth'),
-        _MonthlyBillStatsCard(stats: stats, month: currentMonth),
-        const PortalSection('آخر النشاطات'),
-        _RecentActivity(),
+        PortalMetricPair(
+          first: PortalMetric(label: 'الفواتير المستحقة', value: '₪${stats.unpaidAmount}',
+            footnote: '${stats.unpaidCount} فاتورة', icon: Icons.pending_actions_outlined),
+          second: PortalMetric(label: 'الفواتير المدفوعة', value: '₪${stats.paidAmount}',
+            footnote: '${stats.paidCount} فاتورة', icon: Icons.check_circle_outline)),
+        const PortalSection('المشتركون والتشغيل'),
+        PortalPanel(child: Column(children: [
+          PortalDataRow(label: 'المشتركون', value: totalSubs, icon: Icons.people_outline),
+          const Divider(height: PortalTokens.line),
+          PortalDataRow(label: 'نشطون', value: activeSubs, icon: Icons.check_circle_outline),
+          const Divider(height: PortalTokens.line),
+          PortalDataRow(label: 'شكاوى مفتوحة', value: complaintsCount, icon: Icons.chat_bubble_outline),
+          const Divider(height: PortalTokens.line),
+          PortalDataRow(label: 'كWh هذا الشهر',
+            value: stats.unpaidCount > 0 || stats.paidCount > 0 ? '${stats.unpaidCount + stats.paidCount} فاتورة' : '-',
+            icon: Icons.electric_bolt_outlined),
+        ])),
+        const PortalSection('آخر النشاطات'), _RecentActivity(),
       ]),
     );
   }
 
-  void _showGeneratorSettingsSheet(
+  static void _showGeneratorSettingsSheet(
     BuildContext context,
     double currentPrice,
     DateTime? scheduledOnAt,
@@ -373,7 +409,6 @@ class _GeneratorToggleCard extends StatelessWidget {
   final DateTime? scheduledOnAt;
   final DateTime? scheduledOffAt;
   final ValueChanged<bool> onToggle;
-  final VoidCallback onEdit;
 
   const _GeneratorToggleCard({
     required this.isOn,
@@ -382,7 +417,6 @@ class _GeneratorToggleCard extends StatelessWidget {
     this.scheduledOnAt,
     this.scheduledOffAt,
     required this.onToggle,
-    required this.onEdit,
   });
 
   String _runningFor() {
@@ -410,7 +444,7 @@ class _GeneratorToggleCard extends StatelessWidget {
     isOn: isOn, detail: _runningFor(),
     tariff: 'سعر kWh: ₪${pricePerKwh.toStringAsFixed(2)}',
     schedule: 'تشغيل مجدول: ${_formatTime(scheduledOnAt)} • إيقاف مجدول: ${_formatTime(scheduledOffAt)}',
-    onToggle: (v) => _confirmToggle(context, v), onSettings: onEdit,
+    onToggle: (v) => _confirmToggle(context, v),
   );
 
   void _confirmToggle(BuildContext context, bool v) {
@@ -477,23 +511,6 @@ class _RecentActivity extends ConsumerWidget {
 }
 
 // ── Monthly Bill Stats Card ───────────────────────────────────────────────────
-
-class _MonthlyBillStatsCard extends StatelessWidget {
-  final MonthlyBillStats stats;
-  final String month;
-  const _MonthlyBillStatsCard({required this.stats, required this.month});
-
-  @override
-  Widget build(BuildContext context) {
-    return PortalPanel(child: Column(children: [
-      PortalRecordRow(title: 'الفواتير المستحقة', subtitle: '${stats.unpaidCount} فاتورة',
-        trailing: '₪${stats.unpaidAmount}', icon: Icons.pending_actions_outlined),
-      const Divider(),
-      PortalRecordRow(title: 'الفواتير المدفوعة', subtitle: '${stats.paidCount} فاتورة',
-        trailing: '₪${stats.paidAmount}', icon: Icons.check_circle_outline),
-    ]));
-  }
-}
 
 // ── Subscribers Tab ─────────────────────────────────────────────────────────────────
 

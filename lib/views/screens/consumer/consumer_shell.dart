@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../theme/portal_theme.dart';
+import '../../../theme/portal_tokens.dart';
 import '../../widgets/portal_components.dart';
 import '../../../services/local_notification_service.dart';
 import 'home_tab.dart';
@@ -68,20 +69,30 @@ class _ConsumerShellState extends ConsumerState<ConsumerShell> {
 
   @override
   Widget build(BuildContext context) {
+    final reserved =
+        PortalTokens.navHeight + MediaQuery.paddingOf(context).bottom;
     final tabs = [
       const HomeTab(),
-      const UsageTab(),
-      const BillsTab(),
-      const ProfileTab(),
+      Padding(
+          padding: EdgeInsets.only(bottom: reserved), child: const UsageTab()),
+      Padding(
+          padding: EdgeInsets.only(bottom: reserved), child: const BillsTab()),
+      Padding(
+          padding: EdgeInsets.only(bottom: reserved),
+          child: const ProfileTab()),
     ];
-
     return Scaffold(
-      body: IndexedStack(index: _index, children: tabs),
-      bottomNavigationBar: Theme(
-        data: buildPortalTheme(Theme.of(context).brightness),
-        child: PortalConsumerNavigation(
-            selected: _index, onSelected: (i) => setState(() => _index = i)),
-      ),
-    );
+        body: Stack(children: [
+      IndexedStack(index: _index, children: tabs),
+      PositionedDirectional(
+          start: 0,
+          end: 0,
+          bottom: MediaQuery.paddingOf(context).bottom,
+          child: Theme(
+              data: buildPortalTheme(Theme.of(context).brightness),
+              child: PortalConsumerNavigation(
+                  selected: _index,
+                  onSelected: (i) => setState(() => _index = i)))),
+    ]));
   }
 }

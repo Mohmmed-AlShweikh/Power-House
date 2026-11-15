@@ -1,0 +1,139 @@
+00:00 +0: loading /workspace/Power-House/test/widget_test.dart
+00:00 +0: Counter increments smoke test
+══╡ EXCEPTION CAUGHT BY WIDGETS LIBRARY ╞═══════════════════════════════════════════════════════════
+The following StateError was thrown building GeneratorPortalApp(dirty, state: _ConsumerState#23c11):
+Bad state: No ProviderScope found
+
+The relevant error-causing widget was:
+  GeneratorPortalApp GeneratorPortalApp:file:///workspace/Power-House/test/widget_test.dart:16:29
+
+When the exception was thrown, this was the stack:
+#0      ProviderScope.containerOf (package:flutter_riverpod/src/framework.dart:110:7)
+#1      ConsumerStatefulElement._container (package:flutter_riverpod/src/consumer.dart:508:53)
+#2      ConsumerStatefulElement._container (package:flutter_riverpod/src/consumer.dart)
+#3      ConsumerStatefulElement.watch.<anonymous closure> (package:flutter_riverpod/src/consumer.dart:564:14)
+#4      _LinkedHashMapMixin.putIfAbsent (dart:_compact_hash:675:23)
+#5      ConsumerStatefulElement.watch (package:flutter_riverpod/src/consumer.dart:557:26)
+#6      GeneratorPortalApp.build (package:generator_portal/main.dart:43:27)
+#7      _ConsumerState.build (package:flutter_riverpod/src/consumer.dart:476:19)
+#8      StatefulElement.build (package:flutter/src/widgets/framework.dart:5931:27)
+#9      ConsumerStatefulElement.build (package:flutter_riverpod/src/consumer.dart:539:20)
+#10     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5817:15)
+#11     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#12     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#13     ComponentElement._firstBuild (package:flutter/src/widgets/framework.dart:5799:5)
+#14     StatefulElement._firstBuild (package:flutter/src/widgets/framework.dart:5973:11)
+#15     ComponentElement.mount (package:flutter/src/widgets/framework.dart:5793:5)
+#16     Element.inflateWidget (package:flutter/src/widgets/framework.dart:4587:20)
+#17     Element.updateChild (package:flutter/src/widgets/framework.dart:4053:20)
+#18     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#19     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#20     ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#21     _InheritedNotifierElement.update (package:flutter/src/widgets/inherited_notifier.dart:108:11)
+#22     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#23     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#24     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#25     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#26     StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#27     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#28     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#29     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#30     ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#31     _InheritedNotifierElement.update (package:flutter/src/widgets/inherited_notifier.dart:108:11)
+#32     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#33     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#34     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#35     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#36     StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#37     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#38     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#39     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#40     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#41     StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#42     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#43     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#44     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#45     ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#46     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#47     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#48     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#49     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#50     StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#51     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#52     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#53     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#54     ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#55     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#56     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#57     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#58     ProxyElement.update (package:flutter/src/widgets/framework.dart:6149:5)
+#59     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#60     _RawViewElement._updateChild (package:flutter/src/widgets/view.dart:481:16)
+#61     _RawViewElement.update (package:flutter/src/widgets/view.dart:568:5)
+#62     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#63     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#64     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#65     StatelessElement.update (package:flutter/src/widgets/framework.dart:5895:5)
+#66     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#67     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5841:16)
+#68     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5982:11)
+#69     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#70     StatefulElement.update (package:flutter/src/widgets/framework.dart:6007:5)
+#71     Element.updateChild (package:flutter/src/widgets/framework.dart:4037:15)
+#72     RootElement._rebuild (package:flutter/src/widgets/binding.dart:1822:16)
+#73     RootElement.update (package:flutter/src/widgets/binding.dart:1800:5)
+#74     RootElement.performRebuild (package:flutter/src/widgets/binding.dart:1814:7)
+#75     Element.rebuild (package:flutter/src/widgets/framework.dart:5529:7)
+#76     BuildScope._tryRebuild (package:flutter/src/widgets/framework.dart:2750:15)
+#77     BuildScope._flushDirtyElements (package:flutter/src/widgets/framework.dart:2807:11)
+#78     BuildOwner.buildScope (package:flutter/src/widgets/framework.dart:3111:18)
+#79     AutomatedTestWidgetsFlutterBinding.drawFrame (package:flutter_test/src/binding.dart:2131:19)
+#80     RendererBinding._handlePersistentFrameCallback (package:flutter/src/rendering/binding.dart:495:5)
+#81     SchedulerBinding._invokeFrameCallback (package:flutter/src/scheduler/binding.dart:1430:15)
+#82     SchedulerBinding.handleDrawFrame (package:flutter/src/scheduler/binding.dart:1345:9)
+#83     AutomatedTestWidgetsFlutterBinding.pump.<anonymous closure> (package:flutter_test/src/binding.dart:1960:9)
+#86     TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
+#87     AutomatedTestWidgetsFlutterBinding.pump (package:flutter_test/src/binding.dart:1949:27)
+#88     WidgetTester.pumpWidget.<anonymous closure> (package:flutter_test/src/widget_tester.dart:598:22)
+#91     TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
+#92     WidgetTester.pumpWidget (package:flutter_test/src/widget_tester.dart:595:27)
+#93     main.<anonymous closure> (file:///workspace/Power-House/test/widget_test.dart:16:18)
+#94     testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:29)
+<asynchronous suspension>
+#95     TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1682:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided 5 frames from dart:async and package:stack_trace)
+
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "0": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///workspace/Power-House/test/widget_test.dart:19:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1682:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///workspace/Power-House/test/widget_test.dart line 19
+The test description was:
+  Counter increments smoke test
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following message was thrown:
+Multiple exceptions (2) were detected during the running of the current test, and at least one was
+unexpected.
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:00 +0 -1: Counter increments smoke test [E]
+  Test failed. See exception logs above.
+  The test description was: Counter increments smoke test
+
+00:00 +0 -1: Some tests failed.

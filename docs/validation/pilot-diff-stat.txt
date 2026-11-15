@@ -1,0 +1,27 @@
+ docs/findings.md                                 |   4 +
+ docs/pilot-review.md                             |  75 ++++++
+ docs/validation/current-analyzer.txt             | 242 +++++++++++++++++++
+ docs/validation/current-counter-test.txt         | 139 +++++++++++
+ docs/validation/font-sizes-admin_dark.json       | 290 +++++++++++++++++++++++
+ docs/validation/font-sizes-admin_light.json      | 290 +++++++++++++++++++++++
+ docs/validation/font-sizes-consumer_dark.json    | 242 +++++++++++++++++++
+ docs/validation/font-sizes-consumer_light.json   | 242 +++++++++++++++++++
+ docs/validation/original-analyzer.txt            | 285 ++++++++++++++++++++++
+ docs/validation/original-counter-test.txt        | 139 +++++++++++
+ docs/validation/pilot-scoped-analyzer.txt        |   2 +
+ docs/validation/pilot-tests.txt                  |  15 ++
+ lib/theme/portal_tokens.dart                     |  12 +
+ lib/views/screens/admin/admin_screen.dart        | 155 ++++++------
+ lib/views/screens/consumer/consumer_shell.dart   |  33 ++-
+ lib/views/screens/consumer/home_tab.dart         | 145 ++++++------
+ lib/views/widgets/portal_components.dart         | 197 ++++++++-------
+ lib/views/widgets/portal_navigation.dart         | 190 +++++++++++++++
+ lib/views/widgets/portal_number.dart             |  27 +++
+ screenshots/redesign/admin_dark.png              | Bin 72852 -> 72980 bytes
+ screenshots/redesign/admin_light.png             | Bin 71309 -> 71656 bytes
+ screenshots/redesign/consumer_dark.png           | Bin 63668 -> 70115 bytes
+ screenshots/redesign/consumer_light.png          | Bin 62117 -> 68845 bytes
+ screenshots/redesign/navigation_alternatives.png | Bin 0 -> 160595 bytes
+ test/redesign/home_goldens_test.dart             |  80 ++++++-
+ test/redesign/navigation_review_test.dart        | 221 +++++++++++++++++
+ 26 files changed, 2771 insertions(+), 254 deletions(-)

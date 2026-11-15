@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -13,6 +15,7 @@ import 'package:generator_portal/providers/data_provider.dart';
 import 'package:generator_portal/theme/portal_theme.dart';
 import 'package:generator_portal/theme/portal_tokens.dart';
 import 'package:generator_portal/views/widgets/portal_components.dart';
+import 'package:generator_portal/views/widgets/portal_navigation.dart';
 import 'package:generator_portal/views/screens/admin/admin_screen.dart';
 import 'package:generator_portal/views/screens/consumer/consumer_shell.dart';
 
@@ -61,7 +64,7 @@ void main() {
       final name = '${role.name}_${brightness.name}';
       testWidgets('home golden $name', (tester) async {
         final semantics = tester.ensureSemantics();
-        tester.view.physicalSize = const Size(430, 1100);
+        tester.view.physicalSize = const Size(430, 1280);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
@@ -161,16 +164,81 @@ void main() {
             TextDirection.rtl);
         await expectLater(find.byKey(const ValueKey('golden')),
             matchesGoldenFile('../../screenshots/redesign/$name.png'));
+        final fontRows = <Map<String, Object>>[];
+        void auditText({Finder? within}) {
+          final texts = within == null
+              ? find.byType(Text)
+              : find.descendant(of: within, matching: find.byType(Text));
+          for (final element in texts.evaluate()) {
+            final widget = element.widget as Text;
+            final style =
+                DefaultTextStyle.of(element).style.merge(widget.style);
+            final size = style.fontSize ?? 14;
+            expect(size, greaterThanOrEqualTo(12),
+                reason: widget.data ?? 'rich text');
+            fontRows.add({'text': widget.data ?? 'rich text', 'sp': size});
+          }
+        }
+
+        auditText();
         if (role == UserRole.admin) {
-          for (final index in [1, 2, 3, 4, 5, 0]) {
-            await tester.tap(find.descendant(
-              of: find.byType(PortalDestinations),
-              matching: find.text(PortalDestinations.labels[index]),
-            ));
+          for (final label in [
+            'المشتركون',
+            'الفواتير',
+            'الشكاوى',
+            'نظرة عامة'
+          ]) {
+            await tester.tap(find.byKey(ValueKey('nav-$label')));
             await tester.pumpAndSettle();
             expect(tester.takeException(), isNull);
           }
+          for (final label in ['الطلبات', 'ملفي']) {
+            await tester.tap(find.byKey(const ValueKey('nav-المزيد')));
+            await tester.pumpAndSettle();
+            await tester.tap(find.text(label).last);
+            await tester.pumpAndSettle();
+            expect(tester.takeException(), isNull);
+          }
+          await tester.tap(find.byKey(const ValueKey('nav-المزيد')));
+          await tester.pumpAndSettle();
+          auditText(within: find.byKey(const ValueKey('admin-more-menu')));
+          expect(find.text('تسجيل الخروج'), findsWidgets);
+          expect(find.text('تبديل المظهر'), findsOneWidget);
+          await tester.tap(find.text('السعر وجدول التشغيل'));
+          await tester.pumpAndSettle();
+          expect(find.text('السعر الحالي لكل كيلوواط/ساعة'), findsOneWidget);
+          await tester.tap(find.byIcon(Icons.close).last);
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('nav-نظرة عامة')));
+          await tester.pumpAndSettle();
+        } else {
+          expect(find.byTooltip('تسجيل الخروج'), findsNothing);
+          await tester.tap(find.byKey(const ValueKey('nav-الملف')));
+          await tester.pumpAndSettle();
+          expect(find.text('تسجيل الخروج'), findsWidgets);
+          await tester.tap(find.byKey(const ValueKey('nav-الرئيسية')));
+          await tester.pumpAndSettle();
         }
+        // Last record can be brought fully above the overlaid floating bar.
+        final scrolling = role == UserRole.admin
+            ? find.byType(SingleChildScrollView).first
+            : find.byType(ListView).first;
+        await tester.drag(scrolling, const Offset(0, -1500));
+        await tester.pumpAndSettle();
+        auditText();
+        expect(tester.takeException(), isNull);
+        final floatingTop =
+            tester.getTopLeft(find.byType(PortalFloatingNavigation)).dy;
+        final lastRecord = find.byType(PortalRecordRow).last;
+        if (lastRecord.evaluate().isNotEmpty) {
+          expect(tester.getBottomLeft(lastRecord).dy,
+              lessThanOrEqualTo(floatingTop));
+        }
+        await tester.runAsync(() async {
+          final dir = Directory('docs/validation')..createSync(recursive: true);
+          File('${dir.path}/font-sizes-$name.json').writeAsStringSync(
+              const JsonEncoder.withIndent('  ').convert(fontRows));
+        });
         semantics.dispose();
         await tester.pumpWidget(const SizedBox.shrink());
       });

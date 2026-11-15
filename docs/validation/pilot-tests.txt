@@ -1,0 +1,15 @@
+00:00 +0: loading /workspace/Power-House/test/redesign/home_goldens_test.dart
+00:00 +0: /workspace/Power-House/test/redesign/home_goldens_test.dart: (setUpAll)
+00:00 +0: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:00 +1: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:00 +2: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:01 +3: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:02 +4: /workspace/Power-House/test/redesign/navigation_review_test.dart: three navigation structures side by side, both roles and themes
+00:02 +5: /workspace/Power-House/test/redesign/navigation_review_test.dart: three navigation structures side by side, both roles and themes
+00:03 +6: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden admin_light
+00:03 +7: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden admin_light
+00:03 +8: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden admin_light
+00:03 +9: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden admin_light
+00:03 +10: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden admin_dark
+00:04 +11: /workspace/Power-House/test/redesign/home_goldens_test.dart: (tearDownAll)
+00:04 +11: All tests passed!

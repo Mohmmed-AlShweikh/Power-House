@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../models/alert_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/data_provider.dart';
-import '../../../providers/theme_provider.dart';
 import '../../../theme/portal_tokens.dart';
 import '../../../theme/portal_theme.dart';
 import '../../widgets/portal_components.dart';
@@ -96,81 +94,74 @@ class HomeTab extends ConsumerWidget {
         return Scaffold(
             body: Column(children: [
           PortalIdentityBar(
-              title: 'بوابة المولدات',
-              subtitle: profile?.name ?? 'زائر',
-              actions: [
-                IconButton(
-                    tooltip: 'تبديل المظهر',
-                    icon: Icon(theme.brightness == Brightness.dark
-                        ? Icons.light_mode_outlined
-                        : Icons.dark_mode_outlined),
-                    onPressed: () => ref.read(themeProvider.notifier).toggle()),
-                NotificationBell(iconColor: palette.onSurface),
-                IconButton(
-                    tooltip: 'تسجيل الخروج',
-                    icon: const Icon(Icons.logout),
-                    onPressed: () async {
-                      await ref.read(authProvider.notifier).signOut();
-                      if (context.mounted) context.go('/login');
-                    }),
-              ]),
+              title: 'الرئيسية',
+              subtitle: '${_greeting()}، ${profile?.name ?? 'زائر'}',
+              actions: [NotificationBell(iconColor: palette.onSurface)]),
           Expanded(
-              child: ListView(padding: PortalTokens.pagePadding, children: [
-            Text(_greeting(), style: Theme.of(context).textTheme.titleLarge),
-            if ((profile?.address ?? '').isNotEmpty)
-              Padding(
-                  padding: const EdgeInsets.only(top: PortalTokens.xs),
-                  child: Text(profile!.address,
-                      style: Theme.of(context).textTheme.bodySmall)),
-            const SizedBox(height: PortalTokens.lg),
-            _GeneratorStatusCard(
-                isOn: isOn,
-                lastChanged: lastChanged,
-                scheduledOnAt: scheduledOnAt,
-                scheduledOffAt: scheduledOffAt),
-            PortalSection('الاستهلاك الشهري ($currentMonth)'),
-            PortalMetricPair(
-                first: PortalMetric(
-                    label: 'هذا الشهر',
-                    value: totalKwh,
-                    icon: Icons.electric_bolt_outlined),
-                second: PortalMetric(
-                    label: 'الفاتورة',
-                    value: billAmount,
-                    icon: Icons.receipt_long_outlined)),
-            const SizedBox(height: PortalTokens.md),
-            PortalMetricPair(
-                first: PortalMetric(
-                    label: 'حد الأمبير',
-                    value: ampereStr,
-                    icon: Icons.speed_outlined),
-                second: PortalMetric(
-                    label: 'سعر kWh',
-                    value: '₪ ${currentPrice.toStringAsFixed(2)}',
-                    icon: Icons.payments_outlined)),
-            const SizedBox(height: PortalTokens.md),
-            PortalMetric(
-                label: 'الاستهلاك اليومي',
-                value: dailyKwh,
-                icon: Icons.today_outlined),
-            PortalSection('آخر التنبيهات',
-                trailing: unreadCount > 0
-                    ? PortalStatusChip(
-                        label: '$unreadCount',
-                        tone: PortalTone.warning,
-                        icon: Icons.notifications_outlined)
-                    : null),
-            PortalPanel(
-                child: alertsLoading
-                    ? const PortalLoadingState()
-                    : recentAlerts.isEmpty
-                        ? const PortalEmptyState('لا توجد تنبيهات',
-                            icon: Icons.notifications_none)
-                        : Column(
-                            children: recentAlerts
-                                .map((a) => _AlertItem(alert: a))
-                                .toList())),
-          ])),
+              child: ListView(
+                  padding: EdgeInsets.fromLTRB(
+                      PortalTokens.gutter,
+                      PortalTokens.sm,
+                      PortalTokens.gutter,
+                      PortalTokens.navClearance +
+                          MediaQuery.paddingOf(context).bottom),
+                  children: [
+                _GeneratorStatusCard(
+                    isOn: isOn,
+                    lastChanged: lastChanged,
+                    scheduledOnAt: scheduledOnAt,
+                    scheduledOffAt: scheduledOffAt),
+                if ((profile?.address ?? '').isNotEmpty)
+                  Padding(
+                      padding: const EdgeInsets.only(top: PortalTokens.md),
+                      child: Text(profile!.address,
+                          style: Theme.of(context).textTheme.bodySmall)),
+                PortalSection('الاستهلاك الشهري ($currentMonth)'),
+                PortalMetricPair(
+                    first: PortalMetric(
+                        label: 'هذا الشهر',
+                        value: totalKwh,
+                        icon: Icons.electric_bolt_outlined),
+                    second: PortalMetric(
+                        label: 'الفاتورة',
+                        value: billAmount,
+                        icon: Icons.receipt_long_outlined)),
+                const PortalSection('تفاصيل الاشتراك'),
+                PortalPanel(
+                    child: Column(children: [
+                  PortalDataRow(
+                      label: 'الاستهلاك اليومي',
+                      value: dailyKwh,
+                      icon: Icons.today_outlined),
+                  const Divider(height: PortalTokens.line),
+                  PortalDataRow(
+                      label: 'حد الأمبير',
+                      value: ampereStr,
+                      icon: Icons.speed_outlined),
+                  const Divider(height: PortalTokens.line),
+                  PortalDataRow(
+                      label: 'سعر kWh',
+                      value: '₪ ${currentPrice.toStringAsFixed(2)}',
+                      icon: Icons.payments_outlined),
+                ])),
+                PortalSection('آخر التنبيهات',
+                    trailing: unreadCount > 0
+                        ? PortalStatusChip(
+                            label: '$unreadCount',
+                            tone: PortalTone.warning,
+                            icon: Icons.notifications_outlined)
+                        : null),
+                PortalPanel(
+                    child: alertsLoading
+                        ? const PortalLoadingState()
+                        : recentAlerts.isEmpty
+                            ? const PortalEmptyState('لا توجد تنبيهات',
+                                icon: Icons.notifications_none)
+                            : Column(
+                                children: recentAlerts
+                                    .map((a) => _AlertItem(alert: a))
+                                    .toList())),
+              ])),
         ]));
       }),
     );
@@ -262,5 +253,7 @@ class _AlertItem extends StatelessWidget {
         subtitle: alert.body,
         icon: _icon,
         trailing: _timeAgo(alert.createdAt),
+        statusLabel: alert.read ? 'مقروء' : 'جديد',
+        statusTone: alert.read ? PortalTone.stopped : PortalTone.warning,
       );
 }

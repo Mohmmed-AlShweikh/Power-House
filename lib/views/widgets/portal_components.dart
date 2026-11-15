@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/portal_tokens.dart';
+import 'portal_number.dart';
+import 'portal_navigation.dart';
 
 class PortalBrandMark extends StatelessWidget {
   const PortalBrandMark({super.key});
@@ -75,19 +77,10 @@ class PortalConsumerNavigation extends StatelessWidget {
   const PortalConsumerNavigation(
       {super.key, required this.selected, required this.onSelected});
   @override
-  Widget build(BuildContext context) => NavigationBar(
-        selectedIndex: selected,
-        onDestinationSelected: onSelected,
-        destinations: const [
-          NavigationDestination(
-              icon: Icon(Icons.home_outlined), label: 'الرئيسية'),
-          NavigationDestination(
-              icon: Icon(Icons.bar_chart_outlined), label: 'الاستهلاك'),
-          NavigationDestination(
-              icon: Icon(Icons.receipt_long_outlined), label: 'الفواتير'),
-          NavigationDestination(
-              icon: Icon(Icons.person_outline), label: 'الملف'),
-        ],
+  Widget build(BuildContext context) => PortalFloatingNavigation(
+        items: consumerNavItems,
+        selected: selected,
+        onSelected: onSelected,
       );
 }
 
@@ -112,7 +105,7 @@ class PortalIdentityBar extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                   Text(title, style: Theme.of(context).textTheme.titleLarge),
-                  Text(subtitle,
+                  PortalNumber(subtitle,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color:
                                 Theme.of(context).colorScheme.onSurfaceVariant,
@@ -202,20 +195,23 @@ class PortalGeneratorPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tone = isOn ? PortalTone.working : PortalTone.stopped;
-    final (ink, fill) = tone.colors(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final (toneInk, toneFill) = tone.colors(context);
+    final ink = isOn && !dark ? PortalTokens.surface : toneInk;
+    final fill = isOn && !dark ? PortalTokens.working : toneFill;
     final text = Theme.of(context).textTheme;
     return Container(
-      padding: PortalTokens.panelPadding,
+      constraints: const BoxConstraints(minHeight: PortalTokens.heroHeight),
+      padding: const EdgeInsets.all(PortalTokens.xl),
       decoration: BoxDecoration(
           color: fill,
           borderRadius: BorderRadius.circular(PortalTokens.radiusPanel),
-          border:
-              Border.all(color: Theme.of(context).colorScheme.outlineVariant)),
+          border: Border.all(color: toneInk)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Icon(isOn ? Icons.power_settings_new : Icons.power_off_outlined,
-              color: ink),
-          const SizedBox(width: PortalTokens.sm),
+              color: ink, size: PortalTokens.xxl),
+          const SizedBox(width: PortalTokens.md),
           Expanded(
               child: Text('حالة المولد',
                   style: text.labelLarge?.copyWith(color: ink))),
@@ -224,18 +220,25 @@ class PortalGeneratorPanel extends StatelessWidget {
                 onPressed: onSettings,
                 tooltip: 'تحديث السعر والجدول',
                 icon: Icon(Icons.tune_outlined, color: ink)),
-          if (onToggle != null) Switch(value: isOn, onChanged: onToggle),
+          if (onToggle != null)
+            Switch(
+                value: isOn,
+                onChanged: onToggle,
+                activeTrackColor: PortalTokens.darkWorking,
+                activeThumbColor: PortalTokens.working),
         ]),
+        const SizedBox(height: PortalTokens.lg),
         Text(isOn ? 'المولد يعمل الآن' : 'المولد متوقف',
-            style: text.headlineMedium?.copyWith(color: ink)),
+            style: text.headlineLarge?.copyWith(color: ink)),
         const SizedBox(height: PortalTokens.xs),
-        Text(detail, style: text.bodyMedium?.copyWith(color: ink)),
+        PortalNumber(detail, style: text.bodyMedium?.copyWith(color: ink)),
         if (tariff != null || schedule != null) ...[
-          const SizedBox(height: PortalTokens.md),
+          const SizedBox(height: PortalTokens.lg),
           if (tariff != null)
-            Text(tariff!, style: text.labelLarge?.copyWith(color: ink)),
+            PortalNumber(tariff!, style: text.labelLarge?.copyWith(color: ink)),
           if (schedule != null)
-            Text(schedule!, style: text.bodySmall?.copyWith(color: ink)),
+            PortalNumber(schedule!,
+                style: text.bodySmall?.copyWith(color: ink)),
         ],
       ]),
     );
@@ -244,11 +247,13 @@ class PortalGeneratorPanel extends StatelessWidget {
 
 class PortalMetric extends StatelessWidget {
   final String label, value;
+  final String? footnote;
   final IconData icon;
   const PortalMetric(
       {super.key,
       required this.label,
       required this.value,
+      this.footnote,
       required this.icon});
   @override
   Widget build(BuildContext context) => PortalPanel(
@@ -265,7 +270,10 @@ class PortalMetric extends StatelessWidget {
                     Text(label, style: Theme.of(context).textTheme.bodySmall)),
           ]),
           const SizedBox(height: PortalTokens.sm),
-          Text(value, style: Theme.of(context).textTheme.headlineMedium),
+          PortalNumber(value, style: Theme.of(context).textTheme.headlineLarge),
+          if (footnote != null)
+            PortalNumber(footnote!,
+                style: Theme.of(context).textTheme.bodySmall),
         ],
       ));
 }
@@ -283,10 +291,36 @@ class PortalMetricPair extends StatelessWidget {
       ]);
 }
 
+class PortalDataRow extends StatelessWidget {
+  final String label, value;
+  final IconData icon;
+  const PortalDataRow(
+      {super.key,
+      required this.label,
+      required this.value,
+      required this.icon});
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: PortalTokens.md),
+        child: Row(children: [
+          Icon(icon,
+              color: Theme.of(context).colorScheme.primary,
+              size: PortalTokens.gutter),
+          const SizedBox(width: PortalTokens.md),
+          Expanded(
+              child:
+                  Text(label, style: Theme.of(context).textTheme.bodyMedium)),
+          const SizedBox(width: PortalTokens.sm),
+          PortalNumber(value, style: Theme.of(context).textTheme.titleMedium),
+        ]),
+      );
+}
+
 class PortalRecordRow extends StatelessWidget {
   final String title, subtitle;
   final IconData icon;
-  final String? trailing;
+  final String? trailing, statusLabel;
+  final PortalTone statusTone;
   final VoidCallback? onTap;
   const PortalRecordRow(
       {super.key,
@@ -294,18 +328,52 @@ class PortalRecordRow extends StatelessWidget {
       required this.subtitle,
       required this.icon,
       this.trailing,
+      this.statusLabel,
+      this.statusTone = PortalTone.stopped,
       this.onTap});
   @override
-  Widget build(BuildContext context) => ListTile(
-        contentPadding: EdgeInsets.zero,
-        minVerticalPadding: PortalTokens.sm,
-        leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
-        title: Text(title, style: Theme.of(context).textTheme.titleSmall),
-        subtitle: Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
-        trailing: trailing == null
-            ? null
-            : Text(trailing!, style: Theme.of(context).textTheme.labelSmall),
+  Widget build(BuildContext context) => InkWell(
         onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: PortalTokens.md),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(
+                width: PortalTokens.smallIconBox,
+                height: PortalTokens.smallIconBox,
+                decoration: BoxDecoration(
+                    borderRadius:
+                        BorderRadius.circular(PortalTokens.radiusSmall),
+                    border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant)),
+                child: Icon(icon,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: PortalTokens.gutter)),
+            const SizedBox(width: PortalTokens.md),
+            Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Text(title, style: Theme.of(context).textTheme.titleSmall),
+                  const SizedBox(height: PortalTokens.xs),
+                  PortalNumber(subtitle,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant)),
+                  if (statusLabel != null)
+                    Padding(
+                        padding: const EdgeInsets.only(top: PortalTokens.sm),
+                        child: PortalStatusChip(
+                            label: statusLabel!,
+                            tone: statusTone,
+                            icon: Icons.circle_outlined)),
+                ])),
+            if (trailing != null) ...[
+              const SizedBox(width: PortalTokens.md),
+              PortalNumber(trailing!,
+                  style: Theme.of(context).textTheme.labelSmall),
+            ],
+          ]),
+        ),
       );
 }
 
@@ -343,59 +411,4 @@ class PortalErrorState extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       PortalEmptyState(message, icon: Icons.error_outline);
-}
-
-class PortalDestinations extends StatelessWidget {
-  final int selected;
-  final ValueChanged<int> onSelected;
-  const PortalDestinations(
-      {super.key, required this.selected, required this.onSelected});
-  static const labels = [
-    'نظرة عامة',
-    'الطلبات',
-    'المشتركون',
-    'الفواتير',
-    'الشكاوى',
-    'ملفي'
-  ];
-  static const icons = [
-    Icons.dashboard_outlined,
-    Icons.pending_actions_outlined,
-    Icons.people_outline,
-    Icons.receipt_long_outlined,
-    Icons.chat_bubble_outline,
-    Icons.person_outline
-  ];
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: PortalTokens.lg),
-        child: Column(
-            children: List.generate(
-                2,
-                (row) => Row(
-                      children: List.generate(3, (column) {
-                        final i = row * 3 + column;
-                        return Expanded(
-                            child: Padding(
-                          padding: const EdgeInsets.all(PortalTokens.xs),
-                          child: Semantics(
-                              selected: selected == i,
-                              child: TextButton.icon(
-                                onPressed: () => onSelected(i),
-                                style: TextButton.styleFrom(
-                                    backgroundColor: selected == i
-                                        ? Theme.of(context)
-                                            .colorScheme
-                                            .primaryContainer
-                                        : PortalTokens.transparent),
-                                icon: Icon(icons[i], size: PortalTokens.gutter),
-                                label: Text(labels[i],
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .labelMedium),
-                              )),
-                        ));
-                      }),
-                    ))),
-      );
 }
