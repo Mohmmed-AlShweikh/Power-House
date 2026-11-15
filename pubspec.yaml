@@ -71,11 +71,14 @@ flutter_native_splash:
   color_dark: "#13262A"
   image: assets/brand/approved-a/mark-primary-384.png
   image_dark: assets/brand/approved-a/mark-reversed-384.png
+  image_android: assets/brand/approved-a/splash-legacy-light-768.png
+  image_dark_android: assets/brand/approved-a/splash-legacy-dark-768.png
+  android_gravity: center
   android_12:
-    color: "#F3F1EB"
+    color: "#14756B"
     color_dark: "#13262A"
-    image: assets/brand/approved-a/adaptive-foreground-432.png
-    image_dark: assets/brand/approved-a/mark-reversed-384.png
+    image: assets/brand/approved-a/splash-android12-light-1152.png
+    image_dark: assets/brand/approved-a/splash-android12-dark-1152.png
   android: true
   ios: true
   web: false

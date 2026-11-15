@@ -1,0 +1,40 @@
+[
+  {
+    "mode": "light",
+    "canvas": [
+      1152,
+      1152
+    ],
+    "mark_alpha_bounds": [
+      303,
+      253,
+      900,
+      876
+    ],
+    "mark_design_box_width_fraction": 0.5625,
+    "safe_circle_diameter": 768,
+    "maximum_opaque_radius": 374.41220599761436,
+    "safe_circle_radius": 384.0,
+    "cropped_alpha_pixels": 0,
+    "background": "#14756B"
+  },
+  {
+    "mode": "dark",
+    "canvas": [
+      1152,
+      1152
+    ],
+    "mark_alpha_bounds": [
+      303,
+      253,
+      900,
+      876
+    ],
+    "mark_design_box_width_fraction": 0.5625,
+    "safe_circle_diameter": 768,
+    "maximum_opaque_radius": 374.41220599761436,
+    "safe_circle_radius": 384.0,
+    "cropped_alpha_pixels": 0,
+    "background": "#13262A"
+  }
+]
