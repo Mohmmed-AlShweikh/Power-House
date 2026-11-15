@@ -27,3 +27,7 @@ Cases in `tools/rules-tests/rules.test.mjs`:
 16. Super-admin review+public projection batches and privileged cross-tenant reads work.
 
 The emulator runs the actual rules; fake_cloud_firestore tests separately verify repository/provider behavior and do not substitute for rules testing. Privileged Admin SDK/console operations bypass client rules and must remain trusted. Account provisioning and production rule/index deployment remain manual.
+
+Additional executable cases validate malformed contact/complaint/alert/generator-state payloads and prevent new owners from reserving/hijacking the legacy default namespace (19 cases total). Owner enrollment is tested with a random generator ID distinct from the Auth UID; private ownership binding remains atomic. Consumer enrollment also rejects a stale approved directory entry when the private generator has become inactive.
+
+The final case verifies that a super-admin has no implicit default-generator membership or owner-readable mailbox. Member-created timestamps are bounded to the client DateTime range, and typed contact/notification fields prevent malformed records from poisoning owner feeds. Owners read their own recipient-scoped notification inbox; they cannot enumerate other recipients’ alerts.

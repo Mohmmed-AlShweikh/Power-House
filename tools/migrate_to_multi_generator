@@ -59,7 +59,7 @@ def encode(value):
     if isinstance(value, dt.datetime) and hasattr(value, 'rfc3339'): return {'__firestore_type__':'timestamp','value':value.rfc3339()}
     if isinstance(value, dt.datetime): return {'__firestore_type__':'datetime','value':value.isoformat()}
     if isinstance(value, bytes): return {'__firestore_type__':'bytes','value':base64.b64encode(value).decode()}
-    if hasattr(value,'path'): return {'__firestore_type__':'reference','value':value.path}
+    if hasattr(value,'path'): return {'__firestore_type__':'reference','value':getattr(value, '_document_path', value.path)}
     if hasattr(value,'latitude'): return {'__firestore_type__':'geopoint','latitude':value.latitude,'longitude':value.longitude}
     raise TypeError(type(value).__name__)
 
@@ -98,7 +98,7 @@ def main():
     parser.add_argument('--sector',default='القطاع الافتراضي')
     args=parser.parse_args()
     if args.export:
-        if args.apply or args.backup or not args.project: parser.error('--export requires --project and cannot combine with --apply/--backup')
+        if args.apply or args.dry_run or args.backup or not args.project: parser.error('--export requires --project and cannot combine with --apply/--backup')
         if args.export.exists(): parser.error('Refusing to overwrite an existing backup')
         db=connect(args.project); rows=[]
         def visit(collection):

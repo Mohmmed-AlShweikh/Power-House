@@ -216,6 +216,26 @@ void main() {
           findsOneWidget);
     });
   }
+  testWidgets('picker handles live removal of the selected sector safely',
+      (tester) async {
+    final db = FakeFirebaseFirestore();
+    await db.collection('generatorDirectory').doc('a').set(a.directory());
+    await db.collection('generatorDirectory').doc('b').set(b.directory());
+    await boot(tester, const EnrollmentFormScreen(), Brightness.light, db: db);
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('الرمال').last);
+    await tester.pumpAndSettle();
+    await tapText(tester, 'مولد النور');
+    await db
+        .collection('generatorDirectory')
+        .doc('a')
+        .update({'subscriptionStatus': 'inactive'});
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('مولد الأمل'), findsOneWidget);
+    expect(find.text('مولد النور'), findsNothing);
+  });
   for (final state in ['empty', 'loading', 'error']) {
     testWidgets('picker and generator requests $state states', (tester) async {
       final AsyncValue<List<GeneratorAccount>> fixture = state == 'empty'
@@ -272,12 +292,7 @@ void main() {
         loading: false,
         startupResolved: true));
     await boot(tester, const GeneratorRequestsScreen(), Brightness.light,
-        auth: auth,
-        db: db,
-        requests: const AsyncData([
-          GeneratorAccount(
-              id: 'a', name: 'مولد', sector: 'الرمال', ownerUid: 'a')
-        ]));
+        auth: auth, db: db);
     await tapText(tester, 'موافقة');
     expect(
         (await db.collection('generatorDirectory').doc('a').get())
@@ -285,6 +300,17 @@ void main() {
         'approved');
     expect((await db.collection('users').doc('a').get()).data()!['status'],
         'approved');
+    expect(find.text('مقبول'), findsOneWidget);
+    await tapText(tester, 'تعليق المولد');
+    expect(find.text('موقوف'), findsOneWidget);
+    await tapText(tester, 'إعادة التفعيل');
+    expect(find.text('مقبول'), findsOneWidget);
+    await tester.tap(find.byType(Switch));
+    await tester.pumpAndSettle();
+    expect(
+        (await db.collection('generatorDirectory').doc('a').get())
+            .data()!['subscriptionStatus'],
+        'inactive');
   });
   test('enrollment/pending/suspended transitions are gated before role homes',
       () {

@@ -1,0 +1,126 @@
+ .gitignore                                         |     6 +
+ .../src/main/res/drawable-hdpi/android12splash.png |   Bin 2546 -> 6008 bytes
+ android/app/src/main/res/drawable-hdpi/splash.png  |   Bin 2006 -> 3764 bytes
+ .../src/main/res/drawable-mdpi/android12splash.png |   Bin 1833 -> 3623 bytes
+ android/app/src/main/res/drawable-mdpi/splash.png  |   Bin 1255 -> 2244 bytes
+ .../res/drawable-night-hdpi/android12splash.png    |   Bin 1998 -> 9099 bytes
+ .../src/main/res/drawable-night-hdpi/splash.png    |   Bin 1998 -> 4093 bytes
+ .../res/drawable-night-mdpi/android12splash.png    |   Bin 1264 -> 5310 bytes
+ .../src/main/res/drawable-night-mdpi/splash.png    |   Bin 1264 -> 2392 bytes
+ .../res/drawable-night-xhdpi/android12splash.png   |   Bin 2293 -> 11896 bytes
+ .../src/main/res/drawable-night-xhdpi/splash.png   |   Bin 2293 -> 5417 bytes
+ .../res/drawable-night-xxhdpi/android12splash.png  |   Bin 3754 -> 21336 bytes
+ .../src/main/res/drawable-night-xxhdpi/splash.png  |   Bin 3754 -> 9384 bytes
+ .../res/drawable-night-xxxhdpi/android12splash.png |   Bin 4634 -> 28251 bytes
+ .../src/main/res/drawable-night-xxxhdpi/splash.png |   Bin 4634 -> 12208 bytes
+ .../main/res/drawable-xhdpi/android12splash.png    |   Bin 2748 -> 7141 bytes
+ android/app/src/main/res/drawable-xhdpi/splash.png |   Bin 2329 -> 5020 bytes
+ .../main/res/drawable-xxhdpi/android12splash.png   |   Bin 3970 -> 13408 bytes
+ .../app/src/main/res/drawable-xxhdpi/splash.png    |   Bin 3752 -> 8688 bytes
+ .../main/res/drawable-xxxhdpi/android12splash.png  |   Bin 4590 -> 18363 bytes
+ .../app/src/main/res/drawable-xxxhdpi/splash.png   |   Bin 4629 -> 11690 bytes
+ android/app/src/main/res/values-v31/styles.xml     |     2 +-
+ .../approved-a/splash-android12-dark-1152.png      |   Bin 0 -> 27518 bytes
+ .../approved-a/splash-android12-light-1152.png     |   Bin 0 -> 17296 bytes
+ assets/brand/approved-a/splash-legacy-dark-768.png |   Bin 0 -> 11140 bytes
+ .../brand/approved-a/splash-legacy-light-768.png   |   Bin 0 -> 10591 bytes
+ docs/findings.md                                   |    10 +
+ docs/keyboard-layout-fix.md                        |    29 +
+ docs/migration.md                                  |    52 +
+ docs/multi-generator-design.md                     |    46 +
+ docs/multi-generator-report.md                     |    55 +
+ docs/rules-test-cases.md                           |    33 +
+ docs/splash-crop-fix.md                            |    23 +
+ docs/validation/multi-generator-analyzer.txt       |    41 +
+ docs/validation/multi-generator-android-build.txt  |     2 +
+ docs/validation/multi-generator-apk-signature.txt  |     8 +
+ docs/validation/multi-generator-apk.json           |     8 +
+ docs/validation/multi-generator-diff-stat.txt      |   126 +
+ docs/validation/multi-generator-files.txt          |   125 +
+ .../validation/multi-generator-migration-tests.txt |     5 +
+ docs/validation/multi-generator-rules.txt          |   135 +
+ docs/validation/multi-generator-scope.json         |    30 +
+ docs/validation/multi-generator-tests.txt          |   102 +
+ docs/validation/splash-build.txt                   |     4 +
+ docs/validation/splash-generate.txt                |    21 +
+ docs/validation/splash-mask.json                   |    40 +
+ docs/validation/splash-mask.png                    |   Bin 0 -> 49796 bytes
+ docs/validation/splash-resources.json              |    87 +
+ docs/validation/task3-all-tests.txt                |   190 +
+ docs/validation/task3-analyzer-after.txt           |    43 +
+ docs/validation/task3-analyzer-before.txt          |    43 +
+ docs/validation/task3-keyboard-tests.txt           |    15 +
+ docs/validation/task3-scope.txt                    |     4 +
+ firebase.emulator.json                             |     1 +
+ firebase.json                                      |     1 +
+ firestore.indexes.json                             |   169 +
+ firestore.rules                                    |   228 +-
+ lib/config/auth_redirect.dart                      |    42 +-
+ lib/config/router.dart                             |    28 +-
+ lib/models/alert_model.dart                        |    66 +-
+ lib/models/bill_model.dart                         |     6 +
+ lib/models/complaint_model.dart                    |     5 +
+ lib/models/generator_model.dart                    |    39 +
+ lib/models/user_model.dart                         |    18 +-
+ lib/providers/auth_provider.dart                   |   239 +-
+ lib/providers/data_provider.dart                   |   119 +-
+ lib/providers/enrollment_provider.dart             |     5 +
+ lib/providers/tenant_provider.dart                 |   101 +
+ lib/services/firebase_service.dart                 |   140 +-
+ lib/services/notification_service.dart             |   167 +-
+ lib/services/phone_auth_service.dart               |    39 +
+ lib/services/tenant_store.dart                     |   231 +
+ lib/views/screens/account_status_screen.dart       |    73 +
+ lib/views/screens/admin/admin_screen.dart          |    48 +-
+ lib/views/screens/consumer/bills_tab.dart          |    12 +-
+ lib/views/screens/consumer/consumer_shell.dart     |     2 +
+ lib/views/screens/consumer/profile_tab.dart        |    16 +-
+ lib/views/screens/generator_requests_screen.dart   |   131 +
+ lib/views/screens/login_screen.dart                |     4 +
+ lib/views/screens/phone_enrollment_screen.dart     |   326 +
+ .../screens/super_admin/super_admin_screen.dart    |    10 +-
+ lib/views/widgets/portal_keyboard.dart             |   103 +
+ lib/views/widgets/portal_reason_dialog.dart        |    44 +
+ pubspec.lock                                       |    88 +
+ pubspec.yaml                                       |    10 +-
+ screenshots/redesign/admin/add_bill_dark.png       |   Bin 78573 -> 80575 bytes
+ screenshots/redesign/admin/add_bill_light.png      |   Bin 77507 -> 79471 bytes
+ .../redesign/admin/bill_calculation_dark.png       |   Bin 77983 -> 79992 bytes
+ .../redesign/admin/bill_calculation_light.png      |   Bin 76970 -> 78937 bytes
+ .../redesign/admin/diagnostic_error_dark.png       |   Bin 35822 -> 36220 bytes
+ .../redesign/admin/diagnostic_error_light.png      |   Bin 35577 -> 36124 bytes
+ .../redesign/admin/diagnostic_success_dark.png     |   Bin 37398 -> 37495 bytes
+ .../redesign/admin/diagnostic_success_light.png    |   Bin 37299 -> 37573 bytes
+ .../redesign/admin/states/bills_error_dark.png     |   Bin 43217 -> 43064 bytes
+ .../redesign/admin/states/bills_error_light.png    |   Bin 42741 -> 42579 bytes
+ .../admin/states/superadmin_empty_dark.png         |   Bin 26747 -> 29819 bytes
+ .../admin/states/superadmin_empty_light.png        |   Bin 25982 -> 29173 bytes
+ .../admin/states/superadmin_error_dark.png         |   Bin 30302 -> 33338 bytes
+ .../admin/states/superadmin_error_light.png        |   Bin 29735 -> 32878 bytes
+ .../admin/states/superadmin_loading_dark.png       |   Bin 17645 -> 20355 bytes
+ .../admin/states/superadmin_loading_light.png      |   Bin 17499 -> 20290 bytes
+ screenshots/redesign/admin/superadmin_dark.png     |   Bin 33674 -> 36105 bytes
+ screenshots/redesign/admin/superadmin_light.png    |   Bin 33365 -> 35959 bytes
+ screenshots/redesign/auth/forgot_empty_id_dark.png |   Bin 34173 -> 34589 bytes
+ .../redesign/auth/forgot_empty_id_light.png        |   Bin 34060 -> 34433 bytes
+ screenshots/redesign/auth/forgot_guidance_dark.png |   Bin 42804 -> 43262 bytes
+ .../redesign/auth/forgot_guidance_light.png        |   Bin 42932 -> 43520 bytes
+ screenshots/redesign/auth/login_dark.png           |   Bin 33890 -> 37421 bytes
+ screenshots/redesign/auth/login_error_dark.png     |   Bin 40035 -> 44196 bytes
+ screenshots/redesign/auth/login_error_light.png    |   Bin 40078 -> 44374 bytes
+ screenshots/redesign/auth/login_light.png          |   Bin 33936 -> 37529 bytes
+ screenshots/redesign/auth/login_loading_dark.png   |   Bin 33615 -> 37132 bytes
+ screenshots/redesign/auth/login_loading_light.png  |   Bin 33690 -> 37273 bytes
+ test/keyboard_forms_test.dart                      |   304 +
+ test/multi_enrollment_widget_test.dart             |   345 +
+ test/multi_generator_test.dart                     |   362 +
+ test/support/multi_auth_fixture.dart               |    38 +
+ test/widget_test.dart                              |    38 +-
+ tool/render_splash_assets.py                       |    57 +
+ tools/migrate_to_multi_generator                   |   141 +
+ tools/requirements-migration.txt                   |     2 +
+ tools/rules-tests/package-lock.json                | 10737 +++++++++++++++++++
+ tools/rules-tests/package.json                     |     1 +
+ tools/rules-tests/rules.test.mjs                   |   153 +
+ tools/test_migration.py                            |    56 +
+ 125 files changed, 15497 insertions(+), 533 deletions(-)

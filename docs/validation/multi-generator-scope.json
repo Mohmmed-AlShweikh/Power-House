@@ -1,0 +1,30 @@
+{
+  "demoLogin": {
+    "methodBodyUnchanged": true,
+    "normalizedSHA256": "7c0b587fef360abc395e0f0bb0ce8e1a2a562bbdc922c8bd792aa9815adf0adf"
+  },
+  "legacyEmailPasswordLogin": {
+    "methodBodyUnchanged": true,
+    "normalizedSHA256": "696499595189574c1e14b914a6bc3764a87f2876ee723ca6ac28b4373f4a7200"
+  },
+  "base": "36042c1",
+  "runtimeDependenciesUnchanged": true,
+  "newDartDevDependency": "fake_cloud_firestore",
+  "legacyBulkReadCompatibility": "Blocked until backfill: absent fields cannot be selected by Firestore tenant queries",
+  "productionFirebaseOperationsExecuted": false,
+  "migrationApplied": false,
+  "rulesDeployed": false,
+  "realSMSSent": false,
+  "mainUnchangedExpected": "caa6d10f132a79fa36bcd44bcf95885d0cc5340d",
+  "analyzer": {
+    "info": 20,
+    "warning": 17
+  },
+  "newAnalyzerIssues": 0,
+  "flutterTestsPassed": 98,
+  "emulatorRulesTestsPassed": 19,
+  "offlineMigrationTestsPassed": 5,
+  "defaultNamespaceReserved": true,
+  "publicGeneratorIdsRandom": true,
+  "previousSplashAndKeyboardFixesMerged": true
+}

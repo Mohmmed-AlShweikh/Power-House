@@ -25,7 +25,8 @@ String? authRedirect({
   if (loggedIn && profile != null) {
     if (profile.role != UserRole.superAdmin) {
       if (profile.approvalStatus != ApprovalStatus.approved ||
-          profile.subscriptionStatus != SubscriptionStatus.active) {
+          (profile.role == UserRole.consumer &&
+              profile.subscriptionStatus != SubscriptionStatus.active)) {
         return path == '/account-status' ? null : '/account-status';
       }
       if (tenantLoading) return path == '/splash' ? null : '/splash';

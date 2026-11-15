@@ -48,7 +48,8 @@ class UserProfile {
       address: map['address'] ?? '',
       role: _parseRole(map['role']),
       approvalStatus: _parseApproval(map['status']),
-      subscriptionStatus: _parseSubStatus(map['subscriptionStatus']),
+      subscriptionStatus:
+          _parseSubStatus(map['subscriptionStatus'] ?? 'active'),
       ampereLimit: map['ampereLimit'] ?? 0,
       createdAt: _parseDate(map['createdAt']),
     );

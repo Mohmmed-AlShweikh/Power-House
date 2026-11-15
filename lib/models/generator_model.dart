@@ -22,7 +22,8 @@ class GeneratorAccount {
           name: data['name'] as String? ?? '',
           sector: data['sector'] as String? ?? '',
           ownerUid: data['ownerUid'] as String? ?? '',
-          subscriptionStatus: data['subscriptionStatus'] as String? ?? 'active',
+          subscriptionStatus:
+              data['subscriptionStatus'] as String? ?? 'inactive',
           rejectionReason: data['rejectionReason'] as String? ?? '',
           status: GeneratorApproval.values.firstWhere(
               (s) => s.name == data['status'],

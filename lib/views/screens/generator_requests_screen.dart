@@ -33,14 +33,15 @@ class GeneratorRequestsScreen extends ConsumerWidget {
                 : items
                     .map((g) => Padding(
                         padding: const EdgeInsets.only(bottom: PortalTokens.lg),
-                        child: _GeneratorRequestCard(generator: g)))
+                        child: _GeneratorRequestCard(
+                            key: ValueKey(g.id), generator: g)))
                     .toList(),
           ));
 }
 
 class _GeneratorRequestCard extends ConsumerStatefulWidget {
   final GeneratorAccount generator;
-  const _GeneratorRequestCard({required this.generator});
+  const _GeneratorRequestCard({super.key, required this.generator});
   @override
   ConsumerState<_GeneratorRequestCard> createState() =>
       _GeneratorRequestCardState();

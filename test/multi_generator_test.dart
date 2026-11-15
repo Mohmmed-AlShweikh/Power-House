@@ -22,7 +22,7 @@ void main() {
         .set({'role': 'super_admin', 'status': 'approved'});
   });
   Future<void> owner(String uid) async {
-    await TenantStore(db, () => uid).enrollOwner(
+    await TenantStore(db, () => uid, nextGeneratorId: () => uid).enrollOwner(
         uid: uid,
         phone: '+970591234567',
         name: 'مولد $uid',
@@ -35,6 +35,21 @@ void main() {
       TenantStore(db, () => uid).enrollConsumer(
           uid: uid, phone: '+970591234568', name: uid, generatorId: gid);
 
+  test('public generator IDs do not reveal the owner Auth UID', () async {
+    await TenantStore(db, () => 'private-owner').enrollOwner(
+        uid: 'private-owner',
+        phone: '+970591234567',
+        name: 'مولد',
+        sector: 'الحي');
+    final user =
+        (await db.collection('users').doc('private-owner').get()).data()!;
+    final gid = user['generatorId'] as String;
+    expect(gid, isNot('private-owner'));
+    await approve(gid);
+    expect(
+        (await db.collection('generatorDirectory').doc(gid).get()).data()!.keys,
+        unorderedEquals(['name', 'sector', 'status', 'subscriptionStatus']));
+  });
   test('auth membership clears explicitly on sign-out', () {
     final original = AuthState(
         user: PhoneUser('c'),
@@ -233,6 +248,17 @@ void main() {
     expect(await service.findUserByIdNumber('+970591234568'), 'ca');
   });
 
+  test(
+      'legacy owner subscription field does not override generator billing status',
+      () async {
+    await owner('a');
+    await approve('a');
+    await db
+        .collection('users')
+        .doc('a')
+        .update({'subscriptionStatus': 'inactive'});
+    expect((await TenantStore(db, () => 'a').requireOwner()).generatorId, 'a');
+  });
   test('pending/suspended owners cannot review or issue invoices', () async {
     await owner('a');
     await expectLater(

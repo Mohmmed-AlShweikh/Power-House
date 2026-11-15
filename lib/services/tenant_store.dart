@@ -24,7 +24,8 @@ class TenantActor {
 class TenantStore {
   final FirebaseFirestore db;
   final String? Function() currentUid;
-  TenantStore(this.db, this.currentUid);
+  final String Function()? nextGeneratorId;
+  TenantStore(this.db, this.currentUid, {this.nextGeneratorId});
 
   Future<TenantActor> actor() async {
     final uid = currentUid();
@@ -38,8 +39,7 @@ class TenantStore {
     final who = await actor();
     if (who.superAdmin) return who;
     if (who.profile.role != UserRole.admin ||
-        who.profile.approvalStatus != ApprovalStatus.approved ||
-        who.profile.subscriptionStatus != SubscriptionStatus.active) {
+        who.profile.approvalStatus != ApprovalStatus.approved) {
       throw StateError('الحساب غير مخوّل');
     }
     final generator =
@@ -85,6 +85,9 @@ class TenantStore {
 
   Future<String> targetGenerator(String uid) async {
     final doc = await checkedDocument('users', uid);
+    if (UserProfile.fromMap(uid, doc.data()!).role == UserRole.superAdmin) {
+      throw StateError('المشرف العام لا يتبع مولداً');
+    }
     return normalizedGeneratorId(doc.data()?['generatorId']);
   }
 
@@ -97,6 +100,11 @@ class TenantStore {
     if (currentUid() != uid) throw StateError('هوية غير مطابقة');
     final user = db.collection('users').doc(uid);
     if ((await user.get()).exists) throw StateError('الحساب مسجل مسبقاً');
+    final generatorId =
+        nextGeneratorId?.call() ?? db.collection('generators').doc().id;
+    if (generatorId == defaultGeneratorId) {
+      throw StateError('معرف المولد الافتراضي محجوز');
+    }
     final batch = db.batch();
     final now = DateTime.now().millisecondsSinceEpoch;
     batch.set(user, {
@@ -106,11 +114,11 @@ class TenantStore {
       'role': 'generator_owner',
       'status': 'pending',
       'subscriptionStatus': 'active',
-      'generatorId': uid,
+      'generatorId': generatorId,
       'ampereLimit': 0,
       'createdAt': now
     });
-    batch.set(db.collection('generators').doc(uid), {
+    batch.set(db.collection('generators').doc(generatorId), {
       'name': name.trim(),
       'sector': sector.trim(),
       'ownerUid': uid,

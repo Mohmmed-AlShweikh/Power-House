@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'portal_keyboard.dart';
 
 Future<String?> requestRejectionReason(BuildContext context) =>
-    showDialog<String>(context: context, builder: (_) => const _ReasonDialog());
+    showPortalFormDialog<String>(
+        context: context, builder: (_) => const _ReasonDialog());
 
 class _ReasonDialog extends StatefulWidget {
   const _ReasonDialog();

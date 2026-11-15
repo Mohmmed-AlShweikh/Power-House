@@ -107,12 +107,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
   void _init() async {
     // Timeout safety net
     Future.delayed(const Duration(seconds: 8), () {
-      if (state.loading) state = state.copyWith(loading: false);
+      if (mounted && state.loading) state = state.copyWith(loading: false);
     });
 
     // Privileged accounts are provisioned only by a trusted administrator.
     _authSub = _auth.authStateChanges().listen((u) async {
       if (u == null) {
+        _profileSub?.cancel();
+        _profileSub = null;
         state = state.copyWith(
             user: null,
             profile: null,
@@ -129,7 +131,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
           startupResolved: false,
           needsRegistration: false);
       await _loadAndCheckProfile(u.uid);
-      if (mounted) state = state.copyWith(startupResolved: true);
+      if (mounted && _auth.currentUser?.uid == u.uid) {
+        state = state.copyWith(startupResolved: true);
+      }
     }, onError: (_) {
       state = state.copyWith(loading: false, startupResolved: true);
     });
@@ -156,13 +160,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (!mounted || _auth.currentUser?.uid != uid) return;
       _profileSub = _db.collection('users').doc(uid).snapshots().listen(apply,
           onError: (_) {
-        if (mounted) {
+        if (mounted && _auth.currentUser?.uid == uid) {
           state = state.copyWith(
               loading: false, error: 'تعذّر تحميل الحساب. حاول مجدداً.');
         }
       });
     } catch (_) {
-      if (mounted) {
+      if (mounted && _auth.currentUser?.uid == uid) {
         state = state.copyWith(
             loading: false, error: 'تعذّر تحميل الحساب. حاول مجدداً.');
       }

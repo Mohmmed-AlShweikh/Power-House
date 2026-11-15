@@ -191,6 +191,17 @@ class _EnrollmentFormScreenState extends ConsumerState<EnrollmentFormScreen> {
       setState(() => error = 'أكمل البيانات واختر المولد');
       return;
     }
+    if (!owner) {
+      final directory = ref.read(generatorDirectoryProvider);
+      if (directory.isLoading ||
+          directory.hasError ||
+          !(directory.valueOrNull
+                  ?.any((g) => g.id == selectedId && g.available) ??
+              false)) {
+        setState(() => error = 'المولد المختار غير متاح. اختر مولداً آخر.');
+        return;
+      }
+    }
     setState(() {
       busy = true;
       error = null;
@@ -243,16 +254,19 @@ class _EnrollmentFormScreenState extends ConsumerState<EnrollmentFormScreen> {
                 data: (items) {
                   final sectors = items.map((g) => g.sector).toSet().toList()
                     ..sort();
+                  final effectiveSector =
+                      sectors.contains(selectedSector) ? selectedSector : '';
                   final matches = items
                       .where((g) =>
                           g.available &&
-                          (selectedSector.isEmpty ||
-                              g.sector == selectedSector) &&
+                          (effectiveSector.isEmpty ||
+                              g.sector == effectiveSector) &&
                           g.name.toLowerCase().contains(search.toLowerCase()))
                       .toList();
                   return <Widget>[
                     DropdownButtonFormField<String>(
-                        initialValue: selectedSector,
+                        key: ValueKey('$effectiveSector:${sectors.join('|')}'),
+                        initialValue: effectiveSector,
                         decoration:
                             const InputDecoration(labelText: 'القطاع / الحي'),
                         items: [

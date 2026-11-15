@@ -44,16 +44,16 @@ test('self edits cannot promote, approve, reassign tenant or subscription',async
  await assertFails(setDoc(doc(db('new'),'users','new'),{...profile('super_admin','a'),phone:'+970591234567'}));
 });
 test('owner enrollment must be a verified-phone atomic pair with pending state',async()=>{
- const f=db('new-owner'),g=generator('new-owner','pending'),u=profile('generator_owner','new-owner','pending');
+ const f=db('new-owner'),g=generator('new-owner','pending'),u=profile('generator_owner','random-generator','pending');
  await assertFails(setDoc(doc(f,'users','new-owner'),u));
- const b=writeBatch(f);b.set(doc(f,'users','new-owner'),u);b.set(doc(f,'generators','new-owner'),g);await assertSucceeds(b.commit());
- await assertFails(updateDoc(doc(f,'generators','new-owner'),{status:'approved'}));
+ const b=writeBatch(f);b.set(doc(f,'users','new-owner'),u);b.set(doc(f,'generators','random-generator'),g);await assertSucceeds(b.commit());
+ await assertFails(updateDoc(doc(f,'generators','random-generator'),{status:'approved'}));
  await assertFails(updateDoc(doc(f,'users','new-owner'),{status:'approved'}));
 });
 test('unverified phone and owner impersonation are denied',async()=>{
  const f=env.authenticatedContext('unverified').firestore();
  const b=writeBatch(f);b.set(doc(f,'users','unverified'),profile('generator_owner','unverified','pending'));b.set(doc(f,'generators','unverified'),generator('unverified','pending'));await assertFails(b.commit());
- const f2=db('new'),c=writeBatch(f2);c.set(doc(f2,'users','new'),profile('generator_owner','other','pending'));c.set(doc(f2,'generators','other'),generator('new','pending'));await assertFails(c.commit());
+ const f2=db('new'),c=writeBatch(f2);c.set(doc(f2,'users','new'),profile('generator_owner','other','pending'));c.set(doc(f2,'generators','other'),generator('someone-else','pending'));await assertFails(c.commit());
 });
 test('consumer enrollment only into approved AND active directory, always pending',async()=>{
  const f=db('new-consumer');
@@ -88,11 +88,11 @@ test('receipts cannot change amounts, approve payment, change user or tenant',as
  for(const change of [{amount:0},{status:'paid'},{userId:'cb'},{generatorId:'b'}]) await assertFails(updateDoc(doc(f,'bills','ba'),change));
  await assertSucceeds(updateDoc(doc(f,'bills','ba'),{status:'pendingReview',receiptBase64:'YWJj'}));
  await assertFails(updateDoc(doc(f,'bills','ba'),{receiptBase64:'cmVwbGFjZQ=='}));
- await assertFails(setDoc(doc(f,'bills','made-up'),{generatorId:'a',userId:'ca',status:'pending',amount:1,kwh:1}));
+ await assertFails(setDoc(doc(f,'bills','made-up'),{generatorId:'a',userId:'ca',status:'pending',amount:1,kwh:1,month:'نوفمبر',year:2026,createdAt:1}));
 });
 test('billing cannot target a different tenant member, even with matching payload gid',async()=>{
  await assertFails(setDoc(doc(db('oa'),'bills','new'),{generatorId:'a',userId:'cb',status:'pending',amount:1,kwh:1}));
- await assertSucceeds(setDoc(doc(db('oa'),'bills','new'),{generatorId:'a',userId:'ca',status:'pending',amount:1,kwh:1}));
+ await assertSucceeds(setDoc(doc(db('oa'),'bills','new'),{generatorId:'a',userId:'ca',status:'pending',amount:1,kwh:1,month:'نوفمبر',year:2026,createdAt:1}));
 });
 test('complaints and replies remain own-tenant and preserve immutable bindings',async()=>{
  await assertSucceeds(setDoc(doc(db('ca'),'complaints','new'),{generatorId:'a',userId:'ca',userName:'user',status:'open',text:'نص',createdAt:1}));
@@ -120,6 +120,7 @@ test('alerts are tenant+recipient scoped, including read flags',async()=>{
  await assertFails(setDoc(doc(db('ca'),'alerts','fake'),{generatorId:'b',userId:'ob',title:'x',body:'x',type:'complaint',read:false,createdAt:1}));
 });
 test('legacy generator configuration is reserved for default membership',async()=>{
+ await updateDoc(doc(db('sa'),'users','legacy'),{subscriptionStatus:'inactive'});
  await assertSucceeds(getDoc(doc(db('legacy'),'system','generator')));
  await assertFails(getDoc(doc(db('oa'),'system','generator')));
  await assertFails(updateDoc(doc(db('ob'),'system','generator'),{isOn:true}));
@@ -127,4 +128,26 @@ test('legacy generator configuration is reserved for default membership',async()
 test('super-admin can review tenant records and atomically publish projection',async()=>{
  const f=db('sa'),b=writeBatch(f);b.update(doc(f,'generators','a'),{status:'rejected',rejectionReason:'سبب'});b.update(doc(f,'users','oa'),{status:'rejected'});b.set(doc(f,'generatorDirectory','a'),{...directory(generator('oa')),status:'rejected'});await assertSucceeds(b.commit());
  await assertSucceeds(getDocs(collection(f,'users')));await assertSucceeds(getDocs(collection(f,'generators')));
+});
+
+test('malformed member-controlled payloads cannot poison owner feeds',async()=>{
+ await assertFails(updateDoc(doc(db('ca'),'users','ca'),{phone:{bad:true}}));
+ await assertFails(setDoc(doc(db('ca'),'alerts','malformed'),{generatorId:'a',userId:'oa',title:{bad:true},body:'نص',type:'complaint',read:false,createdAt:1}));
+ await assertFails(setDoc(doc(db('ca'),'complaints','malformed'),{generatorId:'a',userId:'ca',userName:'user',status:'open',text:'نص',createdAt:'bad'}));
+ await assertFails(updateDoc(doc(db('oa'),'generators','a'),{isOn:{bad:true}}));
+ await assertFails(setDoc(doc(db('ca'),'complaints','bad-date'),{generatorId:'a',userId:'ca',userName:'user',status:'open',text:'نص',createdAt:1e18}));
+});
+
+test('new owners cannot reserve or hijack the legacy default namespace',async()=>{
+ const f=db('hijacker'),batch=writeBatch(f);
+ batch.set(doc(f,'users','hijacker'),profile('generator_owner','default','pending'));
+ batch.set(doc(f,'generators','default'),generator('hijacker','pending'));
+ await assertFails(batch.commit());
+});
+
+test('super-admin has no implicit default tenant or owner-readable mailbox',async()=>{
+ await setDoc(doc(db('sa'),'alerts','private-admin'),{userId:'sa',generatorId:'default',title:'خاص',body:'خاص',type:'newOwnerRequest',read:false,createdAt:1});
+ await assertSucceeds(getDoc(doc(db('sa'),'alerts','private-admin')));
+ await assertFails(getDoc(doc(db('legacy'),'alerts','private-admin')));
+ await assertFails(setDoc(doc(db('legacy'),'alerts','to-admin'),{userId:'sa',generatorId:'default',title:'x',body:'x',type:'complaint',read:false,createdAt:1}));
 });
