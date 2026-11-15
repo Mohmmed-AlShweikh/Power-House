@@ -1,0 +1,4 @@
+Base: 171a4f8d4f4a7b48dad274393391d5410deb85cb
+No app logic, config/router, providers, services, models, Firestore schema/rules or dependency changes.
+Full analyzer compared by severity/message/file/code, ignoring shifted line numbers: no new issues.
+Baseline and current: 18 warnings, 21 infos, 0 errors.

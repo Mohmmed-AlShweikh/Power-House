@@ -1,0 +1,87 @@
+{
+  "generated_android12_assets": [
+    {
+      "path": "android/app/src/main/res/drawable-hdpi/android12splash.png",
+      "size": [
+        432,
+        432
+      ],
+      "alpha_pixels_outside_safe_circle": 0
+    },
+    {
+      "path": "android/app/src/main/res/drawable-mdpi/android12splash.png",
+      "size": [
+        288,
+        288
+      ],
+      "alpha_pixels_outside_safe_circle": 0
+    },
+    {
+      "path": "android/app/src/main/res/drawable-night-hdpi/android12splash.png",
+      "size": [
+        432,
+        432
+      ],
+      "alpha_pixels_outside_safe_circle": 0
+    },
+    {
+      "path": "android/app/src/main/res/drawable-night-mdpi/android12splash.png",
+      "size": [
+        288,
+        288
+      ],
+      "alpha_pixels_outside_safe_circle": 0
+    },
+    {
+      "path": "android/app/src/main/res/drawable-night-xhdpi/android12splash.png",
+      "size": [
+        576,
+        576
+      ],
+      "alpha_pixels_outside_safe_circle": 0
+    },
+    {
+      "path": "android/app/src/main/res/drawable-night-xxhdpi/android12splash.png",
+      "size": [
+        864,
+        864
+      ],
+      "alpha_pixels_outside_safe_circle": 0
+    },
+    {
+      "path": "android/app/src/main/res/drawable-night-xxxhdpi/android12splash.png",
+      "size": [
+        1152,
+        1152
+      ],
+      "alpha_pixels_outside_safe_circle": 0
+    },
+    {
+      "path": "android/app/src/main/res/drawable-xhdpi/android12splash.png",
+      "size": [
+        576,
+        576
+      ],
+      "alpha_pixels_outside_safe_circle": 0
+    },
+    {
+      "path": "android/app/src/main/res/drawable-xxhdpi/android12splash.png",
+      "size": [
+        864,
+        864
+      ],
+      "alpha_pixels_outside_safe_circle": 0
+    },
+    {
+      "path": "android/app/src/main/res/drawable-xxxhdpi/android12splash.png",
+      "size": [
+        1152,
+        1152
+      ],
+      "alpha_pixels_outside_safe_circle": 0
+    }
+  ],
+  "all_resource_xml_parsed": true,
+  "legacy_centering_verified": true,
+  "application_sources_dependencies_and_ios_unchanged": true
+}

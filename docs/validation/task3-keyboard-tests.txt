@@ -1,0 +1,15 @@
+00:00 +0: loading /workspace/Power-House/test/keyboard_forms_test.dart
+00:00 +0: profile edit keyboard dark Size(430.0, 800.0)
+00:01 +1: complaint keyboard dark Size(430.0, 800.0)
+00:01 +2: profile edit keyboard dark Size(800.0, 500.0)
+00:01 +3: complaint keyboard dark Size(800.0, 500.0)
+00:02 +4: admin form journey keyboard dark
+00:02 +5: profile edit keyboard light Size(430.0, 800.0)
+00:03 +6: complaint keyboard light Size(430.0, 800.0)
+00:03 +7: profile edit keyboard light Size(800.0, 500.0)
+00:03 +8: complaint keyboard light Size(800.0, 500.0)
+00:03 +9: admin form journey keyboard light
+00:04 +10: long form reveals final field/title/actions on keyboard resize
+00:04 +11: three-field security dialog scrolls above keyboard
+00:04 +12: receipt remains scrollable with keyboard, no notes field invented
+00:04 +13: All tests passed!

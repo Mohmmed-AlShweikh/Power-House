@@ -8,6 +8,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../services/firebase_service.dart';
 import '../../../theme/portal_tokens.dart';
 import '../../widgets/portal_components.dart';
+import '../../widgets/portal_keyboard.dart';
 import '../../widgets/portal_number.dart';
 import '../../widgets/notification_bell.dart';
 
@@ -105,7 +106,7 @@ class _PendingBanner extends StatelessWidget {
       const SizedBox(height: PortalTokens.lg),
       ElevatedButton.icon(
           onPressed: () {
-            showModalBottomSheet(
+            showPortalFormSheet(
                 context: context,
                 isScrollControlled: true,
                 builder: (_) => _UploadReceiptSheet(uid: uid, bill: bill));
@@ -210,11 +211,8 @@ class ReceiptUploadView extends StatelessWidget {
     return Directionality(
         textDirection: TextDirection.rtl,
         child: Padding(
-            padding: EdgeInsetsDirectional.fromSTEB(
-                PortalTokens.xl,
-                PortalTokens.xl,
-                PortalTokens.xl,
-                MediaQuery.viewInsetsOf(context).bottom + PortalTokens.xl),
+            padding: const EdgeInsetsDirectional.fromSTEB(PortalTokens.xl,
+                PortalTokens.xl, PortalTokens.xl, PortalTokens.xl),
             child: SingleChildScrollView(
                 child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -346,7 +344,7 @@ class _BillCard extends StatelessWidget {
                     : Icons.error_outline,
         note: isRejected ? 'اضغط لإعادة رفع وصل الدفع' : null,
         onTap: canUpload
-            ? () => showModalBottomSheet(
+            ? () => showPortalFormSheet(
                 context: context,
                 isScrollControlled: true,
                 builder: (_) => _UploadReceiptSheet(uid: uid, bill: bill))

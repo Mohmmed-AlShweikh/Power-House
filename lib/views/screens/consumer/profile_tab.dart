@@ -11,6 +11,7 @@ import '../../../services/firebase_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../theme/portal_tokens.dart';
 import '../../widgets/portal_components.dart';
+import '../../widgets/portal_keyboard.dart';
 import '../../widgets/notification_bell.dart';
 
 class ProfileTab extends ConsumerWidget {
@@ -94,7 +95,7 @@ class ProfileTab extends ConsumerWidget {
     final addressCtrl = TextEditingController(text: profile?.address ?? '');
     final phoneCtrl = TextEditingController(text: profile?.phone ?? '');
 
-    showModalBottomSheet(
+    showPortalFormSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -102,11 +103,11 @@ class ProfileTab extends ConsumerWidget {
       builder: (_) => Directionality(
         textDirection: TextDirection.rtl,
         child: Padding(
-          padding: EdgeInsets.only(
+          padding: const EdgeInsets.only(
             left: 24,
             right: 24,
             top: 24,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+            bottom: 24,
           ),
           child: SingleChildScrollView(
             child: Column(
@@ -206,7 +207,7 @@ class ProfileTab extends ConsumerWidget {
   }
 
   void _showComplaintSheet(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet(
+    showPortalFormSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -380,11 +381,12 @@ class _SecuritySheetState extends ConsumerState<_SecuritySheet> {
     final newCtrl = TextEditingController();
     final confirmCtrl = TextEditingController();
 
-    final ok = await showDialog<bool>(
+    final ok = await showPortalFormDialog<bool>(
       context: context,
       builder: (_) => Directionality(
         textDirection: TextDirection.rtl,
         child: AlertDialog(
+          scrollable: true,
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(PortalTokens.radiusPanel)),
           title: const Text('تغيير كلمة المرور'),
@@ -925,11 +927,11 @@ class _ComplaintSheetState extends ConsumerState<_ComplaintSheet> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Padding(
-        padding: EdgeInsets.only(
+        padding: const EdgeInsets.only(
           left: 24,
           right: 24,
           top: 24,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          bottom: 24,
         ),
         child: SingleChildScrollView(
             child: Column(
