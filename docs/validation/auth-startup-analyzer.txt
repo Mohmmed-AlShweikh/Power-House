@@ -1,0 +1,5 @@
+Analyzing 5 items...
+
+warning • Unused import: '../services/firebase_service.dart' • lib/providers/auth_provider.dart:7:8 • unused_import
+
+1 issue found. (ran in 2.5s)

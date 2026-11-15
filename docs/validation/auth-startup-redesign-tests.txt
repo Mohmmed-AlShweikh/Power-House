@@ -1,0 +1,41 @@
+00:00 +0: loading /workspace/Power-House/test/redesign/admin_surfaces_test.dart
+00:00 +0: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: (setUpAll)
+00:00 +0: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey dark
+00:00 +1: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey dark
+00:00 +2: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey dark
+00:00 +3: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey dark
+00:00 +4: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey dark
+00:00 +5: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey dark
+00:00 +6: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey dark
+00:00 +7: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey dark
+00:00 +8: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey dark
+00:03 +9: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey dark
+00:03 +10: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual empty surfaces light
+00:03 +11: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: auth and source-only setup dark
+00:04 +12: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: auth and source-only setup dark
+00:04 +13: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual loading surfaces light
+00:04 +14: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual loading surfaces light
+00:04 +15: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: receipt preview and busy presentation dark
+00:04 +16: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual error surfaces dark
+00:04 +17: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin empty dark
+00:04 +18: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual error surfaces light
+00:05 +19: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual error surfaces light
+00:05 +20: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin error dark
+00:05 +21: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey light
+00:07 +22: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:07 +23: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:08 +24: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:08 +25: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:08 +26: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin empty light
+00:08 +27: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_dark
+00:08 +28: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_dark
+00:09 +29: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_dark
+00:09 +30: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden admin_light
+00:09 +31: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden admin_light
+00:10 +32: /workspace/Power-House/test/redesign/navigation_review_test.dart: three navigation structures side by side, both roles and themes
+00:10 +33: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden admin_dark
+00:10 +34: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden admin_dark
+00:10 +35: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden admin_dark
+00:10 +36: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden admin_dark
+00:10 +37: /workspace/Power-House/test/redesign/home_goldens_test.dart: (tearDownAll)
+00:10 +37: All tests passed!

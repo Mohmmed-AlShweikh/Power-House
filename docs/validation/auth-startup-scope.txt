@@ -1,0 +1,5 @@
+Base: b886ccf41cf4eeb7fd4ebbaebf2d476e27aa1882
+Compared remote main: caa6d10f132a79fa36bcd44bcf95885d0cc5340d
+Router and AuthState/provider on main match redesign base byte-for-byte.
+Account seed, profile lookup, sign-in, registration and password methods unchanged.
+main.dart, services, models, rules and dependency files unchanged.

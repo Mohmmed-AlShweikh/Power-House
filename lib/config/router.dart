@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
-import '../models/user_model.dart';
+import 'auth_redirect.dart';
+import '../views/screens/auth_loading_screen.dart';
 import '../views/screens/login_screen.dart';
 import '../views/screens/register_screen.dart';
 import '../views/screens/consumer/consumer_shell.dart';
@@ -20,42 +21,13 @@ class _RouterNotifier extends ChangeNotifier {
   String? redirect(BuildContext context, GoRouterState state) {
     final authState = _ref.read(authProvider);
     final isDemo = _ref.read(demoModeProvider);
-    final isLoading = authState.loading;
-    final path = state.uri.path;
-
-    final loggedIn = isDemo || authState.user != null;
-    final profile = authState.profile;
-
-    if (loggedIn && profile != null) {
-      // Already on the right screen — don't redirect
-      final correctPath = switch (profile.role) {
-        UserRole.superAdmin => '/super_admin',
-        UserRole.admin => '/admin',
-        UserRole.consumer => '/consumer',
-      };
-
-      if (path == '/login' || path == '/register') {
-        return correctPath;
-      }
-
-      // Prevent super admin from accessing consumer/admin screens and vice-versa
-      if (profile.role == UserRole.superAdmin && path != '/super_admin') {
-        return '/super_admin';
-      }
-      if (profile.role == UserRole.admin && path == '/consumer') {
-        return '/admin';
-      }
-      if (profile.role == UserRole.consumer && path == '/admin') {
-        return '/consumer';
-      }
-    } else if (!isLoading) {
-      // Not logged in
-      if (path != '/login' && path != '/register') {
-        return '/login';
-      }
-    }
-
-    return null;
+    return authRedirect(
+      path: state.uri.path,
+      startupResolved: authState.startupResolved,
+      loading: authState.loading,
+      loggedIn: isDemo || authState.user != null,
+      profile: authState.profile,
+    );
   }
 }
 
@@ -67,15 +39,15 @@ final routerProvider = Provider<GoRouter>((ref) {
   final notifier = ref.watch(_routerNotifierProvider);
 
   return GoRouter(
-    initialLocation: '/login',
+    initialLocation: '/splash',
     refreshListenable: notifier,
     redirect: notifier.redirect,
     routes: [
+      GoRoute(path: '/splash', builder: (_, __) => const AuthLoadingScreen()),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
       GoRoute(
-          path: '/super_admin',
-          builder: (_, __) => const SuperAdminScreen()),
+          path: '/super_admin', builder: (_, __) => const SuperAdminScreen()),
       GoRoute(path: '/consumer', builder: (_, __) => const ConsumerShell()),
       GoRoute(path: '/admin', builder: (_, __) => const AdminScreen()),
     ],

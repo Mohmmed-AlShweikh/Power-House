@@ -1,0 +1,13 @@
+00:00 +0: loading /workspace/Power-House/test/auth_redirect_test.dart
+00:00 +0: startup resolution survives loading timeout and copyWith
+00:00 +1: unresolved auth goes to splash without a redirect loop
+00:00 +2: signed out goes to login and keeps registration reachable
+00:00 +3: signed-in Firebase user waits for profile before choosing a role
+00:00 +4: resolved UserRole.superAdmin goes directly home and stays there
+00:00 +5: cold start never builds login while restoring UserRole.superAdmin
+00:00 +6: resolved UserRole.admin goes directly home and stays there
+00:00 +7: cold start never builds login while restoring UserRole.admin
+00:00 +8: resolved UserRole.consumer goes directly home and stays there
+00:00 +9: cold start never builds login while restoring UserRole.consumer
+00:00 +10: existing role restrictions are preserved
+00:00 +11: All tests passed!

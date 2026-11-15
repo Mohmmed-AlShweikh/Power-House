@@ -10,6 +10,8 @@ class AuthState {
   final User? user;
   final UserProfile? profile;
   final bool loading;
+  // Remains false until the first auth event and profile check finish.
+  final bool startupResolved;
   final bool isDemo;
   final String? error;
 
@@ -17,6 +19,7 @@ class AuthState {
     this.user,
     this.profile,
     this.loading = true,
+    this.startupResolved = false,
     this.isDemo = false,
     this.error,
   });
@@ -25,6 +28,7 @@ class AuthState {
     User? user,
     UserProfile? profile,
     bool? loading,
+    bool? startupResolved,
     bool? isDemo,
     Object? error = const _Sentinel(),
   }) =>
@@ -32,6 +36,7 @@ class AuthState {
         user: user ?? this.user,
         profile: profile ?? this.profile,
         loading: loading ?? this.loading,
+        startupResolved: startupResolved ?? this.startupResolved,
         isDemo: isDemo ?? this.isDemo,
         error: error is _Sentinel ? this.error : error as String?,
       );
@@ -118,13 +123,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
             user: null,
             profile: null,
             loading: false,
+            startupResolved: true,
             error: const _Sentinel());
         return;
       }
       state = state.copyWith(user: u, loading: true);
       await _loadAndCheckProfile(u.uid);
+      if (mounted) state = state.copyWith(startupResolved: true);
     }, onError: (_) {
-      state = state.copyWith(loading: false);
+      state = state.copyWith(loading: false, startupResolved: true);
     });
   }
 
@@ -326,6 +333,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     };
     state = state.copyWith(
       isDemo: true,
+      startupResolved: true,
       profile: profile,
       loading: false,
       error: null,
