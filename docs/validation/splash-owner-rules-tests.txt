@@ -1,0 +1,135 @@
+⚠  Unable to fetch the CLI MOTD and remote config. This is not a fatal error, but may indicate an issue with your network connection.
+i  emulators: Starting emulators: firestore
+i  emulators: Detected demo project ID "demo-generator-portal", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail.
+i  firestore: Firestore Emulator logging to firestore-debug.log
+✔  firestore: Firestore Emulator UI websocket is running on 9150.
+i  Running script: node --test tools/rules-tests/rules.test.mjs
+✔ anonymous has no access; signed-in directory does not require a profile (2802.586701ms)
+[2026-11-16T09:10:22.700Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c7d5 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L109:32 for 'update' @ L109, false for 'update' @ L109
+[2026-11-16T09:10:22.731Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c7d6 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L109:32 for 'update' @ L109, false for 'update' @ L109
+✔ public projection never accepts private data, even from super-admin (217.57663ms)
+[2026-11-16T09:10:22.882Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c7d9 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L69:24 for 'update' @ L69, false for 'update' @ L69
+[2026-11-16T09:10:22.923Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c7da error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L69:24 for 'update' @ L69, false for 'update' @ L69
+[2026-11-16T09:10:22.966Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c7db error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L69:24 for 'update' @ L69, false for 'update' @ L69
+[2026-11-16T09:10:23.007Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c7dc error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L69:24 for 'update' @ L69, false for 'update' @ L69
+[2026-11-16T09:10:23.066Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c7de error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L80:24 for 'delete' @ L80, false for 'delete' @ L80
+[2026-11-16T09:10:23.107Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c7df error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L68:24 for 'create' @ L68, evaluation error at L69:24 for 'update' @ L69, Null value error. for 'create' @ L68
+✔ self edits cannot promote, approve, reassign tenant or subscription (347.448822ms)
+[2026-11-16T09:10:23.244Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c7e1 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L68:24 for 'create' @ L68, evaluation error at L69:24 for 'update' @ L69, Null value error. for 'create' @ L68
+[2026-11-16T09:10:23.295Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c7e2 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L102:24 for 'update' @ L102, false for 'update' @ L102
+[2026-11-16T09:10:23.312Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c7e3 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L69:24 for 'update' @ L69, false for 'update' @ L69
+✔ owner enrollment must be a verified-phone atomic pair with pending state (205.59703ms)
+[2026-11-16T09:10:23.420Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c7e5 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L68:24 for 'create' @ L68, evaluation error at L69:24 for 'update' @ L69, evaluation error at L88:24 for 'create' @ L88, evaluation error at L102:24 for 'update' @ L102, false for 'create' @ L88, Null value error. for 'create' @ L68
+[2026-11-16T09:10:23.463Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c7e6 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L68:24 for 'create' @ L68, evaluation error at L69:24 for 'update' @ L69, evaluation error at L88:24 for 'create' @ L88, evaluation error at L102:24 for 'update' @ L102, Null value error. for 'create' @ L68
+✔ unverified phone and owner impersonation are denied (150.644144ms)
+[2026-11-16T09:10:23.596Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c7e9 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L68:24 for 'create' @ L68, evaluation error at L69:24 for 'update' @ L69, Null value error. for 'create' @ L68
+[2026-11-16T09:10:23.670Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c7eb error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L68:24 for 'create' @ L68, evaluation error at L69:24 for 'update' @ L69, Null value error. for 'create' @ L68
+[2026-11-16T09:10:23.721Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c7ed error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L68:24 for 'create' @ L68, evaluation error at L69:24 for 'update' @ L69, Null value error. for 'create' @ L68
+✔ consumer enrollment only into approved AND active directory, always pending (257.398159ms)
+✔ consumer reads own profile/data only and cannot cross generator even with same userId (260.815527ms)
+[2026-11-16T09:10:24.208Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c7fb error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L69:24 for 'update' @ L69, false for 'update' @ L69
+[2026-11-16T09:10:24.269Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c7fd error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L69:24 for 'update' @ L69, false for 'update' @ L69
+[2026-11-16T09:10:24.294Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c7fe error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L134:24 for 'update' @ L134, false for 'update' @ L134
+✔ owner queries require tenant and consumer-role constraints; cross-tenant writes fail (312.580407ms)
+[2026-11-16T09:10:24.372Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c800 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L134:24 for 'update' @ L134, false for 'update' @ L134
+[2026-11-16T09:10:24.386Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c801 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L134:24 for 'update' @ L134, false for 'update' @ L134
+[2026-11-16T09:10:24.396Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c802 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L134:24 for 'update' @ L134, false for 'update' @ L134
+[2026-11-16T09:10:24.408Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c803 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L134:24 for 'update' @ L134, false for 'update' @ L134
+[2026-11-16T09:10:24.425Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c804 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L134:24 for 'update' @ L134, false for 'update' @ L134
+[2026-11-16T09:10:24.441Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c805 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L128:24 for 'create' @ L128, evaluation error at L134:24 for 'update' @ L134, false for 'create' @ L128
+✔ receipts cannot change amounts, approve payment, change user or tenant (146.845175ms)
+[2026-11-16T09:10:24.524Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c807 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L128:24 for 'create' @ L128, evaluation error at L134:24 for 'update' @ L134, false for 'create' @ L128
+✔ billing cannot target a different tenant member, even with matching payload gid (113.556586ms)
+[2026-11-16T09:10:24.673Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c80b error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L145:24 for 'create' @ L145, evaluation error at L150:24 for 'update' @ L150, false for 'create' @ L145
+[2026-11-16T09:10:24.721Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c80d error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L150:24 for 'update' @ L150, false for 'update' @ L150
+✔ complaints and replies remain own-tenant and preserve immutable bindings (165.907281ms)
+✔ suspension blocks operational access immediately; own status remains readable (170.62323ms)
+[2026-11-16T09:10:25.005Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c817 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L102:24 for 'update' @ L102, false for 'update' @ L102
+✔ pending accounts cannot access operational records (113.769701ms)
+[2026-11-16T09:10:25.123Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c81a error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L183:24 for 'update' @ L183, false for 'update' @ L183
+[2026-11-16T09:10:25.143Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c81b error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L183:24 for 'update' @ L183, false for 'update' @ L183
+[2026-11-16T09:10:25.182Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c81d error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L174:24 for 'create' @ L174, evaluation error at L183:24 for 'update' @ L183, false for 'create' @ L174
+✔ alerts are tenant+recipient scoped, including read flags (176.59309ms)
+[2026-11-16T09:10:25.320Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c822 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L120:32 for 'update' @ L120, false for 'update' @ L120
+✔ legacy generator configuration is reserved for default membership (137.601724ms)
+✔ super-admin can review tenant records and atomically publish projection (86.355682ms)
+[2026-11-16T09:10:25.481Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c827 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L69:24 for 'update' @ L69, false for 'update' @ L69
+[2026-11-16T09:10:25.497Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c828 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L174:24 for 'create' @ L174, evaluation error at L183:24 for 'update' @ L183, false for 'create' @ L174
+[2026-11-16T09:10:25.516Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c829 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L145:24 for 'create' @ L145, evaluation error at L150:24 for 'update' @ L150, false for 'create' @ L145
+[2026-11-16T09:10:25.534Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c82a error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L102:24 for 'update' @ L102, false for 'update' @ L102
+[2026-11-16T09:10:25.561Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c82b error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L145:24 for 'create' @ L145, evaluation error at L150:24 for 'update' @ L150, false for 'create' @ L145
+✔ malformed member-controlled payloads cannot poison owner feeds (154.118551ms)
+[2026-11-16T09:10:25.642Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c82d error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L68:24 for 'create' @ L68, evaluation error at L69:24 for 'update' @ L69, evaluation error at L88:24 for 'create' @ L88, evaluation error at L102:24 for 'update' @ L102, Service call error. Function: [get], Argument: [path_value {
+  segments {
+    simple: "databases"
+  }
+  segments {
+    simple: "(default)"
+  }
+  segments {
+    simple: "documents"
+  }
+  segments {
+    simple: "users"
+  }
+  segments {
+    simple: "hijacker"
+  }
+}
+]. for 'create' @ L88
+✔ new owners cannot reserve or hijack the legacy default namespace (81.476161ms)
+[2026-11-16T09:10:25.770Z]  @firebase/firestore: Firestore (12.19.0): GrpcConnection RPC 'Write' stream 0x8f10c832 error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L174:24 for 'create' @ L174, evaluation error at L183:24 for 'update' @ L183, false for 'create' @ L174
+✔ super-admin has no implicit default tenant or owner-readable mailbox (127.913548ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6404.360914
+✔  Script exited successfully (code 0)
+i  emulators: Shutting down emulators.
+i  firestore: Stopping Firestore Emulator
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator

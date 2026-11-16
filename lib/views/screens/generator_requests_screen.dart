@@ -7,20 +7,44 @@ import '../../theme/portal_tokens.dart';
 import '../widgets/portal_components.dart';
 import '../widgets/portal_reason_dialog.dart';
 
-class GeneratorRequestsScreen extends ConsumerWidget {
-  const GeneratorRequestsScreen({super.key});
+class GeneratorRequestsScreen extends ConsumerStatefulWidget {
   @override
-  Widget build(BuildContext context, WidgetRef ref) => PortalPage(
-      title: 'طلبات المولدات',
-      subtitle: 'المراجعة وإدارة الاشتراكات',
-      reserveNavigation: false,
-      actions: [
-        IconButton(
-            tooltip: 'رجوع',
-            onPressed: () => context.go('/super_admin'),
-            icon: const Icon(Icons.arrow_back))
-      ],
-      children: ref.watch(generatorRequestsProvider).when(
+  ConsumerState<GeneratorRequestsScreen> createState() =>
+      _GeneratorRequestsScreenState();
+  final bool embedded;
+  const GeneratorRequestsScreen({super.key, this.embedded = false});
+}
+
+class _GeneratorRequestsScreenState
+    extends ConsumerState<GeneratorRequestsScreen> {
+  String search = '';
+  GeneratorApproval? filter;
+  @override
+  Widget build(BuildContext context) {
+    final children = [
+      TextField(
+          decoration: const InputDecoration(
+              labelText: 'البحث باسم المولد أو القطاع',
+              prefixIcon: Icon(Icons.search)),
+          onChanged: (value) => setState(() => search = value.trim())),
+      const SizedBox(height: PortalTokens.md),
+      DropdownButtonFormField<GeneratorApproval?>(
+          initialValue: filter,
+          decoration: const InputDecoration(labelText: 'الحالة'),
+          items: const [
+            DropdownMenuItem(value: null, child: Text('جميع الحالات')),
+            DropdownMenuItem(
+                value: GeneratorApproval.pending, child: Text('قيد المراجعة')),
+            DropdownMenuItem(
+                value: GeneratorApproval.approved, child: Text('مقبول')),
+            DropdownMenuItem(
+                value: GeneratorApproval.rejected, child: Text('مرفوض')),
+            DropdownMenuItem(
+                value: GeneratorApproval.suspended, child: Text('موقوف')),
+          ],
+          onChanged: (value) => setState(() => filter = value)),
+      const SizedBox(height: PortalTokens.lg),
+      ...ref.watch(generatorRequestsProvider).when(
             loading: () => [const PortalLoadingState()],
             error: (_, __) => [
               const PortalErrorState('تعذّر تحميل طلبات المولدات'),
@@ -28,15 +52,46 @@ class GeneratorRequestsScreen extends ConsumerWidget {
                   onPressed: () => ref.invalidate(generatorRequestsProvider),
                   child: const Text('إعادة المحاولة'))
             ],
-            data: (items) => items.isEmpty
-                ? [const PortalEmptyState('لا توجد طلبات مولدات')]
-                : items
-                    .map((g) => Padding(
-                        padding: const EdgeInsets.only(bottom: PortalTokens.lg),
-                        child: _GeneratorRequestCard(
-                            key: ValueKey(g.id), generator: g)))
-                    .toList(),
-          ));
+            data: (items) {
+              final filtered = items
+                  .where((g) =>
+                      (filter == null || g.status == filter) &&
+                      '${g.name} ${g.sector}'
+                          .toLowerCase()
+                          .contains(search.toLowerCase()))
+                  .toList();
+              if (filtered.isEmpty) {
+                return [
+                  PortalEmptyState(items.isEmpty
+                      ? 'لا توجد طلبات مولدات'
+                      : 'لا توجد نتائج مطابقة')
+                ];
+              }
+              return filtered
+                  .map((g) => Padding(
+                      padding: const EdgeInsets.only(bottom: PortalTokens.lg),
+                      child: _GeneratorRequestCard(
+                          key: ValueKey(g.id), generator: g)))
+                  .toList();
+            },
+          )
+    ];
+    if (widget.embedded) {
+      return ListView(
+          padding: const EdgeInsets.all(PortalTokens.lg), children: children);
+    }
+    return PortalPage(
+        title: 'أصحاب المولدات',
+        subtitle: 'المراجعة وإدارة الاشتراكات',
+        reserveNavigation: false,
+        actions: [
+          IconButton(
+              tooltip: 'رجوع',
+              onPressed: () => context.go('/super_admin'),
+              icon: const Icon(Icons.arrow_back))
+        ],
+        children: children);
+  }
 }
 
 class _GeneratorRequestCard extends ConsumerStatefulWidget {
@@ -94,15 +149,56 @@ class _GeneratorRequestCardState extends ConsumerState<_GeneratorRequestCard> {
           statusTone: g.status == GeneratorApproval.approved
               ? PortalTone.success
               : PortalTone.warning),
+      if (g.ownerUid.isNotEmpty)
+        ref.watch(ownerNameProvider(g.ownerUid)).when(
+            data: (name) => Text('صاحب المولد: $name'),
+            loading: () => const Text('جارٍ تحميل اسم المالك'),
+            error: (_, __) => const Text('تعذّر تحميل اسم المالك')),
       if (g.rejectionReason.isNotEmpty) Text(g.rejectionReason),
       SwitchListTile(
-          title: const Text('اشتراك المولد نشط'),
+          title: const Text('اشتراك المولد'),
+          subtitle: Text(g.subscriptionStatus == 'active' ? 'نشط' : 'غير نشط'),
           value: g.subscriptionStatus == 'active',
           onChanged: busy
               ? null
-              : (value) => act(g.status,
-                  reason: g.rejectionReason,
-                  subscription: value ? 'active' : 'inactive')),
+              : (value) async {
+                  final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                              title: Text(value
+                                  ? 'تفعيل اشتراك المولد؟'
+                                  : 'إيقاف اشتراك المولد؟'),
+                              content: const Text(
+                                  'يؤثر هذا التغيير على دخول صاحب المولد وظهور المولد للمشتركين.'),
+                              actions: [
+                                TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, false),
+                                    child: const Text('إلغاء')),
+                                FilledButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, true),
+                                    child: const Text('تأكيد'))
+                              ]));
+                  if (confirmed == true && mounted) {
+                    setState(() {
+                      busy = true;
+                      error = null;
+                    });
+                    try {
+                      await ref
+                          .read(tenantStoreProvider)
+                          .setGeneratorSubscription(g.id, value);
+                    } catch (_) {
+                      if (mounted) {
+                        setState(
+                            () => error = 'تعذّر حفظ التغيير. حاول مجدداً.');
+                      }
+                    } finally {
+                      if (mounted) setState(() => busy = false);
+                    }
+                  }
+                }),
       if (busy)
         const PortalLoadingState()
       else

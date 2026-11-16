@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:generator_portal/providers/tenant_provider.dart';
+import 'package:generator_portal/models/generator_model.dart';
 import 'dart:convert';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -400,6 +402,15 @@ void main() {
           overrides: [
             authProvider
                 .overrideWith((ref) => FixtureAuth(UserRole.superAdmin)),
+            generatorRequestsProvider.overrideWith((ref) => Stream.value([
+                  const GeneratorAccount(
+                      id: 'fixture',
+                      name: 'مولد حي النور',
+                      sector: 'غزة، حي النور',
+                      ownerUid: 'owner-fixture')
+                ])),
+            ownerNameProvider
+                .overrideWith((ref, uid) => Stream.value('محمد أحمد')),
             pendingGeneratorOwnersProvider.overrideWith((ref) => Stream.value([
                   UserProfile(
                       uid: 'owner-fixture',
@@ -526,6 +537,8 @@ void main() {
           await tester.pumpWidget(const SizedBox.shrink());
           await tester.pumpWidget(ProviderScope(overrides: [
             authProvider.overrideWith((ref) => FixtureAuth(role)),
+            generatorRequestsProvider
+                .overrideWith((ref) => fixture(state, <GeneratorAccount>[])),
             generatorProvider.overrideWith(
                 (ref) => fixture(state, const GeneratorState(isOn: false))),
             allBillsProvider.overrideWith((ref) => fixture(state, <Bill>[])),

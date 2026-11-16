@@ -81,6 +81,9 @@ void main() {
                 loading: () => const Stream.empty())),
           tenantAccessProvider.overrideWithValue(tenant),
           if (db != null) firestoreProvider.overrideWithValue(db),
+          if (db == null)
+            ownerNameProvider
+                .overrideWith((ref, uid) => Stream.value('مالك المولد')),
         ],
         child: MaterialApp(
             locale: const Locale('ar'),
@@ -305,12 +308,122 @@ void main() {
     expect(find.text('موقوف'), findsOneWidget);
     await tapText(tester, 'إعادة التفعيل');
     expect(find.text('مقبول'), findsOneWidget);
+    await tester.ensureVisible(find.byType(Switch));
     await tester.tap(find.byType(Switch));
+    await tester.pumpAndSettle();
+    // Cancel must not write, then confirm the actual change.
+    await tester.tap(find.text('إلغاء'));
+    await tester.pumpAndSettle();
+    expect(
+        (await db.collection('generatorDirectory').doc('a').get())
+            .data()!['subscriptionStatus'],
+        'active');
+    await tester.tap(find.byType(Switch));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('تأكيد'));
     await tester.pumpAndSettle();
     expect(
         (await db.collection('generatorDirectory').doc('a').get())
             .data()!['subscriptionStatus'],
         'inactive');
+  });
+  for (final brightness in Brightness.values) {
+    testWidgets(
+        'confirmed subscription toggle updates the mounted consumer picker live ${brightness.name}',
+        (tester) async {
+      final db = FakeFirebaseFirestore();
+      await db.collection('users').doc('sa').set({'role': 'super_admin'});
+      await db.collection('users').doc('owner').set({
+        'role': 'generator_owner',
+        'name': 'أحمد محمد',
+        'generatorId': 'a',
+        'status': 'approved'
+      });
+      await db
+          .collection('generators')
+          .doc('a')
+          .set({...a.directory(), 'ownerUid': 'owner'});
+      await db.collection('generatorDirectory').doc('a').set(a.directory());
+      final auth = MultiAuthFixture(AuthState(
+          user: PhoneUser('sa'),
+          profile: UserProfile(
+              uid: 'sa',
+              name: 'مشرف',
+              role: UserRole.superAdmin,
+              createdAt: DateTime(2026)),
+          loading: false,
+          startupResolved: true));
+      final page = ValueNotifier(1);
+      addTearDown(page.dispose);
+      await boot(
+          tester,
+          ValueListenableBuilder<int>(
+              valueListenable: page,
+              builder: (_, index, __) => IndexedStack(
+                      index: index,
+                      children: const [
+                        GeneratorRequestsScreen(),
+                        EnrollmentFormScreen()
+                      ])),
+          brightness,
+          auth: auth,
+          db: db);
+      await tester.pumpAndSettle();
+      expect(find.text('مولد النور'), findsOneWidget);
+      page.value = 0;
+      await tester.pumpAndSettle();
+      expect(find.text('صاحب المولد: أحمد محمد'), findsOneWidget);
+      await tester.ensureVisible(find.byType(Switch));
+      await tester.tap(find.byType(Switch));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('تأكيد'));
+      await tester.pumpAndSettle();
+      page.value = 1;
+      await tester.pumpAndSettle();
+      expect(find.text('مولد النور'), findsNothing);
+      page.value = 0;
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byType(Switch));
+      await tester.tap(find.byType(Switch));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('تأكيد'));
+      await tester.pumpAndSettle();
+      page.value = 1;
+      await tester.pumpAndSettle();
+      expect(find.text('مولد النور'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
+  testWidgets(
+      'all owner review states remain listed and support search and status filter',
+      (tester) async {
+    final generators = GeneratorApproval.values
+        .map((status) => GeneratorAccount(
+            id: status.name,
+            name: 'مولد ${status.name}',
+            sector: 'الرمال',
+            status: status))
+        .toList();
+    await boot(tester, const GeneratorRequestsScreen(), Brightness.light,
+        requests: AsyncData(generators));
+    final search = find.byType(TextField);
+    await tester.enterText(search, 'suspended');
+    await tester.pumpAndSettle();
+    expect(find.text('مولد suspended'), findsOneWidget);
+    expect(find.text('مولد pending'), findsNothing);
+    await tester.enterText(search, '');
+    await tester.tap(find.byType(DropdownButtonFormField<GeneratorApproval?>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('مرفوض').last);
+    await tester.pumpAndSettle();
+    expect(find.text('مولد rejected'), findsOneWidget);
+    expect(find.text('مولد pending'), findsNothing);
+    expect(find.text('مولد approved'), findsNothing);
+    expect(find.text('مولد suspended'), findsNothing);
+    await tester.enterText(search, 'غير موجود');
+    await tester.pumpAndSettle();
+    expect(find.text('لا توجد نتائج مطابقة'), findsOneWidget);
   });
   test('enrollment/pending/suspended transitions are gated before role homes',
       () {

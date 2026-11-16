@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
 import '../services/notification_service.dart';
 import '../services/tenant_store.dart';
+import '../services/cached_profile.dart';
 
 class AuthState {
   final User? user;
@@ -156,7 +157,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
 
     try {
-      apply(await _db.collection('users').doc(uid).get());
+      // SDK cache is scoped to this Firebase UID, not a role in preferences.
+      // Server snapshots keep validating approval/membership after fast routing.
+      final cached = await readCachedProfile(_db, uid);
+      if (cached != null && cached.exists) {
+        apply(cached);
+        if (mounted && _auth.currentUser?.uid == uid) {
+          state = state.copyWith(startupResolved: true);
+        }
+      } else {
+        apply(await _db.collection('users').doc(uid).get());
+      }
       if (!mounted || _auth.currentUser?.uid != uid) return;
       _profileSub = _db.collection('users').doc(uid).snapshots().listen(apply,
           onError: (_) {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,17 +16,58 @@ import '../views/screens/super_admin/super_admin_screen.dart';
 
 class _RouterNotifier extends ChangeNotifier {
   final Ref _ref;
+  Timer? _loginGrace;
+  bool _graceExpired = false;
+  bool _inLoginResolution = false;
+
+  void _refresh() {
+    final auth = _ref.read(authProvider);
+    final tenant = _ref.read(tenantAccessProvider);
+    final resolving = !auth.startupResolved ||
+        (auth.user != null && auth.profile == null && auth.loading) ||
+        (auth.profile != null && (tenant?.isLoading ?? false));
+    if (!resolving || auth.user == null) {
+      _loginGrace?.cancel();
+      _inLoginResolution = false;
+      _graceExpired = false;
+    } else if (!_inLoginResolution) {
+      _inLoginResolution = true;
+      _loginGrace = Timer(const Duration(milliseconds: 800), () {
+        _graceExpired = true;
+        notifyListeners();
+      });
+    }
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _loginGrace?.cancel();
+    super.dispose();
+  }
 
   _RouterNotifier(this._ref) {
-    _ref.listen<AuthState>(authProvider, (_, __) => notifyListeners());
-    _ref.listen<bool>(demoModeProvider, (_, __) => notifyListeners());
-    _ref.listen(tenantAccessProvider, (_, __) => notifyListeners());
+    _ref.listen<AuthState>(authProvider, (_, __) => _refresh());
+    _ref.listen<bool>(demoModeProvider, (_, __) => _refresh());
+    _ref.listen(tenantAccessProvider, (_, __) => _refresh());
   }
 
   String? redirect(BuildContext context, GoRouterState state) {
     final authState = _ref.read(authProvider);
     final isDemo = _ref.read(demoModeProvider);
     final tenant = _ref.read(tenantAccessProvider);
+    final path = state.uri.path;
+    final resolving = !authState.startupResolved ||
+        (authState.user != null &&
+            authState.profile == null &&
+            authState.loading) ||
+        (authState.profile != null && (tenant?.isLoading ?? false));
+    // Keep the existing form for fast sign-in; never route by an unverified role.
+    if ({'/login', '/phone', '/register'}.contains(path) &&
+        resolving &&
+        !_graceExpired) {
+      return null;
+    }
     return authRedirect(
       path: state.uri.path,
       startupResolved: authState.startupResolved,
@@ -44,7 +86,9 @@ class _RouterNotifier extends ChangeNotifier {
 }
 
 final _routerNotifierProvider = Provider<_RouterNotifier>((ref) {
-  return _RouterNotifier(ref);
+  final notifier = _RouterNotifier(ref);
+  ref.onDispose(notifier.dispose);
+  return notifier;
 });
 
 final routerProvider = Provider<GoRouter>((ref) {

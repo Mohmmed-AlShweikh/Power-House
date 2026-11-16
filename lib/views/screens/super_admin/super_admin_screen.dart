@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../generator_requests_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -54,7 +55,7 @@ class SuperAdminScreen extends ConsumerWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('لوحة المشرف العام',
+                              Text('أصحاب المولدات',
                                   style: Theme.of(context)
                                       .textTheme
                                       .titleLarge
@@ -204,20 +205,23 @@ class SuperAdminScreen extends ConsumerWidget {
                   label: 'إدارة طلبات المولدات',
                   onPressed: () => context.go('/generator-requests'))),
           Expanded(
-            child: pendingAsync.when(
-              data: (owners) => owners.isEmpty
-                  ? _EmptyState()
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: owners.length,
-                      itemBuilder: (context, i) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _OwnerRequestCard(owner: owners[i]),
-                      ),
-                    ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => const _SuperAdminErrorState(),
-            ),
+            child: !ref.watch(authProvider).isDemo
+                ? const GeneratorRequestsScreen(embedded: true)
+                : pendingAsync.when(
+                    data: (owners) => owners.isEmpty
+                        ? _EmptyState()
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: owners.length,
+                            itemBuilder: (context, i) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _OwnerRequestCard(owner: owners[i]),
+                            ),
+                          ),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (error, stack) => const _SuperAdminErrorState(),
+                  ),
           ),
         ],
       ),

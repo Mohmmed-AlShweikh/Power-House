@@ -27,6 +27,7 @@ dependencies:
   flutter_animate: ^4.5.0
   # Utils
   intl: ^0.20.2
+  flutter_native_splash: ^2.3.0
   # Local notifications
   flutter_local_notifications: ^18.0.0
 
@@ -34,7 +35,6 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
-  flutter_native_splash: ^2.3.0
   flutter_launcher_icons: ^0.14.0
   fake_cloud_firestore: ^3.1.0
 
@@ -54,6 +54,7 @@ flutter:
     - assets/logo.jpg
     - assets/brand/approved-a/mark-primary-384.png
     - assets/brand/approved-a/mark-reversed-384.png
+    - assets/brand/approved-a/splash-android12-dark-1152.png
   fonts:
     - family: PortalArabic
       fonts:
@@ -68,17 +69,17 @@ flutter:
         - asset: assets/fonts/NotoSans-Regular.ttf
 
 flutter_native_splash:
-  color: "#F3F1EB"
+  color: "#13262A"
   color_dark: "#13262A"
-  image: assets/brand/approved-a/mark-primary-384.png
-  image_dark: assets/brand/approved-a/mark-reversed-384.png
-  image_android: assets/brand/approved-a/splash-legacy-light-768.png
-  image_dark_android: assets/brand/approved-a/splash-legacy-dark-768.png
+  image: assets/brand/approved-a/splash-android12-dark-1152.png
+  image_dark: assets/brand/approved-a/splash-android12-dark-1152.png
+  image_android: assets/brand/approved-a/splash-android12-dark-1152.png
+  image_dark_android: assets/brand/approved-a/splash-android12-dark-1152.png
   android_gravity: center
   android_12:
-    color: "#14756B"
+    color: "#13262A"
     color_dark: "#13262A"
-    image: assets/brand/approved-a/splash-android12-light-1152.png
+    image: assets/brand/approved-a/splash-android12-dark-1152.png
     image_dark: assets/brand/approved-a/splash-android12-dark-1152.png
   android: true
   ios: true

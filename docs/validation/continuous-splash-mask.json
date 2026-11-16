@@ -1,0 +1,50 @@
+{
+  "source": "assets/brand/approved-a/splash-android12-dark-1152.png",
+  "background_light_and_dark": "#13262A",
+  "safe_radius_px": 384,
+  "maximum_alpha_radius_px": 374.41220599761436,
+  "cropped_pixels": 0,
+  "logical_canvas_dp": 288,
+  "generated_images": {
+    "android/app/src/main/res/drawable-mdpi/splash.png": [
+      288,
+      288
+    ],
+    "android/app/src/main/res/drawable-mdpi/android12splash.png": [
+      288,
+      288
+    ],
+    "android/app/src/main/res/drawable-hdpi/splash.png": [
+      432,
+      432
+    ],
+    "android/app/src/main/res/drawable-hdpi/android12splash.png": [
+      432,
+      432
+    ],
+    "android/app/src/main/res/drawable-xhdpi/splash.png": [
+      576,
+      576
+    ],
+    "android/app/src/main/res/drawable-xhdpi/android12splash.png": [
+      576,
+      576
+    ],
+    "android/app/src/main/res/drawable-xxhdpi/splash.png": [
+      864,
+      864
+    ],
+    "android/app/src/main/res/drawable-xxhdpi/android12splash.png": [
+      864,
+      864
+    ],
+    "android/app/src/main/res/drawable-xxxhdpi/splash.png": [
+      1152,
+      1152
+    ],
+    "android/app/src/main/res/drawable-xxxhdpi/android12splash.png": [
+      1152,
+      1152
+    ]
+  }
+}

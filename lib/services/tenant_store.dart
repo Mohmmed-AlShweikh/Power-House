@@ -162,6 +162,24 @@ class TenantStore {
     });
   }
 
+  Future<void> setGeneratorSubscription(String gid, bool active) async {
+    final who = await actor();
+    if (!who.superAdmin) throw StateError('للمشرف العام فقط');
+    final generatorRef = db.collection('generators').doc(gid);
+    await db.runTransaction((transaction) async {
+      final snapshot = await transaction.get(generatorRef);
+      if (!snapshot.exists) throw StateError('المولد غير موجود');
+      final data = {
+        ...snapshot.data()!,
+        'subscriptionStatus': active ? 'active' : 'inactive'
+      };
+      transaction.update(
+          generatorRef, {'subscriptionStatus': data['subscriptionStatus']});
+      transaction.set(db.collection('generatorDirectory').doc(gid),
+          GeneratorAccount.fromMap(gid, data).directory());
+    });
+  }
+
   Future<void> reviewGenerator(String gid, GeneratorApproval status,
       {String reason = '', String? subscriptionStatus}) async {
     final who = await actor();
@@ -170,34 +188,34 @@ class TenantStore {
       throw ArgumentError('سبب الرفض مطلوب');
     }
     final ref = db.collection('generators').doc(gid);
-    final doc = await ref.get();
-    if (!doc.exists) throw StateError('المولد غير موجود');
-    final data = {
-      ...doc.data()!,
-      'status': status.name,
-      'rejectionReason': reason.trim(),
-      if (subscriptionStatus != null) 'subscriptionStatus': subscriptionStatus
-    };
-    final generator = GeneratorAccount.fromMap(gid, data);
-    final batch = db.batch();
-    batch.update(ref, {
-      'status': status.name,
-      'rejectionReason': reason.trim(),
-      if (subscriptionStatus != null) 'subscriptionStatus': subscriptionStatus
-    });
-    if (generator.ownerUid.isNotEmpty) {
-      batch.update(db.collection('users').doc(generator.ownerUid), {
-        'status': status == GeneratorApproval.rejected
-            ? 'rejected'
-            : status == GeneratorApproval.pending
-                ? 'pending'
-                : 'approved',
+    await db.runTransaction((transaction) async {
+      final doc = await transaction.get(ref);
+      if (!doc.exists) throw StateError('المولد غير موجود');
+      final data = {
+        ...doc.data()!,
+        'status': status.name,
         'rejectionReason': reason.trim(),
+        if (subscriptionStatus != null) 'subscriptionStatus': subscriptionStatus
+      };
+      final generator = GeneratorAccount.fromMap(gid, data);
+      transaction.update(ref, {
+        'status': status.name,
+        'rejectionReason': reason.trim(),
+        if (subscriptionStatus != null) 'subscriptionStatus': subscriptionStatus
       });
-    }
-    batch.set(
-        db.collection('generatorDirectory').doc(gid), generator.directory());
-    await batch.commit();
+      if (generator.ownerUid.isNotEmpty) {
+        transaction.update(db.collection('users').doc(generator.ownerUid), {
+          'status': status == GeneratorApproval.rejected
+              ? 'rejected'
+              : status == GeneratorApproval.pending
+                  ? 'pending'
+                  : 'approved',
+          'rejectionReason': reason.trim(),
+        });
+      }
+      transaction.set(
+          db.collection('generatorDirectory').doc(gid), generator.directory());
+    });
   }
 
   Future<void> reviewConsumer(String uid, bool approve,

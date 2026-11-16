@@ -99,3 +99,12 @@ final tenantAccessProvider = Provider<AsyncValue<GeneratorAccount>?>((ref) {
   }
   return ref.watch(currentGeneratorAccountProvider);
 });
+
+// Private owner data is never added to the public generator directory.
+final ownerNameProvider = StreamProvider.family<String, String>((ref, uid) =>
+    ref
+        .watch(firestoreProvider)
+        .collection('users')
+        .doc(uid)
+        .snapshots()
+        .map((doc) => (doc.data()?['name'] as String?) ?? 'غير متاح'));
