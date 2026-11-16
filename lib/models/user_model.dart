@@ -1,6 +1,6 @@
 import 'generator_model.dart';
 
-enum UserRole { superAdmin, admin, consumer }
+enum UserRole { superAdmin, admin, consumer, meterReader }
 
 enum SubscriptionStatus { active, inactive, pending }
 
@@ -95,6 +95,7 @@ class UserProfile {
 
   static UserRole _parseRole(dynamic v) {
     final role = (v as String?)?.trim().toLowerCase() ?? '';
+    if (role == 'meter_reader') return UserRole.meterReader;
     if (role == 'super_admin') return UserRole.superAdmin;
     if (role == 'generator_owner' || role == 'admin') {
       return UserRole.admin;
@@ -110,6 +111,8 @@ class UserProfile {
         return 'generator_owner';
       case UserRole.consumer:
         return 'user';
+      case UserRole.meterReader:
+        return 'meter_reader';
     }
   }
 

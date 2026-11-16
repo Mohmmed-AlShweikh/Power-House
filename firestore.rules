@@ -62,12 +62,73 @@ service cloud.firestore {
           get(/databases/$(database)/documents/generatorDirectory/$(data.generatorId)).data.status == 'approved' &&
           get(/databases/$(database)/documents/generatorDirectory/$(data.generatorId)).data.subscriptionStatus == 'active'));
     }
+    function reader() {
+      return signed() && me().role == 'meter_reader' && me().status == 'approved' &&
+        generatorAvailable(gid(me())) && get(/databases/$(database)/documents/meterStaff/$(request.auth.uid)).data.active == true;
+    }
+    function invited(data, uid) {
+      let code=data.get('inviteCode','');
+      let invite=get(/databases/$(database)/documents/meterInvites/$(code)).data;
+      return signed() && uid == request.auth.uid && verifiedEmail(data) && validContact(data) &&
+        data.keys().hasOnly(['name','email','phone','idNumber','address','credentialVersion','role','generatorId','status','subscriptionStatus','ampereLimit','createdAt','inviteCode']) &&
+        data.role == 'meter_reader' && data.status == 'approved' && data.subscriptionStatus == 'active' && data.credentialVersion == 2 && data.ampereLimit == 0 && validEpoch(data.createdAt) &&
+        data.generatorId == invite.generatorId && invite.revoked == false && invite.usedBy == '' && (invite.expiresAt == 0 || invite.expiresAt > request.time.toMillis()) && generatorAvailable(invite.generatorId) &&
+        getAfter(/databases/$(database)/documents/meterInvites/$(code)).data.usedBy == uid &&
+        getAfter(/databases/$(database)/documents/meterStaff/$(uid)).data.active == true;
+    }
+    match /meterInvites/{code} {
+      allow get: if signed();
+      allow list: if owner() && same(resource.data);
+      allow create: if owner() && code.matches('^[a-f0-9]{32}$') && same(request.resource.data) &&
+        request.resource.data.keys().hasOnly(['generatorId','createdBy','createdAt','expiresAt','revoked','usedBy']) && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time &&
+        request.resource.data.expiresAt is int && (request.resource.data.expiresAt == 0 || request.resource.data.expiresAt > request.time.toMillis()) && request.resource.data.revoked == false && request.resource.data.usedBy == '';
+      allow update: if (owner() && same(resource.data) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['revoked']) && request.resource.data.revoked == true) ||
+        (signed() && !exists(userPath(request.auth.uid)) && resource.data.revoked == false && resource.data.usedBy == '' &&
+        (resource.data.expiresAt == 0 || resource.data.expiresAt > request.time.toMillis()) && generatorAvailable(resource.data.generatorId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usedBy']) && request.resource.data.usedBy == request.auth.uid && getAfter(userPath(request.auth.uid)).data.role == 'meter_reader' && getAfter(userPath(request.auth.uid)).data.inviteCode == code && getAfter(userPath(request.auth.uid)).data.generatorId == resource.data.generatorId);
+    }
+    match /meterStaff/{uid} {
+      allow read: if (owner() && same(resource.data)) || (signed() && uid == request.auth.uid);
+      allow create: if signed() && uid == request.auth.uid && !exists(userPath(uid)) && request.resource.data.keys().hasOnly(['generatorId','name','active','inviteCode']) && request.resource.data.active == true && request.resource.data.name == getAfter(userPath(uid)).data.name && request.resource.data.generatorId == getAfter(userPath(uid)).data.generatorId && request.resource.data.inviteCode == getAfter(userPath(uid)).data.inviteCode && getAfter(userPath(uid)).data.role == 'meter_reader';
+      allow update: if owner() && same(resource.data) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active']) && request.resource.data.active == false && getAfter(userPath(uid)).data.status == 'suspended';
+    }
+    function openRound(data) {
+      let round=get(/databases/$(database)/documents/readerRounds/$(data.generatorId)).data;
+      return round.status == 'open' && round.roundId == data.roundId;
+    }
+    match /readerRounds/{id} {
+      allow read: if (owner() || reader()) && gid(me()) == id;
+      allow create, update: if owner() && gid(me()) == id && request.resource.data.keys().hasOnly(['generatorId','roundId','status','date','cycleDays']) && request.resource.data.generatorId == id && request.resource.data.roundId is string && request.resource.data.status in ['open','closing','closed'] && validEpoch(request.resource.data.date) && request.resource.data.cycleDays is int;
+    }
+    match /meterAssignments/{id} {
+      allow read: if (owner() && same(resource.data)) || (reader() && same(resource.data) && resource.data.readerUid == request.auth.uid && openRound(resource.data));
+      allow create, update: if owner() && same(request.resource.data) && (!exists(/databases/$(database)/documents/meterAssignments/$(id)) || same(resource.data)) && request.resource.data.keys().hasOnly(['generatorId','readerUid','roundId','name','address','number','previousMilli','averageMilli']) && request.resource.data.name is string && request.resource.data.name.size() <= 120 && request.resource.data.address is string && request.resource.data.address.size() <= 240 && request.resource.data.number is string && request.resource.data.number.size() <= 80 && request.resource.data.previousMilli is int && request.resource.data.previousMilli >= 0 && request.resource.data.previousMilli <= 1000000000 && request.resource.data.averageMilli is int && request.resource.data.averageMilli >= 0;
+    }
+    function assigned(data, id) {
+      let row=get(/databases/$(database)/documents/meterAssignments/$(id)).data;
+      return reader() && same(data) && data.roundId == row.roundId && data.readerUid == request.auth.uid && row.readerUid == request.auth.uid && openRound(data);
+    }
+    function validReading(data, id) {
+      let row=get(/databases/$(database)/documents/meterAssignments/$(id)).data;
+      return data.keys().hasOnly(['generatorId','roundId','subscriberId','readerUid','previousMilli','currentMilli','confirmedJump','updatedBy','updatedAt','newMeter','startingMilli','reason']) &&
+        id == data.roundId + '_' + data.subscriberId && data.generatorId == row.generatorId && data.roundId == row.roundId && data.previousMilli == row.previousMilli && data.readerUid == row.readerUid &&
+        data.currentMilli is int && data.currentMilli >= 0 && data.currentMilli <= 1000000000 && data.updatedBy == request.auth.uid && data.updatedAt == request.time && data.confirmedJump is bool &&
+        (data.currentMilli >= data.previousMilli || (owner() && data.get('newMeter',false) == true && data.startingMilli is int && data.startingMilli >= 0 && data.currentMilli >= data.startingMilli && data.reason is string && data.reason.size() > 0)) &&
+        (owner() || (!data.get('newMeter',false) && !data.keys().hasAny(['startingMilli','reason']))) &&
+        (row.averageMilli == 0 || data.currentMilli - data.previousMilli <= row.averageMilli * 3 || data.confirmedJump);
+    }
+    match /meterReadings/{id} {
+      allow get: if (owner() && same(get(/databases/$(database)/documents/meterAssignments/$(id)).data)) || (reader() && assigned(get(/databases/$(database)/documents/meterAssignments/$(id)).data,id));
+      allow list: if (owner() && same(resource.data)) || assigned(resource.data,id);
+      allow create, update: if ((owner() && same(request.resource.data) && openRound(request.resource.data)) || assigned(request.resource.data,id)) && validReading(request.resource.data,id);
+    }
+
     match /users/{uid} {
       allow get: if signed() && (uid == request.auth.uid || superAdmin() ||
         (owner() && consumer(resource.data) && same(resource.data)));
       allow list: if superAdmin() || (owner() && consumer(resource.data) && same(resource.data));
-      allow create: if !request.resource.data.keys().hasAny(['password', 'passwordUpdatedAt']) && (superAdmin() || canEnroll(request.resource.data, uid));
-      allow update: if !request.resource.data.diff(resource.data).affectedKeys().hasAny(['password', 'passwordUpdatedAt']) && (superAdmin() ||
+      allow create: if !request.resource.data.keys().hasAny(['password', 'passwordUpdatedAt']) && (superAdmin() || canEnroll(request.resource.data, uid) || invited(request.resource.data, uid));
+      allow update: if (owner() && same(resource.data) && resource.data.role == 'meter_reader' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','rejectionReason']) && request.resource.data.status == 'suspended' && request.resource.data.rejectionReason is string && request.resource.data.rejectionReason.size()>0 && getAfter(/databases/$(database)/documents/meterStaff/$(uid)).data.active == false) || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['password', 'passwordUpdatedAt']) && (superAdmin() ||
         (signed() && uid == request.auth.uid && validContact(request.resource.data) &&
           (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'address', 'phone', 'idNumber']) || (recent() && verifiedEmail(request.resource.data) && request.resource.data.get('credentialVersion',0)==2 && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','address','phone','idNumber','email','credentialVersion'])))) ||
         (owner() && consumer(resource.data) && same(resource.data) && validContact(request.resource.data) &&
@@ -90,7 +151,7 @@ service cloud.firestore {
         (!(data.status in ['rejected','suspended']) || data.get('rejectionReason','').size()>0);
     }
     match /generators/{id} {
-      allow get: if superAdmin() || (signed() && gid(me()) == id);
+      allow get: if superAdmin() || (signed() && me().role != 'meter_reader' && gid(me()) == id);
       allow list: if superAdmin();
       allow create: if superAdmin() ||
         (signed() && id != 'default' && !exists(userPath(request.auth.uid)) &&

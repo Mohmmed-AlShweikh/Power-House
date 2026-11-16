@@ -89,6 +89,9 @@ final currentGeneratorAccountProvider = StreamProvider<GeneratorAccount>((ref) {
   final gid = ref.watch(tenantIdProvider);
   final db = ref.watch(firestoreProvider);
   if (!firestoreReady(ref)) return const Stream.empty();
+  if(ref.watch(authProvider).profile?.role == UserRole.meterReader) {
+    return retryFirestore(()=>db.collection('generatorDirectory').doc(gid).snapshots()).map((d)=>GeneratorAccount.fromMap(gid,d.data()??{}));
+  }
   return retryFirestore(() => watchGenerator(db, gid))
       .map((data) => GeneratorAccount.fromMap(gid, data));
 });

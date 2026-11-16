@@ -1,3 +1,4 @@
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import '../../services/credential_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -180,6 +181,7 @@ class _EnrollmentFormScreenState extends ConsumerState<EnrollmentFormScreen> {
                   ];
                 }),
           ],
+          TextButton(onPressed:()=>context.push('/reader-join'),child:const Text('لدي رمز دعوة عامل عدادات')),
           const SizedBox(height: PortalTokens.xl),
           if (error != null) PortalErrorState(error!),
           PortalActionButton(

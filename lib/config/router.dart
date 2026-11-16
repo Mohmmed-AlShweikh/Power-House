@@ -1,3 +1,4 @@
+import '../features/metering/screens.dart';
 import '../features/billing_settings/screen.dart';
 import 'dart:async';
 import '../services/credential_service.dart';
@@ -118,6 +119,9 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: notifier,
     redirect: notifier.redirect,
     routes: [
+      GoRoute(path:'/reader',builder:(_,__)=>const MeterReaderScreen()),
+      GoRoute(path:'/reader-join',builder:(_,__)=>const ReaderJoinScreen()),
+      GoRoute(path:'/meter-staff',builder:(_,__)=>const MeterStaffScreen()),
       GoRoute(
           path: '/billing-settings',
           builder: (_, __) => const BillingSettingsScreen()),

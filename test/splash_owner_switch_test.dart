@@ -123,7 +123,8 @@ void main() {
           switch (role) {
             UserRole.consumer => '/consumer',
             UserRole.admin => '/admin',
-            UserRole.superAdmin => '/super_admin'
+            UserRole.superAdmin => '/super_admin',
+            UserRole.meterReader => '/reader'
           });
       expect(find.byType(AuthLoadingScreen), findsNothing);
       expect(releases, 1);

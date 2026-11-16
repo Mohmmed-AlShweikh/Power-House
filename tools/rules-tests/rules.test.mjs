@@ -127,3 +127,20 @@ test('new invoice snapshot is retained and cannot be edited by payment actors',a
  await assertFails(updateDoc(doc(db('ca'),'bills','frozen'),{billingSnapshot:{...snapshot,amountAgorot:1}}));
  await assertFails(getDoc(doc(db('cb'),'bills','frozen')));
 });
+async function seedReader(){await env.withSecurityRulesDisabled(async c=>{const f=c.firestore();await setDoc(doc(f,'users','ra'),profile('meter_reader','a','approved','ra'));await setDoc(doc(f,'meterStaff','ra'),{name:'عامل',generatorId:'a',active:true,inviteCode:'code'});await setDoc(doc(f,'readerRounds','a'),{generatorId:'a',roundId:'round',status:'open',date:1,cycleDays:10});await setDoc(doc(f,'meterAssignments','round_ca'),{generatorId:'a',readerUid:'ra',roundId:'round',name:'مشترك',address:'حي',number:'1',previousMilli:20000,averageMilli:1000});});}
+test('meter invite consumed atomically once, forged self-approval and expired invite denied',async()=>{
+ const code='a'.repeat(32),f=db('oa');await assertSucceeds(setDoc(doc(f,'meterInvites',code),{generatorId:'a',createdBy:'oa',createdAt:serverTimestamp(),expiresAt:0,revoked:false,usedBy:''}));
+ const r=db('newreader'),user={...profile('meter_reader','a','approved','newreader'),inviteCode:code};await assertFails(setDoc(doc(r,'users','newreader'),user));
+ const b=writeBatch(r);b.set(doc(r,'users','newreader'),user);b.set(doc(r,'meterStaff','newreader'),{name:'meter_reader',generatorId:'a',active:true,inviteCode:code});b.update(doc(r,'meterInvites',code),{usedBy:'newreader'});await assertSucceeds(b.commit());
+ await assertFails(updateDoc(doc(db('other'),'meterInvites',code),{usedBy:'other'}));await assertFails(getDocs(collection(r,'meterInvites')));
+ await assertFails(setDoc(doc(db('ob'),'meterInvites','b'.repeat(32)),{generatorId:'a',createdBy:'ob',createdAt:serverTimestamp(),expiresAt:0,revoked:false,usedBy:''}));
+});
+test('reader cannot see prices, money, past rounds or other generator; current row writes only',async()=>{
+ await seedReader();const r=db('ra');await assertSucceeds(getDoc(doc(r,'meterAssignments','round_ca')));for(const [col,id] of [['bills','ba'],['billingSettings','a'],['generators','a'],['complaints','qa'],['users','ca']])await assertFails(getDoc(doc(r,col,id)));
+ const value={generatorId:'a',roundId:'round',subscriberId:'ca',readerUid:'ra',currentMilli:21000,previousMilli:20000,confirmedJump:false,updatedBy:'ra',updatedAt:serverTimestamp()};
+ await assertSucceeds(setDoc(doc(r,'meterReadings','round_ca'),value));await assertFails(updateDoc(doc(r,'meterReadings','round_ca'),{currentMilli:19000,updatedAt:serverTimestamp()}));await assertFails(updateDoc(doc(r,'meterReadings','round_ca'),{priceAgorot:1,updatedAt:serverTimestamp()}));
+ await assertFails(updateDoc(doc(r,'meterReadings','round_ca'),{currentMilli:24000,updatedAt:serverTimestamp()}));await assertSucceeds(updateDoc(doc(r,'meterReadings','round_ca'),{currentMilli:24000,confirmedJump:true,updatedAt:serverTimestamp()}));
+ await assertFails(getDoc(doc(db('cb'),'meterReadings','round_ca')));await assertFails(getDoc(doc(db('ob'),'meterReadings','round_ca')));
+ await updateDoc(doc(db('oa'),'readerRounds','a'),{status:'closed'});await assertFails(getDoc(doc(r,'meterReadings','round_ca')));await assertFails(setDoc(doc(r,'meterReadings','round_ca'),value));
+});
+test('owner revocation immediately blocks reader and cannot be self-reversed',async()=>{await seedReader();const f=db('oa'),b=writeBatch(f);b.update(doc(f,'meterStaff','ra'),{active:false});b.update(doc(f,'users','ra'),{status:'suspended',rejectionReason:'إلغاء الصلاحية'});await assertSucceeds(b.commit());await assertFails(getDoc(doc(db('ra'),'readerRounds','a')));await assertFails(updateDoc(doc(db('ra'),'meterStaff','ra'),{active:true}));});

@@ -17,7 +17,7 @@ String? authRedirect({
     return path == '/splash' ? null : '/splash';
   }
   if (loggedIn && needsRegistration) {
-    return path == '/onboarding' ? null : '/onboarding';
+    return {'/onboarding','/reader-join'}.contains(path) ? null : '/onboarding';
   }
   if (loggedIn && accountError) {
     return path == '/account-status' ? null : '/account-status';
@@ -38,12 +38,13 @@ String? authRedirect({
       UserRole.superAdmin => '/super_admin',
       UserRole.admin => '/admin',
       UserRole.consumer => '/consumer',
+      UserRole.meterReader => '/reader',
     };
     final allowed = profile.role == UserRole.superAdmin
         ? <String>{'/super_admin', '/generator-requests'}
         : <String>{
             correctPath,
-            if (profile.role == UserRole.admin) '/billing-settings'
+            if (profile.role == UserRole.admin) ...['/billing-settings','/meter-staff']
           };
     return allowed.contains(path) ? null : correctPath;
   } else if (!loading &&
