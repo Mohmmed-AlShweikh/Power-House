@@ -1,0 +1,36 @@
+Analyzing Power-House...
+
+   info • Statements in an if should be enclosed in a block • lib/providers/theme_provider.dart:16:26 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/providers/theme_provider.dart:17:32 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/providers/theme_provider.dart:18:10 • curly_braces_in_flow_control_structures
+   info • 'background' is deprecated and shouldn't be used. Use surface instead. This feature was deprecated after v3.18.0-0.1.pre • lib/providers/theme_provider.dart:42:7 • deprecated_member_use
+   info • 'onBackground' is deprecated and shouldn't be used. Use onSurface instead. This feature was deprecated after v3.18.0-0.1.pre • lib/providers/theme_provider.dart:46:7 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/providers/theme_provider.dart:53:33 • deprecated_member_use
+   info • 'background' is deprecated and shouldn't be used. Use surface instead. This feature was deprecated after v3.18.0-0.1.pre • lib/providers/theme_provider.dart:110:7 • deprecated_member_use
+   info • 'onBackground' is deprecated and shouldn't be used. Use onSurface instead. This feature was deprecated after v3.18.0-0.1.pre • lib/providers/theme_provider.dart:114:7 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/providers/theme_provider.dart:121:33 • deprecated_member_use
+warning • Unnecessary cast • lib/views/screens/admin/admin_screen.dart:73:22 • unnecessary_cast
+warning • The declaration '_showAddSheet' isn't referenced • lib/views/screens/admin/admin_screen.dart:782:8 • unused_element
+warning • The value of the field '_highlightedBillId' isn't used • lib/views/screens/admin/admin_screen.dart:985:11 • unused_field
+warning • The receiver can't be 'null' because of short-circuiting, so the null-aware operator '?.' can't be used • lib/views/screens/admin/admin_screen.dart:2073:40 • invalid_null_aware_operator
+warning • The '!' will have no effect because the receiver can't be null • lib/views/screens/admin/admin_screen.dart:2074:39 • unnecessary_non_null_assertion
+warning • Dead code • lib/views/screens/admin/admin_screen.dart:2193:27 • dead_code
+warning • The declaration '_MockAlerts' isn't referenced • lib/views/screens/consumer/alerts_tab.dart:268:7 • unused_element
+warning • Unnecessary cast • lib/views/screens/consumer/consumer_shell.dart:55:22 • unnecessary_cast
+warning • Dead code • lib/views/screens/consumer/profile_tab.dart:160:27 • dead_code
+warning • The declaration '_showSecuritySheet' isn't referenced • lib/views/screens/consumer/profile_tab.dart:195:8 • unused_element
+warning • The declaration '_showHelpSheet' isn't referenced • lib/views/screens/consumer/profile_tab.dart:205:8 • unused_element
+   info • 'parent' is deprecated and shouldn't be used. Will be removed in 3.0.0. See https://github.com/rrousselGit/riverpod/issues/3261#issuecomment-1973514033 • lib/views/screens/consumer/profile_tab.dart:222:9 • deprecated_member_use
+   info • 'parent' is deprecated and shouldn't be used. Will be removed in 3.0.0. See https://github.com/rrousselGit/riverpod/issues/3261#issuecomment-1973514033 • lib/views/screens/consumer/profile_tab.dart:236:9 • deprecated_member_use
+warning • The receiver can't be 'null' because of short-circuiting, so the null-aware operator '?.' can't be used • lib/views/screens/consumer/profile_tab.dart:282:31 • invalid_null_aware_operator
+   info • Statements in an if should be enclosed in a block • lib/views/screens/setup_screen.dart:32:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/views/screens/setup_screen.dart:34:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/views/screens/setup_screen.dart:40:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/views/screens/setup_screen.dart:42:7 • curly_braces_in_flow_control_structures
+warning • The value of the local variable 'theme' isn't used • lib/views/screens/super_admin/super_admin_screen.dart:19:11 • unused_local_variable
+   info • Don't use 'BuildContext's across async gaps • lib/views/screens/super_admin/super_admin_screen.dart:110:33 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/views/screens/super_admin/super_admin_screen.dart:121:33 • use_build_context_synchronously
+warning • The receiver can't be null, so the null-aware operator '?.' is unnecessary • lib/views/screens/super_admin/super_admin_screen.dart:181:49 • invalid_null_aware_operator
+   info • 'parent' is deprecated and shouldn't be used. Will be removed in 3.0.0. See https://github.com/rrousselGit/riverpod/issues/3261#issuecomment-1973514033 • lib/views/widgets/notification_bell.dart:68:9 • deprecated_member_use
+
+32 issues found. (ran in 9.6s)

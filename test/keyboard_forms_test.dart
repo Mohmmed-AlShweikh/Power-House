@@ -11,7 +11,7 @@ import 'package:generator_portal/providers/auth_provider.dart';
 import 'package:generator_portal/providers/data_provider.dart';
 import 'package:generator_portal/theme/portal_theme.dart';
 import 'package:generator_portal/views/screens/consumer/profile_tab.dart';
-import 'package:generator_portal/views/screens/consumer/bills_tab.dart';
+import 'package:generator_portal/views/widgets/payment_form.dart';
 import 'package:generator_portal/views/screens/admin/admin_screen.dart';
 import 'package:generator_portal/views/widgets/portal_keyboard.dart';
 import 'redesign/home_goldens_test.dart' show FixtureAuth;
@@ -42,6 +42,8 @@ void main() {
               .overrideWith((ref) => Stream.value({'fixture': 'مشترك'})),
           billsProvider('').overrideWith((ref) => Stream.value(<Bill>[])),
           allBillsProvider.overrideWith((ref) => Stream.value(<Bill>[])),
+          consumerRequestsProvider.overrideWith(
+              (ref) => ref.watch(pendingUsersProvider.future).asStream()),
           pendingUsersProvider
               .overrideWith((ref) => Stream.value(<UserProfile>[])),
           complaintsProvider.overrideWith((ref) => Stream.value(<Complaint>[
@@ -264,9 +266,7 @@ void main() {
     await reachable(tester, find.text('حفظ'), 320);
   });
 
-  testWidgets(
-      'receipt remains scrollable with keyboard, no notes field invented',
-      (tester) async {
+  testWidgets('payment reference stays visible above keyboard', (tester) async {
     await boot(
         tester,
         Builder(
@@ -274,7 +274,7 @@ void main() {
                 body: TextButton(
                     onPressed: () => showPortalFormSheet(
                         context: context,
-                        builder: (_) => ReceiptUploadView(
+                        builder: (_) => PaymentForm(
                             bill: Bill(
                                 id: 'fixture',
                                 userId: '',
@@ -283,12 +283,7 @@ void main() {
                                 amount: 284,
                                 kwh: 142,
                                 status: BillStatus.pending,
-                                createdAt: DateTime(2026)),
-                            bytes: null,
-                            uploading: false,
-                            onPick: () {},
-                            onUpload: () {},
-                            onClose: () {})),
+                                createdAt: DateTime(2026)))),
                     child: const Text('فتح')))),
         UserRole.consumer,
         Brightness.light,
@@ -297,8 +292,9 @@ void main() {
     await tester.pumpAndSettle();
     tester.view.viewInsets = const FakeViewPadding(bottom: 320);
     await tester.pumpAndSettle();
-    expect(find.byType(TextField), findsNothing);
-    await reachable(tester, find.text('ارسال وصل الدفع'), 320);
+    await keyboard(
+        tester, find.byKey(const ValueKey('payment-reference')), 320);
+    await reachable(tester, find.text('إرسال للمراجعة'), 320);
     expect(tester.takeException(), isNull);
   });
 }

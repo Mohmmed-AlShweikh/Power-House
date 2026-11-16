@@ -2,7 +2,7 @@ import {before,beforeEach,after,test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {initializeTestEnvironment,assertFails,assertSucceeds} from '@firebase/rules-unit-testing';
-import {doc,getDoc,setDoc,updateDoc,collection,getDocs,query,where,writeBatch} from 'firebase/firestore';
+import {doc,getDoc,setDoc,updateDoc,collection,getDocs,query,where,writeBatch,runTransaction} from 'firebase/firestore';
 if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8089')throw new Error('Local demo Firestore required');
 let env;
 const profile=(role,generatorId,status='approved',uid='test')=>({name:role,email:uid+'@example.test',credentialVersion:2,phone:'',idNumber:'',role,generatorId,status,subscriptionStatus:'active',ampereLimit:0,createdAt:1});
@@ -89,4 +89,22 @@ test('direct paid status without a submitted payment and forged reviewer are den
 test('super-admin suspension blocks operational reads and directory projection follows private document',async()=>{
  const f=db('sa');const b=writeBatch(f);b.update(doc(f,'generators','a'),{status:'suspended',rejectionReason:'سبب'});b.update(doc(f,'generatorDirectory','a'),{status:'suspended'});await assertSucceeds(b.commit());
  await assertFails(getDoc(doc(db('oa'),'bills','ba')));await assertFails(getDoc(doc(db('ca'),'bills','ba')));await assertSucceeds(getDoc(doc(db('ca'),'generators','a')));
+});
+
+test('concurrent owner reviews commit one decision and one feedback record',async()=>{
+ await updateDoc(doc(db('ca'),'bills','ba'),submission());
+ async function approve(){const f=db('oa');return runTransaction(f,async tx=>{
+  const ref=doc(f,'bills','ba'),snapshot=await tx.get(ref);
+  if(snapshot.data().status==='paid')return false;
+  tx.update(ref,decision('oa','paid'));
+  tx.set(doc(f,'alerts','race-ba-v1'),{generatorId:'a',userId:'ca',title:'تم اعتماد الدفع',body:'اختبار',type:'paymentApproved',read:false,createdAt:Date.now()});
+  return true;
+ });}
+ const results=await Promise.allSettled([approve(),approve()]);
+ assert.equal(results.filter(r=>r.status==='fulfilled'&&r.value===true).length,1);
+ for(const result of results){if(result.status==='rejected')assert.equal(result.reason.code,'permission-denied');}
+ // A late commit can be denied by the immutable paid-state rule instead of
+ // being retried as ABORTED; either outcome must leave exactly one approval.
+ assert.equal((await getDoc(doc(db('ca'),'bills','ba'))).data().status,'paid');
+ const feedback=await getDocs(query(collection(db('ca'),'alerts'),where('generatorId','==','a'),where('userId','==','ca')));assert.equal(feedback.size,1);
 });

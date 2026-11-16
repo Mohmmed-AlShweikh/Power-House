@@ -53,6 +53,8 @@ void main() {
           subscribersProvider.overrideWith((ref) => Stream.value([subscriber])),
           subscribersMapProvider.overrideWith(
               (ref) => Stream.value({'fixture': subscriber.name})),
+          consumerRequestsProvider.overrideWith(
+              (ref) => ref.watch(pendingUsersProvider.future).asStream()),
           pendingUsersProvider
               .overrideWith((ref) => Stream.value(<UserProfile>[])),
           complaintsProvider.overrideWith((ref) => Stream.value(<Complaint>[])),

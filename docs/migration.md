@@ -1,3 +1,5 @@
+> Historical document. For the clean-project email-only Phase 1, follow [spark-phase1.md](spark-phase1.md). Do not run legacy account/data migration for this phase.
+
 # Multi-generator migration — manual only, never executed here
 
 Do not deploy this branch directly over an unmigrated live database. It intentionally fails closed instead of making global queries when tenant IDs are missing. Scalar legacy documents decode to `default` and generator state falls back to `system/generator`; tenant-filtered lists cannot discover an absent field. Firestore has no missing-field query, so the requested seamless zero-backfill bulk-list compatibility cannot safely be provided. Backfill is a deployment prerequisite for complete list/history continuity.
