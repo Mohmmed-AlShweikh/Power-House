@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../services/firestore_reads.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,7 +32,7 @@ final generatorDirectoryProvider = StreamProvider<List<GeneratorAccount>>(
         .collection('generatorDirectory')
         .where('status', isEqualTo: 'approved')
         .where('subscriptionStatus', isEqualTo: 'active')
-        .snapshots()
+        .autoSnapshots(ref, profileRequired: false)
         .map((s) => s.docs
             .map((d) => GeneratorAccount.fromMap(d.id, d.data()))
             .toList()));
@@ -39,7 +40,7 @@ final generatorRequestsProvider = StreamProvider<List<GeneratorAccount>>(
     (ref) => ref
             .watch(firestoreProvider)
             .collection('generators')
-            .snapshots()
+            .autoSnapshots(ref)
             .map((s) {
           final list = s.docs
               .map((d) => GeneratorAccount.fromMap(d.id, d.data()))
@@ -86,7 +87,9 @@ Stream<Map<String, dynamic>> watchGenerator(FirebaseFirestore db, String gid) {
 
 final currentGeneratorAccountProvider = StreamProvider<GeneratorAccount>((ref) {
   final gid = ref.watch(tenantIdProvider);
-  return watchGenerator(ref.watch(firestoreProvider), gid)
+  final db = ref.watch(firestoreProvider);
+  if (!firestoreReady(ref)) return const Stream.empty();
+  return retryFirestore(() => watchGenerator(db, gid))
       .map((data) => GeneratorAccount.fromMap(gid, data));
 });
 
@@ -106,5 +109,5 @@ final ownerNameProvider = StreamProvider.family<String, String>((ref, uid) =>
         .watch(firestoreProvider)
         .collection('users')
         .doc(uid)
-        .snapshots()
+        .autoSnapshots(ref)
         .map((doc) => (doc.data()?['name'] as String?) ?? 'غير متاح'));

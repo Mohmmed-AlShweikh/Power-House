@@ -16,8 +16,12 @@ import 'package:generator_portal/views/screens/account_status_screen.dart';
 import 'package:generator_portal/views/screens/generator_requests_screen.dart';
 import 'package:generator_portal/views/screens/phone_enrollment_screen.dart';
 import 'support/multi_auth_fixture.dart';
+import 'support/credential_fakes.dart';
+import 'package:generator_portal/services/credential_service.dart';
 
 class FakePhoneGateway implements PhoneGateway {
+  @override
+  void cancel() {}
   String? phone, verificationId, code;
   bool fail = false;
   @override
@@ -66,7 +70,13 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(ProviderScope(
         overrides: [
-          authProvider.overrideWith((ref) => auth ?? MultiAuthFixture()),
+          authProvider.overrideWith((ref) =>
+              auth ??
+              MultiAuthFixture(AuthState(
+                  user: PhoneUser('test'),
+                  startupResolved: true,
+                  loading: false))),
+          credentialServiceProvider.overrideWithValue(FakeCredentials()),
           enrollmentRoleProvider.overrideWith((ref) => role),
           if (phone != null) phoneGatewayProvider.overrideWithValue(phone),
           if (directory != null)

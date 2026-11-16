@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
-import '../services/notification_service.dart';
 import '../services/tenant_store.dart';
 import '../services/cached_profile.dart';
+import '../services/credential_service.dart';
+import '../services/firestore_reads.dart';
 
 class AuthState {
   final User? user;
@@ -14,6 +15,7 @@ class AuthState {
   // Remains false until the first auth event and profile check finish.
   final bool startupResolved;
   final bool needsRegistration;
+  final bool needsCredentialCompletion;
   final bool isDemo;
   final String? error;
 
@@ -23,6 +25,7 @@ class AuthState {
     this.loading = true,
     this.startupResolved = false,
     this.needsRegistration = false,
+    this.needsCredentialCompletion = false,
     this.isDemo = false,
     this.error,
   });
@@ -33,6 +36,7 @@ class AuthState {
     bool? loading,
     bool? startupResolved,
     bool? needsRegistration,
+    bool? needsCredentialCompletion,
     bool? isDemo,
     Object? error = const _Sentinel(),
   }) =>
@@ -42,6 +46,8 @@ class AuthState {
         loading: loading ?? this.loading,
         startupResolved: startupResolved ?? this.startupResolved,
         needsRegistration: needsRegistration ?? this.needsRegistration,
+        needsCredentialCompletion:
+            needsCredentialCompletion ?? this.needsCredentialCompletion,
         isDemo: isDemo ?? this.isDemo,
         error: error is _Sentinel ? this.error : error as String?,
       );
@@ -94,20 +100,24 @@ final _demoSuperAdmin = UserProfile(
 // ── Notifier ───────────────────────────────────────────────────────────────────
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier() : super(const AuthState()) {
+  AuthNotifier({FirebaseAuth? auth, FirebaseFirestore? firestore})
+      : _auth = auth ?? FirebaseAuth.instance,
+        _db = firestore ?? FirebaseFirestore.instance,
+        super(const AuthState()) {
     _init();
   }
 
-  final _auth = FirebaseAuth.instance;
-  final _db = FirebaseFirestore.instance;
+  final FirebaseAuth _auth;
+  final FirebaseFirestore _db;
+  Timer? _startupTimer;
   StreamSubscription? _authSub;
   StreamSubscription? _profileSub;
 
-  static String _toEmail(String id) => '${id.trim()}@powershare.app';
+  late final credentials = FirebaseCredentialService(_auth, _db);
 
   void _init() async {
     // Timeout safety net
-    Future.delayed(const Duration(seconds: 8), () {
+    _startupTimer = Timer(const Duration(seconds: 8), () {
       if (mounted && state.loading) state = state.copyWith(loading: false);
     });
 
@@ -122,6 +132,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
             loading: false,
             startupResolved: true,
             needsRegistration: false,
+            needsCredentialCompletion: false,
             error: const _Sentinel());
         return;
       }
@@ -146,11 +157,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (!mounted || _auth.currentUser?.uid != uid) return;
       if (!doc.exists) {
         state = state.copyWith(
-            profile: null, needsRegistration: true, loading: false);
+            user: _auth.currentUser,
+            profile: null,
+            needsRegistration: true,
+            loading: false);
         return;
       }
       state = state.copyWith(
+          user: _auth.currentUser,
           profile: UserProfile.fromMap(uid, doc.data()!),
+          needsCredentialCompletion: doc.data()!['role'] != 'super_admin' &&
+              (doc.data()!['credentialVersion'] != 1 ||
+                  !credentials.hasPassword ||
+                  !credentials.hasPhone ||
+                  doc.data()!['phone'] != credentials.phone ||
+                  credentials.email !=
+                      idEmail((doc.data()!['idNumber'] as String?) ?? '')),
           needsRegistration: false,
           loading: false,
           error: null);
@@ -166,11 +188,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
           state = state.copyWith(startupResolved: true);
         }
       } else {
-        apply(await _db.collection('users').doc(uid).get());
+        apply(await retryFirestore(() => Stream.fromFuture(_db
+            .collection('users')
+            .doc(uid)
+            .get(const GetOptions(source: Source.server)))).first);
       }
       if (!mounted || _auth.currentUser?.uid != uid) return;
-      _profileSub = _db.collection('users').doc(uid).snapshots().listen(apply,
-          onError: (_) {
+      _profileSub =
+          retryFirestore(() => _db.collection('users').doc(uid).snapshots())
+              .listen(apply, onError: (_) {
         if (mounted && _auth.currentUser?.uid == uid) {
           state = state.copyWith(
               loading: false, error: 'تعذّر تحميل الحساب. حاول مجدداً.');
@@ -190,38 +216,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<String?> login(String idNumber, String password) async {
     state = state.copyWith(loading: true, error: null);
     try {
-      await _auth.signInWithEmailAndPassword(
-        email: _toEmail(idNumber),
-        password: password,
-      );
+      await credentials.loginId(idNumber, password);
       // _loadAndCheckProfile is triggered by the auth listener
       return null;
     } on FirebaseAuthException catch (e) {
-      final msg = _friendlyError(e.code);
+      final msg = credentialError(e);
       state = state.copyWith(loading: false, error: msg);
       return msg;
-    } catch (_) {
-      const msg = 'تعذّر الاتصال بالخادم. تحقق من اتصالك.';
+    } catch (error) {
+      final msg = credentialError(error);
       state = state.copyWith(loading: false, error: msg);
       return msg;
     }
   }
 
-  /// Admin resets a user's password and sends them a notification.
-  Future<String?> adminResetPassword(String uid, String newPassword) async {
-    try {
-      await TenantStore(_db, () => _auth.currentUser?.uid)
-          .checkedDocument('users', uid);
-      await _db.collection('users').doc(uid).update({
-        'password': newPassword,
-        'passwordUpdatedAt': DateTime.now().millisecondsSinceEpoch,
-      });
-      NotificationService().notifyPasswordReset(uid);
-      return null;
-    } catch (_) {
-      return 'تعذّر تحديث كلمة المرور. حاول مجدداً.';
-    }
-  }
+  // Passwords are only changed by the authenticated owner through Firebase Auth.
+  Future<String?> adminResetPassword(String uid, String newPassword) async =>
+      'يستعيد صاحب الحساب كلمة المرور عبر رمز الهاتف من شاشة الدخول';
 
   /// Returns null on success, Arabic error message on failure.
   Future<String?> register(
@@ -238,7 +249,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
       throw StateError('تحقق من الهاتف أولاً');
     }
     await TenantStore(_db, () => user.uid).enrollOwner(
-        uid: user.uid, phone: user.phoneNumber!, name: name, sector: sector);
+        uid: user.uid,
+        phone: user.phoneNumber!,
+        name: name,
+        sector: sector,
+        idNumber: _enrollmentId());
     await _loadAndCheckProfile(user.uid);
   }
 
@@ -248,8 +263,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
       throw StateError('تحقق من الهاتف أولاً');
     }
     await TenantStore(_db, () => user.uid).enrollConsumer(
-        uid: user.uid, phone: user.phoneNumber!, name: name, generatorId: gid);
+        uid: user.uid,
+        phone: user.phoneNumber!,
+        name: name,
+        generatorId: gid,
+        idNumber: _enrollmentId());
     await _loadAndCheckProfile(user.uid);
+  }
+
+  String _enrollmentId() {
+    final email = _auth.currentUser?.email ?? '';
+    final id = email.split('@').first;
+    if (!credentials.hasPassword ||
+        !validNationalId(id) ||
+        email != idEmail(id)) {
+      throw const CredentialFailure('أكمل ربط الهوية وكلمة المرور أولاً');
+    }
+    return id;
   }
 
   Future<void> demoLogin(UserRole role) async {
@@ -280,7 +310,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final data = <String, dynamic>{};
     if (name != null) data['name'] = name;
     if (address != null) data['address'] = address;
-    if (phone != null) data['phone'] = phone;
+    if (phone != null && phone != state.profile?.phone) {
+      throw const CredentialFailure('غيّر الهاتف من إعدادات الدخول بعد التحقق');
+    }
     if (data.isNotEmpty) {
       await _db.collection('users').doc(uid).update(data);
     }
@@ -301,30 +333,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   @override
   void dispose() {
+    _startupTimer?.cancel();
     _authSub?.cancel();
     _profileSub?.cancel();
     super.dispose();
-  }
-
-  static String _friendlyError(String? code) {
-    switch (code) {
-      case 'user-not-found':
-      case 'invalid-credential':
-      case 'wrong-password':
-        return 'رقم الهوية أو كلمة المرور غير صحيحة.';
-      case 'email-already-in-use':
-        return 'رقم الهوية هذا مسجّل بالفعل. جرّب تسجيل الدخول.';
-      case 'weak-password':
-        return 'كلمة المرور ضعيفة. استخدم 8 أحرف أو أكثر.';
-      case 'too-many-requests':
-        return 'عدد كبير من المحاولات. انتظر قليلاً وحاول مجدداً.';
-      case 'network-request-failed':
-        return 'تعذّر الاتصال بالإنترنت. تحقق من اتصالك.';
-      case 'operation-not-allowed':
-        return 'تسجيل الدخول بالبريد الإلكتروني غير مفعّل في Firebase Console.';
-      default:
-        return 'حدث خطأ (${code ?? 'unknown'}). حاول مجدداً.';
-    }
   }
 }
 

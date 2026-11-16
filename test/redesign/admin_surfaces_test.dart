@@ -1,4 +1,7 @@
 import 'dart:async';
+import '../support/credential_fakes.dart';
+import 'package:generator_portal/services/credential_service.dart';
+import 'package:generator_portal/views/screens/credential_screen.dart';
 import 'package:generator_portal/providers/tenant_provider.dart';
 import 'package:generator_portal/models/generator_model.dart';
 import 'dart:convert';
@@ -311,6 +314,7 @@ void main() {
       Future<void> boot(Widget child) async {
         await tester.pumpWidget(const SizedBox.shrink());
         await tester.pumpWidget(ProviderScope(overrides: [
+          credentialServiceProvider.overrideWithValue(FakeCredentials()),
           authProvider
               .overrideWith((ref) => auth = AuthReview(UserRole.consumer))
         ], child: _Frame(brightness: brightness, child: child)));
@@ -337,18 +341,15 @@ void main() {
 
       await boot(const LoginScreen());
       await capture('login');
-      await tester.tap(find.text('نسيت كلمة المرور؟'));
-      await tester.pumpAndSettle();
+      // Recovery is a real screen now, not the old contact-owner dialogs.
+      await boot(const CredentialScreen(mode: CredentialMode.recover));
       await capture('forgot_empty_id');
-      Navigator.of(tester.element(find.byType(AlertDialog))).pop();
-      await tester.pumpAndSettle();
+      await tester.enterText(
+          find.byKey(const ValueKey('credential-id')), '123456789');
+      await capture('forgot_guidance');
+      await boot(const LoginScreen());
       await tester.enterText(
           find.widgetWithText(TextField, 'xxxxxxxxxx'), '123456789');
-      await tester.tap(find.text('نسيت كلمة المرور؟'));
-      await tester.pumpAndSettle();
-      await capture('forgot_guidance');
-      Navigator.of(tester.element(find.byType(AlertDialog))).pop();
-      await tester.pumpAndSettle();
       await tester.enterText(
           find.widgetWithText(TextField, '••••••••'), 'test-password');
       await tester.pumpAndSettle();

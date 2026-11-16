@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/credential_service.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -34,86 +35,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _forgotPassword() async {
-    final id = _idCtrl.text.trim();
-    if (id.isEmpty) {
-      showDialog(
-        context: context,
-        builder: (_) => Directionality(
-          textDirection: TextDirection.rtl,
-          child: AlertDialog(
-            scrollable: true,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(PortalTokens.radiusPanel)),
-            title: const Text('نسيت كلمة المرور؟'),
-            content: const Text('يرجى إدخال رقم هويتك أولاً في الحقل أعلاه.'),
-            actions: [
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('حسناً'),
-              ),
-            ],
-          ),
-        ),
-      );
-      return;
-    }
-
-    // Show informational dialog — in-app reset handled by admin
-    showDialog(
-      context: context,
-      builder: (_) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: AlertDialog(
-          scrollable: true,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(PortalTokens.radiusPanel)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .primary
-                      .withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.lock_reset_outlined,
-                    size: 40, color: Theme.of(context).colorScheme.primary),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                'إعادة تعيين كلمة المرور',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'يرجى التواصل مع الإدارة أو صاحب المولد لإعادة تعيين كلمة المرور \u201c${id.length > 6 ? id.substring(0, 3) + '****' + id.substring(id.length - 3) : id}\u201c.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    height: 1.5),
-              ),
-            ],
-          ),
-          actions: [
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('حسناً'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Future<void> _forgotPassword() async => context.go('/forgot-password');
 
   Future<void> _submit() async {
     final id = _idCtrl.text.trim();
@@ -141,6 +63,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     // Show error from provider (e.g. after status check redirect)
     final providerError = ref.watch(authProvider).error;
+    final notice = ref.watch(loginNoticeProvider);
     final displayError = _errorMsg ?? providerError;
 
     return PortalPage(
@@ -148,6 +71,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         subtitle: 'تسجيل الدخول',
         reserveNavigation: false,
         children: [
+          if (notice != null) PortalPanel(child: Text(notice)),
           const PortalSection('مرحباً بك!'),
           Text('سجّل دخولك برقم هويتك وكلمة المرور',
               style: Theme.of(context).textTheme.bodyMedium),
@@ -215,6 +139,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 TextButton(
                     onPressed: () => context.go('/register'),
                     child: const Text('ليس لديك حساب؟ سجّل الآن')),
+                TextButton(
+                    onPressed: () => context.go('/id-register'),
+                    child: const Text('التسجيل بالهوية وكلمة المرور')),
                 OutlinedButton.icon(
                     onPressed: () => context.go('/phone'),
                     icon: const Icon(Icons.phone_outlined),

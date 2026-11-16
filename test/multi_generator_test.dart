@@ -289,6 +289,12 @@ void main() {
     expect(loading.valueOrNull,
         isNotEmpty); // Riverpod retains prior data by design.
     expect(settledValue(loading, <Bill>[]), isEmpty);
+    for (final gid in ['a', 'b']) {
+      await db
+          .collection('generators')
+          .doc(gid)
+          .set({'status': 'approved', 'subscriptionStatus': 'active'});
+    }
     final auth = MultiAuthFixture(AuthState(
         loading: false,
         startupResolved: true,

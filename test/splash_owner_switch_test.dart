@@ -273,8 +273,11 @@ void main() {
       'subscriptionStatus': 'active'
     });
     final store = TenantStore(db, () => 'sa');
-    final container =
-        ProviderContainer(overrides: [firestoreProvider.overrideWithValue(db)]);
+    final container = ProviderContainer(overrides: [
+      firestoreProvider.overrideWithValue(db),
+      authProvider.overrideWith((ref) => MultiAuthFixture(AuthState(
+          user: PhoneUser('sa'), startupResolved: true, loading: false)))
+    ]);
     addTearDown(container.dispose);
     final events = <List<GeneratorAccount>>[];
     final sub = container.listen(generatorDirectoryProvider, (_, value) {

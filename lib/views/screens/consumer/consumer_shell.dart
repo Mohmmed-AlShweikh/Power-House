@@ -1,3 +1,5 @@
+import '../../../services/firestore_reads.dart';
+import '../../../providers/tenant_provider.dart';
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -31,16 +33,19 @@ class _ConsumerShellState extends ConsumerState<ConsumerShell> {
   }
 
   void _startListening() {
-    final uid = ref.read(authProvider).profile?.uid ?? '';
-    if (uid.isEmpty) return;
+    unawaited(_alertsSub?.cancel());
+    _alertsSub = null;
+    final auth = ref.read(authProvider);
+    final uid = auth.profile?.uid ?? '';
+    if (uid.isEmpty || auth.user == null || !auth.startupResolved) return;
 
-    _alertsSub = FirebaseFirestore.instance
+    _alertsSub = retryFirestore(() => ref
+        .read(firestoreProvider)
         .collection('alerts')
         .where('userId', isEqualTo: uid)
         .where('generatorId',
             isEqualTo: ref.read(authProvider).profile?.generatorId ?? 'default')
-        .snapshots()
-        .listen((snapshot) {
+        .snapshots()).listen((snapshot) {
       for (final change in snapshot.docChanges) {
         if (change.type != DocumentChangeType.added) continue;
         final docId = change.doc.id;
@@ -59,7 +64,7 @@ class _ConsumerShellState extends ConsumerState<ConsumerShell> {
         final body = (data['body'] as String?) ?? '';
         LocalNotificationService().show(title, body);
       }
-    });
+    }, onError: (Object error, StackTrace stack) {});
   }
 
   @override
@@ -70,6 +75,7 @@ class _ConsumerShellState extends ConsumerState<ConsumerShell> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(authProvider, (_, __) => _startListening());
     final tabs = [
       const HomeTab(),
       const UsageTab(),

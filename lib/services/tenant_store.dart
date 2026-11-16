@@ -95,7 +95,8 @@ class TenantStore {
       {required String uid,
       required String phone,
       required String name,
-      required String sector}) async {
+      required String sector,
+      String? idNumber}) async {
     _validateEnrollment(phone, name, sector);
     if (currentUid() != uid) throw StateError('هوية غير مطابقة');
     final user = db.collection('users').doc(uid);
@@ -107,8 +108,13 @@ class TenantStore {
     }
     final batch = db.batch();
     final now = DateTime.now().millisecondsSinceEpoch;
+    if (idNumber != null) {
+      batch.set(db.collection('idIndex').doc(idNumber), {'uid': uid});
+    }
     batch.set(user, {
       'name': name.trim(),
+      if (idNumber != null) 'idNumber': idNumber,
+      if (idNumber != null) 'credentialVersion': 1,
       'phone': phone,
       'address': sector.trim(),
       'role': 'generator_owner',
@@ -136,7 +142,8 @@ class TenantStore {
       {required String uid,
       required String phone,
       required String name,
-      required String generatorId}) async {
+      required String generatorId,
+      String? idNumber}) async {
     _validateEnrollment(phone, name);
     if (generatorId.isEmpty || generatorId.contains('/')) {
       throw ArgumentError('مولد غير صحيح');
@@ -150,8 +157,14 @@ class TenantStore {
         !GeneratorAccount.fromMap(generatorId, directory.data()!).available) {
       throw StateError('هذا المولد غير متاح للتسجيل');
     }
-    await user.set({
+    final batch = db.batch();
+    if (idNumber != null) {
+      batch.set(db.collection('idIndex').doc(idNumber), {'uid': uid});
+    }
+    batch.set(user, {
       'name': name.trim(),
+      if (idNumber != null) 'idNumber': idNumber,
+      if (idNumber != null) 'credentialVersion': 1,
       'phone': phone,
       'role': 'user',
       'generatorId': generatorId,
@@ -160,6 +173,7 @@ class TenantStore {
       'ampereLimit': 0,
       'createdAt': DateTime.now().millisecondsSinceEpoch
     });
+    await batch.commit();
   }
 
   Future<void> setGeneratorSubscription(String gid, bool active) async {

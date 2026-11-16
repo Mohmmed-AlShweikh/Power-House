@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/data_provider.dart';
 import '../../../providers/theme_provider.dart';
@@ -142,10 +141,18 @@ class ProfileTab extends ConsumerWidget {
                 const SizedBox(height: 12),
                 _SheetField(
                     controller: phoneCtrl,
+                    readOnly: true,
                     hint: 'رقم الجوال',
                     icon: Icons.phone_outlined,
                     keyboardType: TextInputType.phone),
                 const SizedBox(height: 20),
+                OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      context.go('/account-security');
+                    },
+                    icon: const Icon(Icons.manage_accounts_outlined),
+                    label: const Text('الهاتف والهوية وكلمة المرور')),
                 StatefulBuilder(builder: (ctx, setS) {
                   bool saving = false;
                   return ElevatedButton(
@@ -156,7 +163,6 @@ class ProfileTab extends ConsumerWidget {
                             await ref.read(authProvider.notifier).updateProfile(
                                   name: nameCtrl.text.trim(),
                                   address: addressCtrl.text.trim(),
-                                  phone: phoneCtrl.text.trim(),
                                 );
                             setS(() => saving = false);
                             if (context.mounted) {
@@ -235,6 +241,7 @@ class ProfileTab extends ConsumerWidget {
 }
 
 class _SheetField extends StatelessWidget {
+  final bool readOnly;
   final TextEditingController controller;
   final String hint;
   final IconData icon;
@@ -243,11 +250,13 @@ class _SheetField extends StatelessWidget {
       {required this.controller,
       required this.hint,
       required this.icon,
-      this.keyboardType});
+      this.keyboardType,
+      this.readOnly = false});
 
   @override
   Widget build(BuildContext context) => TextField(
       controller: controller,
+      readOnly: readOnly,
       keyboardType: keyboardType,
       style: Theme.of(context).textTheme.bodyMedium,
       decoration: InputDecoration(hintText: hint, prefixIcon: Icon(icon)));
@@ -373,102 +382,10 @@ class _SecuritySheet extends ConsumerStatefulWidget {
 }
 
 class _SecuritySheetState extends ConsumerState<_SecuritySheet> {
-  bool _loading = false;
+  final bool _loading = false;
   String? _error;
 
-  Future<void> _changePassword() async {
-    final oldCtrl = TextEditingController();
-    final newCtrl = TextEditingController();
-    final confirmCtrl = TextEditingController();
-
-    final ok = await showPortalFormDialog<bool>(
-      context: context,
-      builder: (_) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: AlertDialog(
-          scrollable: true,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(PortalTokens.radiusPanel)),
-          title: const Text('تغيير كلمة المرور'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                  controller: oldCtrl,
-                  obscureText: true,
-                  decoration:
-                      const InputDecoration(hintText: 'كلمة المرور الحالية')),
-              const SizedBox(height: 10),
-              TextField(
-                  controller: newCtrl,
-                  obscureText: true,
-                  decoration:
-                      const InputDecoration(hintText: 'كلمة المرور الجديدة')),
-              const SizedBox(height: 10),
-              TextField(
-                  controller: confirmCtrl,
-                  obscureText: true,
-                  decoration:
-                      const InputDecoration(hintText: 'تأكيد كلمة المرور')),
-            ],
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('إلغاء')),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('حفظ'),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (ok != true) return;
-    if (newCtrl.text.length < 8) {
-      setState(() => _error = 'كلمة المرور الجديدة قصيرة');
-      return;
-    }
-    if (newCtrl.text != confirmCtrl.text) {
-      setState(() => _error = 'كلمتا المرور غير متطابقتين');
-      return;
-    }
-
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final user = ref.read(authProvider).user;
-      if (user == null) throw Exception('no user');
-      final cred = EmailAuthProvider.credential(
-          email: user.email!, password: oldCtrl.text);
-      await user.reauthenticateWithCredential(cred);
-      await user.updatePassword(newCtrl.text);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content:
-                  Text('تم تغيير كلمة المرور ✓', textAlign: TextAlign.right)),
-        );
-      }
-    } on FirebaseAuthException catch (e) {
-      setState(() => _error = _friendlyAuthError(e.code));
-    } catch (_) {
-      setState(() => _error = 'تعذّر تغيير كلمة المرور');
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  String _friendlyAuthError(String code) {
-    return switch (code) {
-      'wrong-password' => 'كلمة المرور الحالية خاطئة',
-      'weak-password' => 'كلمة المرور الجديدة ضعيفة',
-      _ => 'حدث خطأ. حاول مجدداً.',
-    };
-  }
+  Future<void> _changePassword() async => context.go('/account-security');
 
   @override
   Widget build(BuildContext context) {

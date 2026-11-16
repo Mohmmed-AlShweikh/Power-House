@@ -1,4 +1,6 @@
 import 'dart:async';
+import '../services/credential_service.dart';
+import '../views/screens/credential_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -50,6 +52,7 @@ class _RouterNotifier extends ChangeNotifier {
     _ref.listen<AuthState>(authProvider, (_, __) => _refresh());
     _ref.listen<bool>(demoModeProvider, (_, __) => _refresh());
     _ref.listen(tenantAccessProvider, (_, __) => _refresh());
+    _ref.listen(credentialFlowProvider, (_, __) => _refresh());
   }
 
   String? redirect(BuildContext context, GoRouterState state) {
@@ -57,6 +60,35 @@ class _RouterNotifier extends ChangeNotifier {
     final isDemo = _ref.read(demoModeProvider);
     final tenant = _ref.read(tenantAccessProvider);
     final path = state.uri.path;
+    if (path == '/forgot-password' || path == '/id-register') {
+      if (authState.user == null || _ref.read(credentialFlowProvider)) {
+        return null;
+      }
+    }
+    if (_ref.read(credentialFlowProvider) &&
+        {'/credentials', '/account-security', '/onboarding'}.contains(path)) {
+      return null;
+    }
+    // Resume an interrupted ID-first registration without creating another UID.
+    if (authState.startupResolved &&
+        authState.needsRegistration &&
+        authState.user != null &&
+        authState.user!.phoneNumber == null) {
+      return path == '/credentials' ? null : '/credentials';
+    }
+    if (authState.startupResolved &&
+        authState.profile != null &&
+        !authState.isDemo &&
+        authState.needsCredentialCompletion &&
+        path != '/forgot-password') {
+      return path == '/credentials' ? null : '/credentials';
+    }
+    if (path == '/account-security' &&
+        authState.profile != null &&
+        authState.startupResolved) {
+      return null;
+    }
+
     final resolving = !authState.startupResolved ||
         (authState.user != null &&
             authState.profile == null &&
@@ -76,8 +108,8 @@ class _RouterNotifier extends ChangeNotifier {
       profile: authState.profile,
       needsRegistration: authState.needsRegistration,
       tenantLoading: tenant?.isLoading ?? false,
-      tenantAvailable:
-          tenant == null || (tenant.valueOrNull?.available ?? false),
+      tenantAvailable: tenant == null ||
+          (!tenant.hasError && (tenant.valueOrNull?.available ?? false)),
       accountError: authState.error != null &&
           authState.user != null &&
           authState.profile == null,
@@ -99,6 +131,22 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: notifier,
     redirect: notifier.redirect,
     routes: [
+      GoRoute(
+          path: '/credentials',
+          builder: (_, __) =>
+              const CredentialScreen(mode: CredentialMode.complete)),
+      GoRoute(
+          path: '/forgot-password',
+          builder: (_, __) =>
+              const CredentialScreen(mode: CredentialMode.recover)),
+      GoRoute(
+          path: '/id-register',
+          builder: (_, __) =>
+              const CredentialScreen(mode: CredentialMode.create)),
+      GoRoute(
+          path: '/account-security',
+          builder: (_, __) =>
+              const CredentialScreen(mode: CredentialMode.manage)),
       GoRoute(path: '/splash', builder: (_, __) => const AuthLoadingScreen()),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(

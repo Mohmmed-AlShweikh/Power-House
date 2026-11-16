@@ -10,6 +10,7 @@ const profile=(role,generatorId,status='approved')=>({name:role,phone:'+97059123
 const generator=(ownerUid,status='approved')=>({name:'مولد '+ownerUid,sector:'غزة',ownerUid,status,subscriptionStatus:'active',rejectionReason:'',createdAt:1,isOn:false,pricePerKwh:2});
 const directory=g=>({name:g.name,sector:g.sector,status:g.status,subscriptionStatus:g.subscriptionStatus});
 const db=uid=>env.authenticatedContext(uid,{phone_number:'+970591234567'}).firestore();
+const identityDb=(uid,id,extra={})=>env.authenticatedContext(uid,{phone_number:'+970591234567',email:id+'@powershare.app',auth_time:Math.floor(Date.now()/1000),...extra}).firestore();
 before(async()=>{env=await initializeTestEnvironment({projectId:'demo-generator-portal',firestore:{host:'127.0.0.1',port:8089,rules:readFileSync(new URL('../../firestore.rules',import.meta.url),'utf8')}});});
 after(async()=>{await env?.cleanup();});
 beforeEach(async()=>{
@@ -44,9 +45,9 @@ test('self edits cannot promote, approve, reassign tenant or subscription',async
  await assertFails(setDoc(doc(db('new'),'users','new'),{...profile('super_admin','a'),phone:'+970591234567'}));
 });
 test('owner enrollment must be a verified-phone atomic pair with pending state',async()=>{
- const f=db('new-owner'),g=generator('new-owner','pending'),u=profile('generator_owner','random-generator','pending');
+ const id='123456789', f=identityDb('new-owner',id),g=generator('new-owner','pending'),u={...profile('generator_owner','random-generator','pending'),idNumber:id,credentialVersion:1};
  await assertFails(setDoc(doc(f,'users','new-owner'),u));
- const b=writeBatch(f);b.set(doc(f,'users','new-owner'),u);b.set(doc(f,'generators','random-generator'),g);await assertSucceeds(b.commit());
+ const b=writeBatch(f);b.set(doc(f,'users','new-owner'),u);b.set(doc(f,'generators','random-generator'),g);b.set(doc(f,'idIndex',id),{uid:'new-owner'});await assertSucceeds(b.commit());
  await assertFails(updateDoc(doc(f,'generators','random-generator'),{status:'approved'}));
  await assertFails(updateDoc(doc(f,'users','new-owner'),{status:'approved'}));
 });
@@ -56,8 +57,8 @@ test('unverified phone and owner impersonation are denied',async()=>{
  const f2=db('new'),c=writeBatch(f2);c.set(doc(f2,'users','new'),profile('generator_owner','other','pending'));c.set(doc(f2,'generators','other'),generator('someone-else','pending'));await assertFails(c.commit());
 });
 test('consumer enrollment only into approved AND active directory, always pending',async()=>{
- const f=db('new-consumer');
- await assertSucceeds(setDoc(doc(f,'users','new-consumer'),{...profile('user','a','pending'),subscriptionStatus:'inactive'}));
+ const id='123456789', f=identityDb('new-consumer',id);
+ const batch=writeBatch(f);batch.set(doc(f,'users','new-consumer'),{...profile('user','a','pending'),subscriptionStatus:'inactive',idNumber:id,credentialVersion:1});batch.set(doc(f,'idIndex',id),{uid:'new-consumer'});await assertSucceeds(batch.commit());
  await assertFails(setDoc(doc(db('bad'),'users','bad'),{...profile('user','a'),subscriptionStatus:'active'}));
  await updateDoc(doc(db('sa'),'generators','b'),{subscriptionStatus:'inactive'});
  await assertFails(setDoc(doc(db('stale'),'users','stale'),{...profile('user','b','pending'),subscriptionStatus:'inactive'}));
@@ -150,4 +151,48 @@ test('super-admin has no implicit default tenant or owner-readable mailbox',asyn
  await assertSucceeds(getDoc(doc(db('sa'),'alerts','private-admin')));
  await assertFails(getDoc(doc(db('legacy'),'alerts','private-admin')));
  await assertFails(setDoc(doc(db('legacy'),'alerts','to-admin'),{userId:'sa',generatorId:'default',title:'x',body:'x',type:'complaint',read:false,createdAt:1}));
+});
+
+
+test('ID claim and profile must be atomic, private and unique', async()=>{
+ const id='123456789', f=identityDb('ca',id);
+ await assertFails(setDoc(doc(f,'idIndex',id),{uid:'ca'}));
+ await assertFails(updateDoc(doc(f,'users','ca'),{idNumber:id,credentialVersion:1}));
+ const b=writeBatch(f);b.set(doc(f,'idIndex',id),{uid:'ca'});b.update(doc(f,'users','ca'),{idNumber:id,credentialVersion:1});await assertSucceeds(b.commit());
+ await assertSucceeds(getDoc(doc(f,'idIndex',id)));
+ await assertFails(getDoc(doc(db('cb'),'idIndex',id)));
+ await assertFails(getDocs(collection(f,'idIndex')));
+ const other=identityDb('cb',id),duplicate=writeBatch(other);duplicate.set(doc(other,'idIndex',id),{uid:'cb'});duplicate.update(doc(other,'users','cb'),{idNumber:id,credentialVersion:1});await assertFails(duplicate.commit());
+ await assertFails(deleteDoc(doc(f,'idIndex',id)));
+});
+test('ID swap releases old claim atomically and requires recent auth', async()=>{
+ const old='123456789', next='987654321';
+ await env.withSecurityRulesDisabled(async(c)=>{await setDoc(doc(c.firestore(),'idIndex',old),{uid:'ca'});await updateDoc(doc(c.firestore(),'users','ca'),{idNumber:old,credentialVersion:1});});
+ const stale=identityDb('ca',next,{auth_time:Math.floor(Date.now()/1000)-600}),fail=writeBatch(stale);
+ fail.set(doc(stale,'idIndex',next),{uid:'ca'});fail.update(doc(stale,'users','ca'),{idNumber:next});fail.delete(doc(stale,'idIndex',old));await assertFails(fail.commit());
+ const f=identityDb('ca',next),missingDelete=writeBatch(f);missingDelete.set(doc(f,'idIndex',next),{uid:'ca'});missingDelete.update(doc(f,'users','ca'),{idNumber:next});await assertFails(missingDelete.commit());
+ const b=writeBatch(f);b.set(doc(f,'idIndex',next),{uid:'ca'});b.update(doc(f,'users','ca'),{idNumber:next});b.delete(doc(f,'idIndex',old));await assertSucceeds(b.commit());
+});
+test('verified phone required, no plaintext password writes by any client',async()=>{
+ const id='123456789', f=identityDb('ca',id),b=writeBatch(f);
+ b.set(doc(f,'idIndex',id),{uid:'ca'});b.update(doc(f,'users','ca'),{idNumber:id,credentialVersion:1,phone:'+970599999999'});await assertFails(b.commit());
+ for(const uid of ['ca','oa','sa']) await assertFails(updateDoc(doc(db(uid),'users','ca'),{password:'not-a-real-secret'}));
+ const valid=writeBatch(f);valid.set(doc(f,'idIndex',id),{uid:'ca'});valid.update(doc(f,'users','ca'),{idNumber:id,credentialVersion:1});await assertSucceeds(valid.commit());
+ const changed=identityDb('ca',id,{phone_number:'+970599999999'});
+ await assertSucceeds(updateDoc(doc(changed,'users','ca'),{phone:'+970599999999'}));
+ await assertFails(updateDoc(doc(f,'users','ca'),{phone:'+970588888888'}));
+});
+test('claim cannot be written for another UID or mismatched Auth email',async()=>{
+ const id='123456789',f=identityDb('ca','987654321'),b=writeBatch(f);
+ b.set(doc(f,'idIndex',id),{uid:'ca'});b.update(doc(f,'users','ca'),{idNumber:id,credentialVersion:1});await assertFails(b.commit());
+ const c=identityDb('ca',id),wrong=writeBatch(c);wrong.set(doc(c,'idIndex',id),{uid:'cb'});wrong.update(doc(c,'users','ca'),{idNumber:id,credentialVersion:1});await assertFails(wrong.commit());
+});
+
+test('index schema and ownership cannot be overwritten, including super-admin clients',async()=>{
+ const id='123456789',f=identityDb('ca',id),b=writeBatch(f);
+ b.set(doc(f,'idIndex',id),{uid:'ca'});b.update(doc(f,'users','ca'),{idNumber:id,credentialVersion:1});await assertSucceeds(b.commit());
+ await assertFails(setDoc(doc(db('sa'),'idIndex',id),{uid:'cb'}));
+ await assertFails(updateDoc(doc(db('sa'),'users','cb'),{idNumber:id}));
+ await assertFails(updateDoc(doc(f,'idIndex',id),{phone:'+16505550000'}));
+ await assertFails(deleteDoc(doc(db('sa'),'idIndex',id)));
 });

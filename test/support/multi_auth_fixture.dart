@@ -31,6 +31,8 @@ class MultiAuthFixture extends StateNotifier<AuthState>
   }
 
   @override
+  Future<void> reloadProfile() async {}
+  @override
   Future<void> signOut() async =>
       state = const AuthState(loading: false, startupResolved: true);
   @override

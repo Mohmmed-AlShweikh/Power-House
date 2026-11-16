@@ -1,0 +1,19 @@
+{
+  "base": "242520480d45a7057f411c9cd95400ae678361b5",
+  "flutter_tests": 139,
+  "emulator_tests": 27,
+  "analyzer": {
+    "info": 19,
+    "warning": 17
+  },
+  "new_diagnostics": [],
+  "removed_diagnostics": [
+    [
+      "info",
+      "Use interpolation to compose strings and values",
+      "lib/views/screens/login_screen.dart",
+      "prefer_interpolation_to_compose_strings"
+    ]
+  ],
+  "production_operations": false
+}

@@ -39,9 +39,46 @@ service cloud.firestore {
         data.phone == request.auth.token.get('phone_number', '');
     }
     function validEpoch(value) { return value is int && value >= 0 && value <= 8640000000000000; }
+    function idPath(id) { return /databases/$(database)/documents/idIndex/$(id); }
+    function validId(id) { return id is string && id.matches('^[0-9]{9,10}$'); }
+    function recent() {
+      return signed() && request.auth.token.get('auth_time', 0) > 0 &&
+        request.time.toMillis() / 1000 - request.auth.token.auth_time <= 300;
+    }
+    function emailFor(id) {
+      return request.auth.token.get('email', '') == id + '@powershare.app';
+    }
+    function identity(data, uid) {
+      return validId(data.get('idNumber', '')) && emailFor(data.idNumber) &&
+        verifiedPhone(data) && data.get('credentialVersion', 0) == 1 &&
+        getAfter(idPath(data.idNumber)).data.uid == uid;
+    }
+    function ownIdentityUpdate(data, uid) {
+      return recent() && identity(data, uid) &&
+        data.diff(resource.data).affectedKeys().hasOnly(['name', 'address', 'phone', 'idNumber', 'credentialVersion']) &&
+        (!validId(resource.data.get('idNumber', '')) || resource.data.idNumber == data.idNumber ||
+          !exists(idPath(resource.data.idNumber)) ||
+          (get(idPath(resource.data.idNumber)).data.uid == uid && !existsAfter(idPath(resource.data.idNumber))));
+    }
+    match /idIndex/{id} {
+      allow get: if signed() && (superAdmin() ||
+        (exists(idPath(id)) && resource.data.uid == request.auth.uid) ||
+        (emailFor(id) && !exists(idPath(id))) ||
+        (exists(userPath(request.auth.uid)) && me().get('idNumber', '') == id));
+      allow list: if superAdmin();
+      allow create: if signed() && request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid is string && getAfter(userPath(request.resource.data.uid)).data.idNumber == id && (superAdmin() || (recent() && validId(id) && emailFor(id) &&
+        request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid == request.auth.uid &&
+        getAfter(userPath(request.auth.uid)).data.idNumber == id &&
+        verifiedPhone(getAfter(userPath(request.auth.uid)).data)));
+      allow update: if signed() && request.resource.data == resource.data && getAfter(userPath(resource.data.uid)).data.idNumber == id && (superAdmin() || (recent() && resource.data.uid == request.auth.uid &&
+        request.resource.data == resource.data && getAfter(userPath(request.auth.uid)).data.idNumber == id));
+      allow delete: if signed() && getAfter(userPath(resource.data.uid)).data.get('idNumber', '') != id && (superAdmin() || (recent() && resource.data.uid == request.auth.uid &&
+        getAfter(userPath(request.auth.uid)).data.idNumber != id &&
+        getAfter(idPath(getAfter(userPath(request.auth.uid)).data.idNumber)).data.uid == request.auth.uid));
+    }
     function validUser(data) {
       return data.keys().hasOnly(['name', 'phone', 'address', 'role', 'status',
-        'subscriptionStatus', 'generatorId', 'ampereLimit', 'createdAt']) &&
+        'subscriptionStatus', 'generatorId', 'ampereLimit', 'createdAt', 'idNumber', 'credentialVersion']) &&
         data.name is string && data.name.size() > 0 && data.name.size() <= 120 &&
         validEpoch(data.createdAt) && data.ampereLimit is int && data.ampereLimit == 0 && validContact(data) &&
         data.status == 'pending' && data.generatorId is string && data.generatorId.size() > 0;
@@ -52,7 +89,7 @@ service cloud.firestore {
         data.get('phone', '') is string && data.get('phone', '').size() <= 32;
     }
     function canEnroll(data, uid) {
-      return signed() && request.auth.uid == uid && verifiedPhone(data) && validUser(data) &&
+      return signed() && request.auth.uid == uid && verifiedPhone(data) && validUser(data) && recent() && identity(data, uid) &&
         ((data.role == 'generator_owner' && data.generatorId != 'default' &&
           data.subscriptionStatus == 'active' &&
           getAfter(genPath(data.generatorId)).data.ownerUid == uid &&
@@ -61,22 +98,31 @@ service cloud.firestore {
           get(/databases/$(database)/documents/generatorDirectory/$(data.generatorId)).data.status == 'approved' &&
           get(/databases/$(database)/documents/generatorDirectory/$(data.generatorId)).data.subscriptionStatus == 'active'));
     }
+    function indexConsistent(data, uid) {
+      return !data.keys().hasAny(['idNumber']) || data.get('role', '') == 'super_admin' ||
+        (validId(data.idNumber) && getAfter(idPath(data.idNumber)).data.uid == uid);
+    }
+    function releasedOldId(data, uid) {
+      return !validId(resource.data.get('idNumber', '')) || data.get('idNumber', '') == resource.data.idNumber ||
+        !exists(idPath(resource.data.idNumber)) ||
+        (get(idPath(resource.data.idNumber)).data.uid == uid && !existsAfter(idPath(resource.data.idNumber)));
+    }
     match /users/{uid} {
       allow get: if signed() && (uid == request.auth.uid || superAdmin() ||
         (owner() && consumer(resource.data) && same(resource.data)));
       allow list: if superAdmin() || (owner() && consumer(resource.data) && same(resource.data));
-      allow create: if superAdmin() || canEnroll(request.resource.data, uid);
-      allow update: if superAdmin() ||
+      allow create: if indexConsistent(request.resource.data, uid) && !request.resource.data.keys().hasAny(['password', 'passwordUpdatedAt']) && (superAdmin() || canEnroll(request.resource.data, uid));
+      allow update: if (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['idNumber', 'credentialVersion']) || indexConsistent(request.resource.data, uid)) && releasedOldId(request.resource.data, uid) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['password', 'passwordUpdatedAt']) && (superAdmin() ||
         (signed() && uid == request.auth.uid && validContact(request.resource.data) &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'address', 'phone'])) ||
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'address']) || ownIdentityUpdate(request.resource.data, uid))) ||
         (owner() && consumer(resource.data) && same(resource.data) && validContact(request.resource.data) &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'name', 'address', 'phone', 'status', 'subscriptionStatus', 'ampereLimit',
-            'rejectionReason', 'password', 'passwordUpdatedAt']) &&
+            'name', 'address', 'status', 'subscriptionStatus', 'ampereLimit',
+            'rejectionReason']) &&
           request.resource.data.get('ampereLimit', 0) is int && request.resource.data.get('ampereLimit', 0) >= 0 &&
           request.resource.data.get('rejectionReason', '') is string && request.resource.data.get('rejectionReason', '').size() <= 500 &&
           request.resource.data.status in ['pending', 'approved', 'rejected'] &&
-          request.resource.data.subscriptionStatus in ['active', 'inactive']);
+          request.resource.data.subscriptionStatus in ['active', 'inactive']));
       allow delete: if superAdmin();
     }
     function validGeneratorState(data) {

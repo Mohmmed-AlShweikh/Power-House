@@ -1,3 +1,5 @@
+import '../../../services/firestore_reads.dart';
+import '../../../providers/tenant_provider.dart';
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -52,15 +54,18 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
   }
 
   void _startListening() {
-    final uid = ref.read(authProvider).profile?.uid ?? '';
-    if (uid.isEmpty) return;
-    _alertsSub = FirebaseFirestore.instance
+    unawaited(_alertsSub?.cancel());
+    _alertsSub = null;
+    final auth = ref.read(authProvider);
+    final uid = auth.profile?.uid ?? '';
+    if (uid.isEmpty || auth.user == null || !auth.startupResolved) return;
+    _alertsSub = retryFirestore(() => ref
+        .read(firestoreProvider)
         .collection('alerts')
         .where('userId', isEqualTo: uid)
         .where('generatorId',
             isEqualTo: ref.read(authProvider).profile?.generatorId ?? 'default')
-        .snapshots()
-        .listen((snapshot) {
+        .snapshots()).listen((snapshot) {
       for (final change in snapshot.docChanges) {
         if (change.type != DocumentChangeType.added) continue;
         final docId = change.doc.id;
@@ -76,7 +81,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
           (data['body'] as String?) ?? '',
         );
       }
-    });
+    }, onError: (Object error, StackTrace stack) {});
   }
 
   @override
@@ -173,6 +178,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(authProvider, (_, __) => _startListening());
     final theme = Theme.of(context);
     return Theme(
         data: buildPortalTheme(theme.brightness),
@@ -1091,6 +1097,7 @@ class _MockSubscribersState extends State<_MockSubscribers> {
               const SizedBox(height: 12),
               _SheetField(
                   controller: phoneCtrl,
+                  readOnly: true,
                   hint: 'رقم الهاتف (05xxxxxxxx)',
                   icon: Icons.phone),
               const SizedBox(height: 12),
@@ -1134,6 +1141,7 @@ class _MockSubscribersState extends State<_MockSubscribers> {
 }
 
 class _SheetField extends StatelessWidget {
+  final bool readOnly;
   final String hint;
   final IconData icon;
   final TextEditingController? controller;
@@ -1142,10 +1150,12 @@ class _SheetField extends StatelessWidget {
       {required this.hint,
       required this.icon,
       this.controller,
-      this.keyboardType});
+      this.keyboardType,
+      this.readOnly = false});
   @override
   Widget build(BuildContext context) => TextField(
         controller: controller,
+        readOnly: readOnly,
         keyboardType: keyboardType,
         style: Theme.of(context).textTheme.bodyMedium,
         decoration: InputDecoration(
@@ -2689,12 +2699,17 @@ class _AdminProfileTab extends ConsumerWidget {
                 icon: Icons.calendar_today_outlined),
           ])),
           const PortalSection('إعدادات الحساب'),
+          ListTile(
+              leading: const Icon(Icons.manage_accounts_outlined),
+              title: const Text('إعدادات الدخول'),
+              subtitle: const Text('الهاتف والهوية وكلمة المرور'),
+              onTap: () => context.go('/account-security')),
           PortalPanel(
               child: Column(children: [
             ListTile(
                 leading: const Icon(Icons.edit_outlined),
                 title: const Text('تعديل البيانات الشخصية'),
-                subtitle: const Text('تغيير الاسم والعنوان ورقم الهاتف'),
+                subtitle: const Text('تغيير الاسم والعنوان'),
                 onTap: () => _showEditSheet(context, ref)),
             const Divider(),
             ListTile(
@@ -2784,6 +2799,7 @@ class _AdminProfileTab extends ConsumerWidget {
                 const SizedBox(height: 12),
                 _SheetField(
                   controller: phoneCtrl,
+                  readOnly: true,
                   hint: 'رقم الجوال',
                   icon: Icons.phone_outlined,
                   keyboardType: TextInputType.phone,
@@ -2799,7 +2815,6 @@ class _AdminProfileTab extends ConsumerWidget {
                             await ref.read(authProvider.notifier).updateProfile(
                                   name: nameCtrl.text.trim(),
                                   address: addressCtrl.text.trim(),
-                                  phone: phoneCtrl.text.trim(),
                                 );
                             setS(() => saving = false);
                             if (context.mounted) {

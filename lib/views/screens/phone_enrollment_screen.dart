@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/credential_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/user_model.dart';
@@ -21,8 +22,10 @@ class _PhoneEnrollmentScreenState extends ConsumerState<PhoneEnrollmentScreen> {
   final code = TextEditingController();
   String? verificationId, error;
   bool busy = false;
+  PhoneGateway? pendingGateway;
   @override
   void dispose() {
+    pendingGateway?.cancel();
     phone.dispose();
     code.dispose();
     super.dispose();
@@ -38,8 +41,8 @@ class _PhoneEnrollmentScreenState extends ConsumerState<PhoneEnrollmentScreen> {
       error = null;
     });
     try {
-      await ref.read(phoneGatewayProvider).send(phone.text.trim(),
-          codeSent: (id) {
+      pendingGateway = ref.read(phoneGatewayProvider);
+      await pendingGateway!.send(phone.text.trim(), codeSent: (id) {
         if (mounted) {
           setState(() {
             verificationId = id;
@@ -54,10 +57,10 @@ class _PhoneEnrollmentScreenState extends ConsumerState<PhoneEnrollmentScreen> {
           });
         }
       });
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
         setState(() {
-          error = 'تعذّر إرسال الرمز. حاول مجدداً.';
+          error = credentialError(e);
           busy = false;
         });
       }
@@ -77,9 +80,9 @@ class _PhoneEnrollmentScreenState extends ConsumerState<PhoneEnrollmentScreen> {
       await ref
           .read(phoneGatewayProvider)
           .verify(verificationId!, code.text.trim());
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
-        setState(() => error = 'رمز التحقق غير صحيح أو انتهت صلاحيته');
+        setState(() => error = credentialError(e));
       }
     } finally {
       if (mounted) setState(() => busy = false);
@@ -174,6 +177,9 @@ class EnrollmentFormScreen extends ConsumerStatefulWidget {
 
 class _EnrollmentFormScreenState extends ConsumerState<EnrollmentFormScreen> {
   final name = TextEditingController(), sector = TextEditingController();
+  final nationalId = TextEditingController(),
+      password = TextEditingController(),
+      confirm = TextEditingController();
   String search = '', selectedSector = '', selectedId = '';
   String? error;
   bool busy = false;
@@ -181,6 +187,9 @@ class _EnrollmentFormScreenState extends ConsumerState<EnrollmentFormScreen> {
   void dispose() {
     name.dispose();
     sector.dispose();
+    nationalId.dispose();
+    password.dispose();
+    confirm.dispose();
     super.dispose();
   }
 
@@ -206,19 +215,26 @@ class _EnrollmentFormScreenState extends ConsumerState<EnrollmentFormScreen> {
       busy = true;
       error = null;
     });
+    final flow = ref.read(credentialFlowProvider.notifier);
+    flow.state = true;
     try {
+      final credentials = ref.read(credentialServiceProvider);
+      if (!credentials.hasPassword) {
+        await credentials.linkId(
+            nationalId.text.trim(), password.text, confirm.text);
+      }
       final auth = ref.read(authProvider.notifier);
       if (owner) {
         await auth.enrollOwner(name.text.trim(), sector.text.trim());
       } else {
         await auth.enrollConsumer(name.text.trim(), selectedId);
       }
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
-        setState(() => error =
-            'تعذّر تقديم الطلب. تحقق من الاتصال وتوفر المولد ثم حاول مجدداً.');
+        setState(() => error = credentialError(e));
       }
     } finally {
+      flow.state = false;
       if (mounted) setState(() => busy = false);
     }
   }
@@ -238,6 +254,40 @@ class _EnrollmentFormScreenState extends ConsumerState<EnrollmentFormScreen> {
           PortalInput(
               label: owner ? 'اسم المولد' : 'الاسم الكامل', controller: name),
           const SizedBox(height: PortalTokens.lg),
+          if (!ref.watch(credentialServiceProvider).hasPassword) ...[
+            PortalInput(
+                label: 'رقم الهوية',
+                controller: nationalId,
+                keyboardType: TextInputType.number),
+            const SizedBox(height: PortalTokens.lg),
+            StatefulBuilder(
+                builder: (context, update) => Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          TextField(
+                              controller: password,
+                              obscureText: true,
+                              onChanged: (_) => update(() {}),
+                              decoration: const InputDecoration(
+                                  labelText: 'كلمة المرور')),
+                          const Text(passwordRules),
+                          if (password.text.isNotEmpty)
+                            Text(passwordError(
+                                    password.text,
+                                    confirm.text,
+                                    nationalId.text.trim(),
+                                    ref.read(authProvider).user?.phoneNumber ??
+                                        '') ??
+                                'كلمة المرور تستوفي الشروط'),
+                          TextField(
+                              controller: confirm,
+                              obscureText: true,
+                              onChanged: (_) => update(() {}),
+                              decoration: const InputDecoration(
+                                  labelText: 'تأكيد كلمة المرور')),
+                        ])),
+            const SizedBox(height: PortalTokens.lg),
+          ],
           if (owner)
             PortalInput(label: 'القطاع / الحي', controller: sector)
           else ...[
