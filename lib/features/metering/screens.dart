@@ -25,7 +25,9 @@ class MeterStaffScreen extends ConsumerWidget {
               if (input == null || !context.mounted) return;
               await featureAction(context, () async {
                 final days = int.parse(input.values.single);
-                if (days < 0 || days > 366) { throw const FormatException('الصلاحية بين 0 و366 يوماً'); }
+                if (days < 0 || days > 366) {
+                  throw const FormatException('الصلاحية بين 0 و366 يوماً');
+                }
                 await ref.read(meteringRepositoryProvider).invite(
                     expiresAt: days == 0
                         ? 0
@@ -183,10 +185,13 @@ class _MeterEntryState extends ConsumerState<MeterEntry> {
         if (mounted) {
           setState(() => message = e is StateError
               ? e.message.toString()
-              : 'تعذر المزامنة؛ راجع القراءة والصلاحية ثم أعد الحفظ'); }
+              : 'تعذر المزامنة؛ راجع القراءة والصلاحية ثم أعد الحفظ');
+        }
       }));
     } catch (_) {
-      if (mounted) { setState(() => message = 'أدخل قراءة صحيحة لا تقل عن السابقة'); }
+      if (mounted) {
+        setState(() => message = 'أدخل قراءة صحيحة لا تقل عن السابقة');
+      }
     }
   }
 

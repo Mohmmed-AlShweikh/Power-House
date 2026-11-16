@@ -1,3 +1,4 @@
+import 'package:go_router/go_router.dart';
 import '../../widgets/payment_form.dart';
 import '../../widgets/portal_number.dart';
 import 'package:flutter/material.dart';
@@ -26,6 +27,7 @@ class BillsTab extends ConsumerWidget {
           NotificationBell()
         ],
         children: [
+          TextButton.icon(onPressed:()=>context.push('/cycle-statement'),icon:const Icon(Icons.receipt_long_outlined),label:const Text('كشف حساب الجولات')),
           billsAsync.when(
             data: (bills) {
               final actionable = bills

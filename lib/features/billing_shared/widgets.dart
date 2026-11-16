@@ -80,16 +80,20 @@ Future<bool> featureConfirm(BuildContext context, String title) async =>
     false;
 Future<Map<String, String>?> featureForm(
         BuildContext context, String title, Map<String, String> initial,
-        {Set<String> numeric = const {}, Set<String> optional = const {}}) =>
+        {Set<String> numeric = const {},
+        Set<String> optional = const {},
+        Widget Function(Map<String, String>)? preview}) =>
     showPortalFormSheet<Map<String, String>>(
         context: context,
-        builder: (_) => _Fields(title, initial, numeric, optional));
+        builder: (_) => _Fields(title, initial, numeric, optional, preview));
 
 class _Fields extends StatefulWidget {
   final String title;
   final Map<String, String> initial;
   final Set<String> numeric, optional;
-  const _Fields(this.title, this.initial, this.numeric, this.optional);
+  final Widget Function(Map<String, String>)? preview;
+  const _Fields(
+      this.title, this.initial, this.numeric, this.optional, this.preview);
   @override
   State<_Fields> createState() => _FieldsState();
 }
@@ -129,10 +133,21 @@ class _FieldsState extends State<_Fields> {
                   padding: const EdgeInsets.only(top: PortalTokens.lg),
                   child: TextField(
                       controller: e.value,
+                      onChanged: (_) => setState(() {}),
                       keyboardType: widget.numeric.contains(e.key)
                           ? const TextInputType.numberWithOptions(decimal: true)
                           : TextInputType.text,
                       decoration: InputDecoration(labelText: e.key))),
+            if (widget.preview != null)
+              Builder(builder: (_) {
+                try {
+                  return widget.preview!({
+                    for (final e in fields.entries) e.key: e.value.text.trim()
+                  });
+                } catch (_) {
+                  return const Text('أكمل القراءة لعرض المبلغ');
+                }
+              }),
             if (error != null) Text(error!),
             const SizedBox(height: PortalTokens.xl),
             PortalActionButton(
@@ -142,6 +157,14 @@ class _FieldsState extends State<_Fields> {
                       !widget.optional.contains(e.key) &&
                       e.value.text.trim().isEmpty)) {
                     setState(() => error = 'أكمل الحقول المطلوبة');
+                    return;
+                  }
+                  if (fields.entries.any((e) =>
+                      widget.numeric.contains(e.key) &&
+                      !RegExp(r'^\d{1,9}(?:\.\d{1,3})?$')
+                          .hasMatch(e.value.text.trim()))) {
+                    setState(() =>
+                        error = 'أدخل أرقاماً صحيحة بدقة لا تتجاوز 3 منازل');
                     return;
                   }
                   Navigator.pop(context, {

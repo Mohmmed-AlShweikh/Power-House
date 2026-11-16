@@ -62,6 +62,47 @@ service cloud.firestore {
           get(/databases/$(database)/documents/generatorDirectory/$(data.generatorId)).data.status == 'approved' &&
           get(/databases/$(database)/documents/generatorDirectory/$(data.generatorId)).data.subscriptionStatus == 'active'));
     }
+    function cycleOwner(data) { return owner() && same(data); }
+    function cycleOwn(data) { return approved() && consumer(me()) && same(data) && data.userId == request.auth.uid; }
+    match /billingSubscribers/{id} {
+      allow get: if cycleOwner(resource.data) || (owner() && !exists(/databases/$(database)/documents/billingSubscribers/$(id)));
+      allow list: if cycleOwner(resource.data);
+      allow create, update: if cycleOwner(request.resource.data) && (!exists(/databases/$(database)/documents/billingSubscribers/$(id)) || same(resource.data)) && request.resource.data.keys().hasOnly(['generatorId','name','phone','address','number','previousMilli','averageMilli','recentDifferences','readerUid','userId','active','lastRoundId']) && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 120 && request.resource.data.phone is string && request.resource.data.phone.size() <= 32 && request.resource.data.address is string && request.resource.data.address.size() <= 240 && request.resource.data.number is string && request.resource.data.previousMilli is int && request.resource.data.previousMilli >= 0 && request.resource.data.previousMilli <= 1000000000 && request.resource.data.averageMilli is int && request.resource.data.recentDifferences is list && request.resource.data.recentDifferences.size() <= 3 && request.resource.data.readerUid is string && request.resource.data.active is bool && (request.resource.data.userId == '' || consumerMember(request.resource.data.userId, gid(me())));
+    }
+    match /billingLinks/{uid} {
+      allow get: if (signed() && uid == request.auth.uid) || (owner() && consumerMember(uid,gid(me())));
+      allow create: if cycleOwner(request.resource.data) && consumerMember(uid,gid(me())) && getAfter(/databases/$(database)/documents/billingSubscribers/$(request.resource.data.subscriberId)).data.userId == uid && request.resource.data.keys().hasOnly(['generatorId','subscriberId']);
+    }
+    match /billingRounds/{id} {
+      allow read: if cycleOwner(resource.data);
+      allow create, update: if cycleOwner(request.resource.data) && (!exists(/databases/$(database)/documents/billingRounds/$(id)) || same(resource.data)) && request.resource.data.keys().hasOnly(['generatorId','status','date','cycleDays','settings','subscriberIds','createdBy']) && request.resource.data.status in ['preparing','open','closing','closed'] && validEpoch(request.resource.data.date) && request.resource.data.cycleDays is int && request.resource.data.settings is map && request.resource.data.subscriberIds is list && request.resource.data.subscriberIds.size() <= 1000 && request.resource.data.createdBy == request.auth.uid;
+    }
+    match /readingCorrections/{id} {
+      allow read: if cycleOwner(resource.data);
+      allow create: if cycleOwner(request.resource.data) && request.resource.data.keys().hasOnly(['generatorId','billId','before','after','reason','by','at']) && request.resource.data.by == request.auth.uid && request.resource.data.at == request.time && request.resource.data.reason is string && request.resource.data.reason.size() > 0 && request.resource.data.reason.size() <= 500;
+    }
+    function money(data) { return data.amountAgorot is int && data.amountAgorot >= 0 && data.amountAgorot <= 1000000000000 && data.paidAgorot is int && data.paidAgorot >= 0 && data.paidAgorot <= data.amountAgorot; }
+    match /cycleBills/{id} {
+      allow get: if cycleOwner(resource.data) || (cycleOwn(resource.data) && resource.data.published == true) || (owner() && !exists(/databases/$(database)/documents/cycleBills/$(id)) && same(get(/databases/$(database)/documents/meterAssignments/$(id)).data));
+      allow list: if cycleOwner(resource.data) || (cycleOwn(resource.data) && resource.data.published == true);
+      allow create: if cycleOwner(request.resource.data) && money(request.resource.data) && id == request.resource.data.roundId + '_' + request.resource.data.subscriberId && request.resource.data.paidAgorot == 0 && request.resource.data.paymentSequence == 0 && request.resource.data.pendingPaymentId == '' && request.resource.data.published == false && request.resource.data.snapshot is map && request.resource.data.snapshot.amountAgorot == request.resource.data.amountAgorot;
+      allow update: if (cycleOwner(resource.data) && same(request.resource.data) && money(request.resource.data) && request.resource.data.generatorId == resource.data.generatorId && request.resource.data.subscriberId == resource.data.subscriberId && request.resource.data.roundId == resource.data.roundId) ||
+       (cycleOwn(resource.data) && resource.data.published == true && resource.data.pendingPaymentId == '' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pendingPaymentId','paymentSequence']) && request.resource.data.paymentSequence == resource.data.paymentSequence+1 && request.resource.data.pendingPaymentId == id + '_' + string(request.resource.data.paymentSequence) && getAfter(/databases/$(database)/documents/cyclePayments/$(request.resource.data.pendingPaymentId)).data.userId == request.auth.uid && getAfter(/databases/$(database)/documents/cyclePayments/$(request.resource.data.pendingPaymentId)).data.status == 'pending' && getAfter(/databases/$(database)/documents/cyclePayments/$(request.resource.data.pendingPaymentId)).data.billId == id);
+    }
+    match /accountBalances/{id} {
+      allow read: if cycleOwner(resource.data) || cycleOwn(resource.data);
+      allow create, update: if cycleOwner(request.resource.data) && (!exists(/databases/$(database)/documents/accountBalances/$(id)) || same(resource.data)) && request.resource.data.keys().hasOnly(['generatorId','subscriberId','userId','billedAgorot','collectedAgorot']) && request.resource.data.subscriberId == id && request.resource.data.billedAgorot is int && request.resource.data.billedAgorot >= 0 && request.resource.data.collectedAgorot is int && request.resource.data.collectedAgorot >= 0 && request.resource.data.collectedAgorot <= request.resource.data.billedAgorot;
+    }
+    function paymentValid(data) {
+      let bill=get(/databases/$(database)/documents/cycleBills/$(data.billId)).data;
+      return data.keys().hasOnly(['generatorId','billId','subscriberId','userId','roundId','amountAgorot','date','reference','method','status','sequence','submittedAt']) && data.generatorId == bill.generatorId && data.userId == bill.userId && data.subscriberId == bill.subscriberId && data.roundId == bill.roundId && data.status == 'pending' && data.sequence is int && data.sequence == bill.paymentSequence + 1 && data.amountAgorot is int && data.amountAgorot > 0 && data.amountAgorot <= bill.amountAgorot-bill.paidAgorot && data.date is int && data.date >= 946684800000 && data.date <= request.time.toMillis()+86400000 && data.reference is string && data.reference.size() > 0 && data.reference.size() <= 80 && data.method in ['cash','bank','wallet','other'] && data.submittedAt == request.time && bill.pendingPaymentId == '';
+    }
+    match /cyclePayments/{id} {
+      allow read: if cycleOwner(resource.data) || cycleOwn(resource.data);
+      allow create: if (cycleOwner(request.resource.data) || (cycleOwn(request.resource.data) && get(/databases/$(database)/documents/cycleBills/$(request.resource.data.billId)).data.published == true)) && paymentValid(request.resource.data) && getAfter(/databases/$(database)/documents/cycleBills/$(request.resource.data.billId)).data.pendingPaymentId == id;
+      allow update: if cycleOwner(resource.data) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reason','reviewedBy','reviewedAt']) && resource.data.status == 'pending' && request.resource.data.status in ['approved','rejected'] && request.resource.data.reviewedBy == request.auth.uid && request.resource.data.reviewedAt == request.time && request.resource.data.reason is string && request.resource.data.reason.size() <= 500 && (request.resource.data.status == 'approved' || request.resource.data.reason.size()>0) && getAfter(/databases/$(database)/documents/cycleBills/$(resource.data.billId)).data.pendingPaymentId == '' && getAfter(/databases/$(database)/documents/cycleBills/$(resource.data.billId)).data.paidAgorot == get(/databases/$(database)/documents/cycleBills/$(resource.data.billId)).data.paidAgorot + (request.resource.data.status == 'approved' ? resource.data.amountAgorot : 0);
+    }
+
     function reader() {
       return signed() && me().role == 'meter_reader' && me().status == 'approved' &&
         generatorAvailable(gid(me())) && get(/databases/$(database)/documents/meterStaff/$(request.auth.uid)).data.active == true;
@@ -98,7 +139,7 @@ service cloud.firestore {
     }
     match /readerRounds/{id} {
       allow read: if (owner() || reader()) && gid(me()) == id;
-      allow create, update: if owner() && gid(me()) == id && request.resource.data.keys().hasOnly(['generatorId','roundId','status','date','cycleDays']) && request.resource.data.generatorId == id && request.resource.data.roundId is string && request.resource.data.status in ['open','closing','closed'] && validEpoch(request.resource.data.date) && request.resource.data.cycleDays is int;
+      allow create, update: if owner() && gid(me()) == id && request.resource.data.keys().hasOnly(['generatorId','roundId','status','date','cycleDays']) && request.resource.data.generatorId == id && request.resource.data.roundId is string && request.resource.data.status in ['preparing','open','closing','closed'] && validEpoch(request.resource.data.date) && request.resource.data.cycleDays is int;
     }
     match /meterAssignments/{id} {
       allow read: if (owner() && same(resource.data)) || (reader() && same(resource.data) && resource.data.readerUid == request.auth.uid && openRound(resource.data));
