@@ -80,27 +80,32 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> {
             await ref.read(authProvider.notifier).reloadProfile();
           case CredentialMode.recover:
             await service.sendReset(email.text.trim());
-            if (mounted)
+            if (mounted) {
               setState(() => notice =
                   'إذا كان البريد مسجلاً فستصلك رسالة لإعادة تعيين كلمة المرور. راجع أيضاً البريد غير المرغوب.');
+            }
           case CredentialMode.verify:
             await service.refresh();
             await ref.read(authProvider.notifier).reloadProfile();
-            if (!service.verified)
+            if (!service.verified) {
               throw const CredentialFailure(
                   'لم يتم التحقق بعد. افتح رابط الرسالة ثم أعد المحاولة.');
+            }
           case CredentialMode.manage:
-            if (!reauthenticated)
+            if (!reauthenticated) {
               throw const CredentialFailure('تحقق بكلمة المرور الحالية أولاً');
-            if (id.text.isNotEmpty && !validNationalId(id.text.trim()))
+            }
+            if (id.text.isNotEmpty && !validNationalId(id.text.trim())) {
               throw const CredentialFailure(
                   'الهوية اختيارية؛ أدخل 9 أو 10 أرقام');
+            }
             if (password.text.isNotEmpty) {
               final issue = passwordError(password.text, confirm.text,
                   id.text.trim(), phone.text.trim());
               if (issue != null) throw CredentialFailure(issue);
               await service.changePassword(
-                  password.text, confirm.text, id.text.trim());
+                  password.text, confirm.text, id.text.trim(),
+                  phone: phone.text.trim());
             }
             await service.finishAccount(
                 id: id.text.trim(), phone: phone.text.trim());
@@ -133,7 +138,7 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> {
             PortalPanel(child: Text(ref.watch(loginNoticeProvider)!)),
           if (mode == CredentialMode.create) ...[
             const Text(
-                'التسجيل مجاني ضمن حدود الخدمات المجانية. الهاتف والهوية بيانات تواصل فقط.'),
+                'أنشئ حسابك بالبريد الإلكتروني، ثم أكمل طلب الانضمام إلى مولدك.'),
             Row(children: [
               for (final role in [UserRole.consumer, UserRole.admin])
                 Expanded(
@@ -157,15 +162,16 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> {
             const PortalSection('افتح رسالة التحقق في بريدك'),
             Text(service.email, textDirection: TextDirection.ltr),
             const Text(
-                'بعد فتح الرابط اضغط «تحققت من البريد». لا نستخدم رسائل SMS.'),
+                'افتح رابط رسالة التحقق ثم عد إلى التطبيق واضغط «تحققت من البريد».'),
             TextButton(
                 onPressed: busy
                     ? null
                     : () => run(() async {
                           await service.sendVerification();
-                          if (mounted)
+                          if (mounted) {
                             setState(() => notice =
                                 'أُرسلت رسالة التحقق. راجع البريد غير المرغوب أيضاً.');
+                          }
                         }),
                 child: const Text('إعادة إرسال رسالة التحقق')),
           ] else if (mode != CredentialMode.manage) ...[

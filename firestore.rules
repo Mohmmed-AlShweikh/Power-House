@@ -1,23 +1,23 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signed() { return request.auth != null; }
+    function signed() { return request.auth != null && request.auth.token.get('email_verified', false) == true && !request.auth.token.email.matches('.*@(powershare[.]app|id[.]generatorportal[.]app)$'); }
     function userPath(uid) { return /databases/$(database)/documents/users/$(uid); }
     function genPath(gid) { return /databases/$(database)/documents/generators/$(gid); }
     function me() { return get(userPath(request.auth.uid)).data; }
-    function gid(data) { return data.get('generatorId', null) == null || data.get('generatorId', '') == '' ? 'default' : data.generatorId; }
+    function gid(data) { return data.get('generatorId', ''); }
     function consumer(data) { return data.get('role', '') in ['user', 'consumer']; }
     function superAdmin() { return signed() && me().get('role', '') == 'super_admin'; }
     function generatorAvailable(id) {
-      return (id == 'default' && !exists(genPath(id))) ||
-        (get(genPath(id)).data.status == 'approved' &&
-         get(genPath(id)).data.subscriptionStatus == 'active');
+      let generator = get(genPath(id)).data;
+      return generator.status == 'approved' && generator.subscriptionStatus == 'active';
     }
     function approved() {
-      return signed() && me().get('status', '') == 'approved' &&
-        me().get('role', '') in ['generator_owner', 'admin', 'user', 'consumer'] &&
-        (me().get('role', '') in ['generator_owner', 'admin'] ||
-          me().get('subscriptionStatus', 'active') == 'active') && generatorAvailable(gid(me()));
+      let profile=me();
+      return signed() && profile.get('status','') == 'approved' &&
+        profile.get('role','') in ['generator_owner','admin','user','consumer'] &&
+        (profile.role in ['generator_owner','admin'] || profile.get('subscriptionStatus','active') == 'active') &&
+        generatorAvailable(gid(profile));
     }
     function owner() {
       return approved() && me().get('role', '') in ['generator_owner', 'admin'];
@@ -34,51 +34,14 @@ service cloud.firestore {
     function newTenant(data) {
       return data.generatorId is string && data.generatorId.size() > 0 && same(data);
     }
-    function verifiedPhone(data) {
-      return signed() && data.phone is string && data.phone.size() > 0 &&
-        data.phone == request.auth.token.get('phone_number', '');
+    function verifiedEmail(data) {
+      return signed() && data.get('email', '') == request.auth.token.email;
     }
+    function recent() { return signed() && request.auth.token.get('auth_time',0)>0 && request.time.toMillis() / 1000 - request.auth.token.auth_time <= 300; }
     function validEpoch(value) { return value is int && value >= 0 && value <= 8640000000000000; }
-    function idPath(id) { return /databases/$(database)/documents/idIndex/$(id); }
-    function validId(id) { return id is string && id.matches('^[0-9]{9,10}$'); }
-    function recent() {
-      return signed() && request.auth.token.get('auth_time', 0) > 0 &&
-        request.time.toMillis() / 1000 - request.auth.token.auth_time <= 300;
-    }
-    function emailFor(id) {
-      return request.auth.token.get('email', '') == id + '@powershare.app';
-    }
-    function identity(data, uid) {
-      return validId(data.get('idNumber', '')) && emailFor(data.idNumber) &&
-        verifiedPhone(data) && data.get('credentialVersion', 0) == 1 &&
-        getAfter(idPath(data.idNumber)).data.uid == uid;
-    }
-    function ownIdentityUpdate(data, uid) {
-      return recent() && identity(data, uid) &&
-        data.diff(resource.data).affectedKeys().hasOnly(['name', 'address', 'phone', 'idNumber', 'credentialVersion']) &&
-        (!validId(resource.data.get('idNumber', '')) || resource.data.idNumber == data.idNumber ||
-          !exists(idPath(resource.data.idNumber)) ||
-          (get(idPath(resource.data.idNumber)).data.uid == uid && !existsAfter(idPath(resource.data.idNumber))));
-    }
-    match /idIndex/{id} {
-      allow get: if signed() && (superAdmin() ||
-        (exists(idPath(id)) && resource.data.uid == request.auth.uid) ||
-        (emailFor(id) && !exists(idPath(id))) ||
-        (exists(userPath(request.auth.uid)) && me().get('idNumber', '') == id));
-      allow list: if superAdmin();
-      allow create: if signed() && request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid is string && getAfter(userPath(request.resource.data.uid)).data.idNumber == id && (superAdmin() || (recent() && validId(id) && emailFor(id) &&
-        request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid == request.auth.uid &&
-        getAfter(userPath(request.auth.uid)).data.idNumber == id &&
-        verifiedPhone(getAfter(userPath(request.auth.uid)).data)));
-      allow update: if signed() && request.resource.data == resource.data && getAfter(userPath(resource.data.uid)).data.idNumber == id && (superAdmin() || (recent() && resource.data.uid == request.auth.uid &&
-        request.resource.data == resource.data && getAfter(userPath(request.auth.uid)).data.idNumber == id));
-      allow delete: if signed() && getAfter(userPath(resource.data.uid)).data.get('idNumber', '') != id && (superAdmin() || (recent() && resource.data.uid == request.auth.uid &&
-        getAfter(userPath(request.auth.uid)).data.idNumber != id &&
-        getAfter(idPath(getAfter(userPath(request.auth.uid)).data.idNumber)).data.uid == request.auth.uid));
-    }
     function validUser(data) {
       return data.keys().hasOnly(['name', 'phone', 'address', 'role', 'status',
-        'subscriptionStatus', 'generatorId', 'ampereLimit', 'createdAt', 'idNumber', 'credentialVersion']) &&
+        'subscriptionStatus', 'generatorId', 'ampereLimit', 'createdAt', 'idNumber', 'credentialVersion', 'email']) &&
         data.name is string && data.name.size() > 0 && data.name.size() <= 120 &&
         validEpoch(data.createdAt) && data.ampereLimit is int && data.ampereLimit == 0 && validContact(data) &&
         data.status == 'pending' && data.generatorId is string && data.generatorId.size() > 0;
@@ -86,10 +49,11 @@ service cloud.firestore {
     function validContact(data) {
       return data.get('name', '') is string && data.get('name', '').size() <= 120 &&
         data.get('address', '') is string && data.get('address', '').size() <= 240 &&
-        data.get('phone', '') is string && data.get('phone', '').size() <= 32;
+        data.get('phone', '') is string && data.get('phone', '').size() <= 32 &&
+        data.get('idNumber','') is string && (data.get('idNumber','') == '' || data.idNumber.matches('^[0-9]{9,10}$'));
     }
     function canEnroll(data, uid) {
-      return signed() && request.auth.uid == uid && verifiedPhone(data) && validUser(data) && recent() && identity(data, uid) &&
+      return signed() && request.auth.uid == uid && verifiedEmail(data) && validUser(data) && data.credentialVersion == 2 &&
         ((data.role == 'generator_owner' && data.generatorId != 'default' &&
           data.subscriptionStatus == 'active' &&
           getAfter(genPath(data.generatorId)).data.ownerUid == uid &&
@@ -98,35 +62,32 @@ service cloud.firestore {
           get(/databases/$(database)/documents/generatorDirectory/$(data.generatorId)).data.status == 'approved' &&
           get(/databases/$(database)/documents/generatorDirectory/$(data.generatorId)).data.subscriptionStatus == 'active'));
     }
-    function indexConsistent(data, uid) {
-      return !data.keys().hasAny(['idNumber']) || data.get('role', '') == 'super_admin' ||
-        (validId(data.idNumber) && getAfter(idPath(data.idNumber)).data.uid == uid);
-    }
-    function releasedOldId(data, uid) {
-      return !validId(resource.data.get('idNumber', '')) || data.get('idNumber', '') == resource.data.idNumber ||
-        !exists(idPath(resource.data.idNumber)) ||
-        (get(idPath(resource.data.idNumber)).data.uid == uid && !existsAfter(idPath(resource.data.idNumber)));
-    }
     match /users/{uid} {
       allow get: if signed() && (uid == request.auth.uid || superAdmin() ||
         (owner() && consumer(resource.data) && same(resource.data)));
       allow list: if superAdmin() || (owner() && consumer(resource.data) && same(resource.data));
-      allow create: if indexConsistent(request.resource.data, uid) && !request.resource.data.keys().hasAny(['password', 'passwordUpdatedAt']) && (superAdmin() || canEnroll(request.resource.data, uid));
-      allow update: if (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['idNumber', 'credentialVersion']) || indexConsistent(request.resource.data, uid)) && releasedOldId(request.resource.data, uid) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['password', 'passwordUpdatedAt']) && (superAdmin() ||
+      allow create: if !request.resource.data.keys().hasAny(['password', 'passwordUpdatedAt']) && (superAdmin() || canEnroll(request.resource.data, uid));
+      allow update: if !request.resource.data.diff(resource.data).affectedKeys().hasAny(['password', 'passwordUpdatedAt']) && (superAdmin() ||
         (signed() && uid == request.auth.uid && validContact(request.resource.data) &&
-          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'address']) || ownIdentityUpdate(request.resource.data, uid))) ||
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'address', 'phone', 'idNumber']) || (recent() && verifiedEmail(request.resource.data) && request.resource.data.get('credentialVersion',0)==2 && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','address','phone','idNumber','email','credentialVersion'])))) ||
         (owner() && consumer(resource.data) && same(resource.data) && validContact(request.resource.data) &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'name', 'address', 'status', 'subscriptionStatus', 'ampereLimit',
             'rejectionReason']) &&
           request.resource.data.get('ampereLimit', 0) is int && request.resource.data.get('ampereLimit', 0) >= 0 &&
           request.resource.data.get('rejectionReason', '') is string && request.resource.data.get('rejectionReason', '').size() <= 500 &&
-          request.resource.data.status in ['pending', 'approved', 'rejected'] &&
+          request.resource.data.status in ['pending', 'approved', 'rejected', 'suspended'] &&
+          (!(request.resource.data.status in ['rejected','suspended']) || request.resource.data.get('rejectionReason','').size()>0) &&
           request.resource.data.subscriptionStatus in ['active', 'inactive']));
       allow delete: if superAdmin();
     }
     function validGeneratorState(data) {
       return data.get('isOn', false) is bool && data.get('pricePerKwh', 2) is number && data.get('pricePerKwh', 2) >= 0;
+    }
+    function validGeneratorReview(data) {
+      return data.status in ['pending','approved','rejected','suspended'] && data.subscriptionStatus in ['active','inactive'] &&
+        data.get('rejectionReason','') is string && data.get('rejectionReason','').size()<=500 &&
+        (!(data.status in ['rejected','suspended']) || data.get('rejectionReason','').size()>0);
     }
     match /generators/{id} {
       allow get: if superAdmin() || (signed() && gid(me()) == id);
@@ -145,7 +106,7 @@ service cloud.firestore {
           getAfter(userPath(request.auth.uid)).data.role == 'generator_owner' &&
           getAfter(userPath(request.auth.uid)).data.status == 'pending' &&
           getAfter(userPath(request.auth.uid)).data.generatorId == id);
-      allow update: if superAdmin() || (owner() && gid(me()) == id && validGeneratorState(request.resource.data) &&
+      allow update: if (superAdmin() && validGeneratorReview(request.resource.data)) || (owner() && gid(me()) == id && validGeneratorState(request.resource.data) &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'isOn', 'pricePerKwh', 'lastChanged', 'lastOnAt', 'lastOffAt', 'scheduledOnAt', 'scheduledOffAt']));
       allow delete: if superAdmin();
@@ -169,21 +130,37 @@ service cloud.firestore {
       allow delete: if superAdmin();
     }
     function own(data) { return approved() && data.userId == request.auth.uid && same(data); }
+    function validPayment(payment, bill) {
+      return payment is map && payment.keys().hasAll(['amountMinor','date','reference','method','submittedAt','version']) &&
+        payment.keys().hasOnly(['amountMinor','date','reference','method','submittedAt','version']) &&
+        payment.amountMinor is int && payment.amountMinor > 0 && payment.amountMinor == bill.amount * 100 &&
+        validEpoch(payment.date) && payment.date >= 946684800000 && payment.date <= request.time.toMillis()+86400000 &&
+        payment.reference is string && payment.reference.size()>0 && payment.reference.size()<=80 &&
+        payment.method in ['cash','bank','wallet','other'] && validEpoch(payment.submittedAt) && payment.version is int && payment.version>0;
+    }
     match /bills/{id} {
       allow read: if superAdmin() || (owner() && same(resource.data)) || own(resource.data);
-      allow create: if superAdmin() || (owner() && newTenant(request.resource.data) &&
-        consumerMember(request.resource.data.userId, gid(me())) &&
-        request.resource.data.amount is int && request.resource.data.amount >= 0 &&
+      allow create: if (superAdmin() || (owner() && newTenant(request.resource.data) &&
+        consumerMember(request.resource.data.userId,gid(me())))) &&
+        request.resource.data.keys().hasOnly(['generatorId','userId','month','year','amount','kwh','status','createdAt','weekNumber','billingPeriod']) &&
+        request.resource.data.amount is int && request.resource.data.amount > 0 &&
         request.resource.data.kwh is number && request.resource.data.kwh >= 0 &&
         request.resource.data.status == 'pending' && request.resource.data.month is string &&
-        request.resource.data.year is int && validEpoch(request.resource.data.createdAt));
-      allow update: if superAdmin() || (owner() && same(resource.data) &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
-        request.resource.data.status in ['paid', 'rejected', 'pending', 'pendingReview']) ||
-        (own(resource.data) && resource.data.status in ['pending', 'rejected'] &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['receiptBase64', 'status']) &&
-          request.resource.data.status == 'pendingReview' && request.resource.data.receiptBase64 is string &&
-          request.resource.data.receiptBase64.size() > 0 && request.resource.data.receiptBase64.size() < 1000000);
+        request.resource.data.year is int && validEpoch(request.resource.data.createdAt);
+      allow update: if
+        ((superAdmin() || (owner() && same(resource.data))) && resource.data.status == 'pendingReview' &&
+          validPayment(resource.data.get('payment',null), resource.data) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reviewReason','reviewedBy','reviewedAt','reviewedVersion']) &&
+          request.resource.data.reviewedVersion == resource.data.payment.version && request.resource.data.status in ['paid','rejected'] && request.resource.data.reviewedBy == request.auth.uid &&
+          request.resource.data.reviewedAt is int && request.resource.data.reviewedAt >= request.time.toMillis()-300000 &&
+          request.resource.data.reviewedAt <= request.time.toMillis()+300000 &&
+          request.resource.data.reviewReason is string && request.resource.data.reviewReason.size() <= 500 &&
+          (request.resource.data.status != 'rejected' || request.resource.data.reviewReason.size() > 0)) ||
+        (own(resource.data) && consumer(me()) && resource.data.status in ['pending','rejected'] &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['payment','status']) &&
+          request.resource.data.payment.version == resource.data.get('payment', {}).get('version', 0) + 1 && request.resource.data.status == 'pendingReview' && validPayment(request.resource.data.payment, resource.data) &&
+          request.resource.data.payment.submittedAt >= request.time.toMillis()-300000 &&
+          request.resource.data.payment.submittedAt <= request.time.toMillis()+300000);
       allow delete: if superAdmin();
     }
     match /complaints/{id} {

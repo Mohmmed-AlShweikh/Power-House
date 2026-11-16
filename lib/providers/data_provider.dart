@@ -112,7 +112,8 @@ final subscribersProvider = StreamProvider<List<UserProfile>>((ref) {
             .map((d) => UserProfile.fromMap(d.id, d.data()))
             .where((u) =>
                 u.role == UserRole.consumer &&
-                u.approvalStatus == ApprovalStatus.approved)
+                [ApprovalStatus.approved, ApprovalStatus.suspended]
+                    .contains(u.approvalStatus))
             .toList();
         list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
         return list;
@@ -136,6 +137,21 @@ final pendingUsersProvider = StreamProvider<List<UserProfile>>((ref) {
         return list;
       });
 });
+
+// Owner request inbox retains rejections for review without creating a second UID.
+final consumerRequestsProvider = StreamProvider<List<UserProfile>>((ref) =>
+    scopedQuery(ref, 'users')
+        .where('role', whereIn: ['user', 'consumer'])
+        .autoSnapshots(ref)
+        .map((snapshot) {
+          final items = snapshot.docs
+              .map((doc) => UserProfile.fromMap(doc.id, doc.data()))
+              .where((user) => [ApprovalStatus.pending, ApprovalStatus.rejected]
+                  .contains(user.approvalStatus))
+              .toList();
+          items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return items;
+        }));
 
 // Pending generator owners (awaiting super admin approval)
 // Tenant constrained on the server; role/status presentation filtering follows.
@@ -460,7 +476,7 @@ final recentActivitiesProvider = Provider<List<ActivityItem>>((ref) {
       final name = subsMap[bill.userId] ?? 'مشترك';
       activities.add(ActivityItem(
         name: name,
-        action: 'رفع إيصال ${bill.month}',
+        action: 'تسجيل دفعة ${bill.month}',
         createdAt: bill.createdAt,
         color: _kActivitySuccess,
       ));

@@ -15,7 +15,6 @@ class AuthState {
   // Remains false until the first auth event and profile check finish.
   final bool startupResolved;
   final bool needsRegistration;
-  final bool needsCredentialCompletion;
   final bool needsEmailVerification;
   final String? error;
 
@@ -25,7 +24,6 @@ class AuthState {
     this.loading = true,
     this.startupResolved = false,
     this.needsRegistration = false,
-    this.needsCredentialCompletion = false,
     this.needsEmailVerification = false,
     this.error,
   });
@@ -36,7 +34,6 @@ class AuthState {
     bool? loading,
     bool? startupResolved,
     bool? needsRegistration,
-    bool? needsCredentialCompletion,
     bool? needsEmailVerification,
     Object? error = const _Sentinel(),
   }) =>
@@ -46,8 +43,6 @@ class AuthState {
         loading: loading ?? this.loading,
         startupResolved: startupResolved ?? this.startupResolved,
         needsRegistration: needsRegistration ?? this.needsRegistration,
-        needsCredentialCompletion:
-            needsCredentialCompletion ?? this.needsCredentialCompletion,
         needsEmailVerification:
             needsEmailVerification ?? this.needsEmailVerification,
         error: error is _Sentinel ? this.error : error as String?,
@@ -93,7 +88,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
             loading: false,
             startupResolved: true,
             needsRegistration: false,
-            needsCredentialCompletion: false,
             needsEmailVerification: false,
             error: const _Sentinel());
         return;
@@ -116,7 +110,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> _loadAndCheckProfile(String uid) async {
     await _profileSub?.cancel();
     if (!credentials.verified) {
-      if (mounted)
+      if (mounted) {
         state = state.copyWith(
             user: _auth.currentUser,
             profile: null,
@@ -124,6 +118,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
             needsRegistration: false,
             loading: false,
             startupResolved: true);
+      }
       return;
     }
     void apply(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -133,7 +128,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
             user: _auth.currentUser,
             profile: null,
             needsEmailVerification: !credentials.verified,
-            needsCredentialCompletion: false,
             needsRegistration: true,
             loading: false);
         return;
@@ -142,7 +136,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
           user: _auth.currentUser,
           profile: UserProfile.fromMap(uid, doc.data()!),
           needsEmailVerification: !credentials.verified,
-          needsCredentialCompletion: false,
           needsRegistration: false,
           loading: false,
           error: null);
@@ -183,10 +176,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
   // ── Public Methods ──────────────────────────────────────────────────────────
 
   /// Returns null on success, Arabic error message on failure.
-  Future<String?> login(String idNumber, String password) async {
+  Future<String?> login(String email, String password) async {
     state = state.copyWith(loading: true, error: null);
     try {
-      await credentials.loginEmail(idNumber, password);
+      await credentials.loginEmail(email, password);
       // _loadAndCheckProfile is triggered by the auth listener
       return null;
     } on FirebaseAuthException catch (e) {
@@ -203,8 +196,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> enrollOwner(String name, String sector,
       {String phone = '', String idNumber = ''}) async {
     final user = _auth.currentUser;
-    if (user == null || !credentials.verified)
+    if (user == null || !credentials.verified) {
       throw const CredentialFailure('تحقق من البريد أولاً');
+    }
     await TenantStore(_db, () => user.uid).enrollOwner(
         uid: user.uid,
         phone: phone,
@@ -218,8 +212,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> enrollConsumer(String name, String gid,
       {String phone = '', String idNumber = ''}) async {
     final user = _auth.currentUser;
-    if (user == null || !credentials.verified)
+    if (user == null || !credentials.verified) {
       throw const CredentialFailure('تحقق من البريد أولاً');
+    }
     await TenantStore(_db, () => user.uid).enrollConsumer(
         uid: user.uid,
         phone: phone,

@@ -200,8 +200,8 @@ class SuperAdminScreen extends ConsumerWidget {
               child: PortalActionButton(
                   label: 'إدارة طلبات المولدات',
                   onPressed: () => context.go('/generator-requests'))),
-          Expanded(
-            child: const GeneratorRequestsScreen(embedded: true),
+          const Expanded(
+            child: GeneratorRequestsScreen(embedded: true),
           ),
         ],
       ),

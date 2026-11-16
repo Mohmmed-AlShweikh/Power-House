@@ -36,7 +36,13 @@ class _EnrollmentFormScreenState extends ConsumerState<EnrollmentFormScreen> {
   }
 
   Future<void> submit(bool owner) async {
-    if((nationalId.text.trim().isNotEmpty&&!validNationalId(nationalId.text.trim()))||contactPhone.text.length>32){setState(()=>error='الهوية اختيارية ومن 9 أو 10 أرقام؛ تحقق من بيانات التواصل');return;}
+    if ((nationalId.text.trim().isNotEmpty &&
+            !validNationalId(nationalId.text.trim())) ||
+        contactPhone.text.length > 32) {
+      setState(() =>
+          error = 'الهوية اختيارية ومن 9 أو 10 أرقام؛ تحقق من بيانات التواصل');
+      return;
+    }
 
     if (name.text.trim().isEmpty ||
         (owner && sector.text.trim().isEmpty) ||

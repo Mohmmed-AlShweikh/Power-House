@@ -1,4 +1,5 @@
 import 'generator_model.dart';
+import 'payment_model.dart';
 
 enum BillStatus { pending, pendingReview, paid, rejected }
 
@@ -12,8 +13,11 @@ class Bill {
   final int amount;
   final double kwh;
   final BillStatus status;
-  final String? receiptBase64;
   final DateTime createdAt;
+  final PaymentRecord? payment;
+  final String reviewReason;
+  final String? reviewedBy;
+  final int? reviewedAt;
 
   const Bill({
     required this.id,
@@ -25,7 +29,10 @@ class Bill {
     required this.amount,
     required this.kwh,
     required this.status,
-    this.receiptBase64,
+    this.payment,
+    this.reviewReason = '',
+    this.reviewedBy,
+    this.reviewedAt,
     required this.createdAt,
   });
 
@@ -43,7 +50,12 @@ class Bill {
       amount: map['amount'] ?? 0,
       kwh: (map['kwh'] ?? 0).toDouble(),
       status: _parseStatus(map['status']),
-      receiptBase64: map['receiptBase64'],
+      payment: map['payment'] is Map
+          ? PaymentRecord.fromMap(Map<String, dynamic>.from(map['payment']))
+          : null,
+      reviewReason: map['reviewReason'] as String? ?? '',
+      reviewedBy: map['reviewedBy'] as String?,
+      reviewedAt: map['reviewedAt'] as int?,
       createdAt: _parseDate(map['createdAt']),
     );
   }
@@ -57,7 +69,10 @@ class Bill {
       'amount': amount,
       'kwh': kwh,
       'status': status.name,
-      'receiptBase64': receiptBase64,
+      if (payment != null) 'payment': payment!.toMap(),
+      if (reviewReason.isNotEmpty) 'reviewReason': reviewReason,
+      if (reviewedBy != null) 'reviewedBy': reviewedBy,
+      if (reviewedAt != null) 'reviewedAt': reviewedAt,
       'createdAt': createdAt.millisecondsSinceEpoch,
     };
     if (weekNumber != null) {

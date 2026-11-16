@@ -1,4 +1,6 @@
-import 'dart:convert';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/auth_provider.dart';
+import '../providers/tenant_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -7,6 +9,7 @@ import '../models/generator_model.dart';
 import 'tenant_store.dart';
 import '../config/app_config.dart';
 import '../models/bill_model.dart';
+import '../models/payment_model.dart';
 
 class FirebaseService {
   static final FirebaseService _instance = FirebaseService._internal();
@@ -30,7 +33,7 @@ class FirebaseService {
 
   static Future<void> initialize() async {
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      // Phone verification must use the native Android app ID/signing config.
+      // Authentication uses the native Android app ID/signing config.
       // google-services.json and AppConfig point to the same existing project.
       await Firebase.initializeApp();
       return;
@@ -40,7 +43,6 @@ class FirebaseService {
         apiKey: AppConfig.firebaseApiKey,
         authDomain: AppConfig.firebaseAuthDomain,
         projectId: AppConfig.firebaseProjectId,
-        storageBucket: AppConfig.firebaseStorageBucket,
         messagingSenderId: AppConfig.firebaseMessagingSenderId,
         appId: AppConfig.firebaseAppId,
       ),
@@ -77,94 +79,142 @@ class FirebaseService {
     }, SetOptions(merge: true));
   }
 
-  // Add subscriber
-  Future<void> addSubscriber(String uid, String name, String phone,
-      String address, int ampereLimit) async {
-    final who = await _store.requireOwner();
-    final ref = _db.collection('users').doc(uid);
-    await ref.set({
-      'phone': phone,
-      'name': name,
-      'address': address,
-      'role': 'user',
-      'status': 'approved',
-      'generatorId': who.generatorId,
-      'subscriptionStatus': 'active',
-      'ampereLimit': ampereLimit,
-      'createdAt': DateTime.now().millisecondsSinceEpoch,
-    });
-  }
-
-  // Add subscriber by phone (generates a document ID from phone number)
-  Future<void> addSubscriberByPhone(
-      String name, String phone, String address, int ampereLimit) async {
-    final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
-    final who = await _store.requireOwner();
-    final docId = 'sub_${who.generatorId}_$cleanPhone';
-    await _db.collection('users').doc(docId).set({
-      'phone': cleanPhone,
-      'name': name,
-      'address': address,
-      'role': 'user',
-      'status': 'approved',
-      'generatorId': who.generatorId,
-      'subscriptionStatus': 'active',
-      'ampereLimit': ampereLimit,
-      'createdAt': DateTime.now().millisecondsSinceEpoch,
-    });
-  }
-
   // Update subscriber
   Future<void> updateSubscriber(String uid,
-      {String? name, String? address, String? status, int? ampereLimit}) async {
+      {String? name,
+      String? address,
+      String? status,
+      int? ampereLimit,
+      String? reason}) async {
     await _store.requireOwner();
     final data = <String, dynamic>{};
     if (name != null) data['name'] = name;
     if (address != null) data['address'] = address;
-    if (status != null) data['subscriptionStatus'] = status;
+    if (status != null) {
+      if (status == 'inactive' && (reason == null || reason.trim().isEmpty)) {
+        throw ArgumentError('سبب الإيقاف مطلوب');
+      }
+      data['subscriptionStatus'] = status;
+      data['status'] = status == 'inactive' ? 'suspended' : 'approved';
+      data['rejectionReason'] = status == 'inactive' ? reason!.trim() : '';
+    }
     if (ampereLimit != null) data['ampereLimit'] = ampereLimit;
     if (data.isNotEmpty) {
       await (await _store.checkedDocument('users', uid)).reference.update(data);
     }
   }
 
-  // Approve/reject receipt
-  Future<void> updateBillStatus(String billId, BillStatus status) async {
-    await _store.requireOwner();
-    await (await _store.checkedDocument('bills', billId)).reference.update({
-      'status': status.name,
-    });
-  }
-
-  // Upload receipt (Base64)
-  Future<void> uploadReceipt(String billId, Uint8List imageBytes) async {
-    final base64 = base64Encode(imageBytes);
-    await (await _store.checkedDocument('bills', billId)).reference.update({
-      'receiptBase64': base64,
-      'status': 'pendingReview',
-    });
-  }
-
-  // Upload receipt by userId (finds the latest pending bill)
-  Future<void> uploadReceiptForUser(String userId, Uint8List imageBytes) async {
-    final base64 = base64Encode(imageBytes);
-    final query = await (await _store.query('bills', userId: userId))
-        .where('status', isEqualTo: 'pending')
-        .orderBy('createdAt', descending: true)
-        .limit(1)
-        .get();
-    if (query.docs.isNotEmpty) {
-      await query.docs.first.reference.update({
-        'receiptBase64': base64,
-        'status': 'pendingReview',
-      });
-    } else {
-      throw StateError('لا توجد فاتورة معلقة لرفع الإيصال');
+  // Single compact declaration per bill. Transactions fail offline instead of
+  // queuing an unreviewed duplicate. No files, Storage or image bytes are written.
+  Future<void> submitPayment(String billId, PaymentRecord payment) async {
+    final who = await _store.actor();
+    if (who.profile.role.name != 'consumer') throw StateError('للمشترك فقط');
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (payment.amountMinor <= 0 ||
+        payment.date <= 0 ||
+        payment.date > now + 86400000 ||
+        payment.reference.trim().isEmpty ||
+        payment.reference.trim().length > 80 ||
+        !paymentMethods.containsKey(payment.method)) {
+      throw ArgumentError('بيانات الدفع غير صحيحة');
     }
+    final ref = _db.collection('bills').doc(billId);
+    await _db.runTransaction((tx) async {
+      final doc = await tx.get(ref);
+      final data = doc.data();
+      if (data == null ||
+          data['userId'] != who.uid ||
+          normalizedGeneratorId(data['generatorId']) != who.generatorId) {
+        throw StateError('فاتورة غير متاحة');
+      }
+      if (payment.amountMinor != (data['amount'] as num).toInt() * 100) {
+        throw ArgumentError('سجل المبلغ الكامل للفاتورة');
+      }
+      if (data['status'] == 'pendingReview') {
+        final old = data['payment'] as Map?;
+        if (old?['amountMinor'] == payment.amountMinor &&
+            old?['date'] == payment.date &&
+            old?['reference'] == payment.reference.trim() &&
+            old?['method'] == payment.method) {
+          return;
+        }
+        throw StateError('الدفع قيد المراجعة بالفعل');
+      }
+      if (!['pending', 'rejected'].contains(data['status'])) {
+        throw StateError('لا يمكن إعادة دفع فاتورة معتمدة');
+      }
+      tx.update(ref, {
+        'status': 'pendingReview',
+        'payment': {
+          ...payment.toMap(),
+          'reference': payment.reference.trim(),
+          'submittedAt': now,
+          'version':
+              ((data['payment'] as Map?)?['version'] as num? ?? 0).toInt() + 1
+        }
+      });
+    });
   }
 
-  // Decode Base64 to bytes
-  static Uint8List decodeBase64(String base64) => base64Decode(base64);
+  Future<void> updateBillStatus(String billId, BillStatus status,
+      {String reason = '', int? expectedVersion}) async {
+    final who = await _store.requireOwner();
+    if (![BillStatus.paid, BillStatus.rejected].contains(status)) {
+      throw ArgumentError('قرار غير صحيح');
+    }
+    if (status == BillStatus.rejected &&
+        (reason.trim().isEmpty || reason.length > 500)) {
+      throw ArgumentError('سبب الرفض مطلوب');
+    }
+    final ref = _db.collection('bills').doc(billId);
+    await _db.runTransaction((tx) async {
+      final doc = await tx.get(ref);
+      final data = doc.data();
+      if (data == null ||
+          (!who.superAdmin &&
+              normalizedGeneratorId(data['generatorId']) != who.generatorId)) {
+        throw StateError('فاتورة غير متاحة');
+      }
+      final version =
+          ((data['payment'] as Map?)?['version'] as num?)?.toInt() ?? 0;
+      if (expectedVersion != null && expectedVersion != version) {
+        throw StateError('تغير سجل الدفع؛ أعد فتحه للمراجعة');
+      }
+      if (data['status'] == status.name) {
+        return; // Idempotent repeated approval/rejection.
+      }
+      if (data['status'] != 'pendingReview' || data['payment'] is! Map) {
+        throw StateError('لا توجد إفادة دفع بانتظار المراجعة');
+      }
+      tx.update(ref, {
+        'status': status.name,
+        'reviewReason': reason.trim(),
+        'reviewedBy': who.uid,
+        'reviewedVersion': version,
+        'reviewedAt': DateTime.now().millisecondsSinceEpoch
+      });
+      final submitted = version;
+      tx.set(
+          _db
+              .collection('alerts')
+              .doc('review_${billId}_${submitted}_${status.name}'),
+          {
+            'generatorId': normalizedGeneratorId(data['generatorId']),
+            'userId': data['userId'],
+            'title': status == BillStatus.paid
+                ? 'تم اعتماد الدفع'
+                : 'تم رفض سجل الدفع',
+            'body': status == BillStatus.paid
+                ? 'تمت مراجعة الدفعة واعتمادها.'
+                : reason.trim(),
+            'type': status == BillStatus.paid
+                ? 'paymentApproved'
+                : 'paymentRejected',
+            'read': false,
+            'createdAt': DateTime.now().millisecondsSinceEpoch,
+          });
+    });
+  }
 
   // Mark all alerts as read for a user
   Future<void> markAllAlertsRead(String userId) async {
@@ -353,3 +403,7 @@ class FirebaseService {
     await _store.reviewConsumer(uid, false, reason: reason);
   }
 }
+
+final firebaseServiceProvider = Provider<FirebaseService>((ref) =>
+    FirebaseService.forTesting(
+        ref.watch(firestoreProvider), () => ref.read(authProvider).user?.uid));

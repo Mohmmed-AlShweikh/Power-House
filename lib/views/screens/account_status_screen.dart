@@ -17,11 +17,15 @@ class AccountStatusScreen extends ConsumerWidget {
     final generator = tenant?.valueOrNull;
     final rejected = profile?.approvalStatus == ApprovalStatus.rejected ||
         generator?.status == GeneratorApproval.rejected;
+    final suspended = profile?.approvalStatus == ApprovalStatus.suspended ||
+        generator?.status == GeneratorApproval.suspended;
     final pending = profile?.approvalStatus == ApprovalStatus.pending ||
         generator?.status == GeneratorApproval.pending;
-    final reason = profile?.rejectionReason.isNotEmpty == true
-        ? profile!.rejectionReason
-        : generator?.rejectionReason ?? '';
+    final reason = generator?.status == GeneratorApproval.suspended
+        ? generator?.rejectionReason ?? ''
+        : profile?.rejectionReason.isNotEmpty == true
+            ? profile!.rejectionReason
+            : generator?.rejectionReason ?? '';
     return PortalPage(
         title: 'حالة الطلب',
         subtitle: 'بوابة المولدات',
@@ -42,21 +46,25 @@ class AccountStatusScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                   Icon(
-                      rejected
-                          ? Icons.cancel_outlined
-                          : pending
-                              ? Icons.hourglass_top
-                              : Icons.pause_circle_outline,
+                      suspended
+                          ? Icons.pause_circle_outline
+                          : rejected
+                              ? Icons.cancel_outlined
+                              : pending
+                                  ? Icons.hourglass_top
+                                  : Icons.pause_circle_outline,
                       size: PortalTokens.target),
                   const SizedBox(height: PortalTokens.lg),
                   Text(
-                      rejected
-                          ? 'لم تتم الموافقة على الطلب'
-                          : pending
-                              ? (profile?.role == UserRole.admin
-                                  ? 'طلب المولد قيد المراجعة من المشرف العام'
-                                  : 'بانتظار موافقة صاحب المولد')
-                              : 'الحساب أو اشتراك المولد متوقف حالياً',
+                      suspended
+                          ? 'تم إيقاف الحساب أو المولد'
+                          : rejected
+                              ? 'لم تتم الموافقة على الطلب'
+                              : pending
+                                  ? (profile?.role == UserRole.admin
+                                      ? 'طلب المولد قيد المراجعة من المشرف العام'
+                                      : 'بانتظار موافقة صاحب المولد')
+                                  : 'الحساب أو اشتراك المولد متوقف حالياً',
                       style: Theme.of(context).textTheme.titleMedium,
                       textAlign: TextAlign.center),
                   if (reason.isNotEmpty) ...[

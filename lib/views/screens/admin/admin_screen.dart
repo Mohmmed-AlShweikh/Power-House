@@ -18,10 +18,10 @@ import '../../../services/notification_service.dart';
 import '../../../theme/portal_tokens.dart';
 import '../../widgets/portal_components.dart';
 import '../../widgets/portal_keyboard.dart';
+import '../../widgets/portal_reason_dialog.dart';
 import '../../widgets/portal_number.dart';
 import '../../../theme/portal_theme.dart';
 import '../../widgets/portal_navigation.dart';
-import '../../widgets/base64_image_viewer.dart';
 import 'subscriber_details_screen.dart';
 
 class AdminScreen extends ConsumerStatefulWidget {
@@ -42,7 +42,6 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
   }
 
   bool _moreVisible = false;
-  bool _generatorOn = true;
   StreamSubscription<QuerySnapshot>? _alertsSub;
   final DateTime _startTime = DateTime.now();
   final Set<String> _seenAlertIds = {};
@@ -756,9 +755,16 @@ class _SubscribersTabState extends ConsumerState<_SubscribersTab> {
                           sub: filtered[i],
                           onJumpToBill: widget.onJumpToBill,
                           onToggle: (v) async {
+                            final reason = v
+                                ? ''
+                                : await requestRejectionReason(context,
+                                    title: 'سبب إيقاف المشترك',
+                                    actionLabel: 'تأكيد الإيقاف');
+                            if (reason == null) return;
                             await FirebaseService().updateSubscriber(
                               filtered[i].uid,
                               status: v ? 'active' : 'inactive',
+                              reason: reason,
                             );
                           },
                         ),
@@ -769,7 +775,7 @@ class _SubscribersTabState extends ConsumerState<_SubscribersTab> {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => _MockSubscribers(search: _search),
+      error: (_, __) => const PortalErrorState('تعذّر تحميل المشتركين'),
     );
   }
 
@@ -919,227 +925,6 @@ class _SubscriberCard extends StatelessWidget {
   }
 }
 
-class _MockSubscribers extends StatefulWidget {
-  final String search;
-  const _MockSubscribers({required this.search});
-
-  @override
-  State<_MockSubscribers> createState() => _MockSubscribersState();
-}
-
-class _MockSubscribersState extends State<_MockSubscribers> {
-  String _query = '';
-  final _subscribers = [
-    UserProfile(
-        uid: '1',
-        phone: '0591234567',
-        name: 'محمد أحمد',
-        address: 'رام الله',
-        role: UserRole.consumer,
-        subscriptionStatus: SubscriptionStatus.active,
-        ampereLimit: 10,
-        createdAt: DateTime.now()),
-    UserProfile(
-        uid: '2',
-        phone: '0598765432',
-        name: 'سارة خالد',
-        address: 'البيرة',
-        role: UserRole.consumer,
-        subscriptionStatus: SubscriptionStatus.active,
-        ampereLimit: 15,
-        createdAt: DateTime.now()),
-    UserProfile(
-        uid: '3',
-        phone: '0569874521',
-        name: 'أحمد محمود',
-        address: 'بيت لحم',
-        role: UserRole.consumer,
-        subscriptionStatus: SubscriptionStatus.inactive,
-        ampereLimit: 8,
-        createdAt: DateTime.now()),
-    UserProfile(
-        uid: '4',
-        phone: '0554321098',
-        name: 'فاطمة علي',
-        address: 'الخليل',
-        role: UserRole.consumer,
-        subscriptionStatus: SubscriptionStatus.active,
-        ampereLimit: 12,
-        createdAt: DateTime.now()),
-    UserProfile(
-        uid: '5',
-        phone: '0567890123',
-        name: 'خالد عمر',
-        address: 'نابلس',
-        role: UserRole.consumer,
-        subscriptionStatus: SubscriptionStatus.active,
-        ampereLimit: 20,
-        createdAt: DateTime.now()),
-    UserProfile(
-        uid: '6',
-        phone: '0591112233',
-        name: 'ليلى حسن',
-        address: 'جنين',
-        role: UserRole.consumer,
-        subscriptionStatus: SubscriptionStatus.inactive,
-        ampereLimit: 0,
-        createdAt: DateTime.now()),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final filtered = _query.isEmpty
-        ? _subscribers
-        : _subscribers
-            .where((s) =>
-                s.name.toLowerCase().contains(_query.toLowerCase()) ||
-                s.phone.contains(_query))
-            .toList();
-
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: Row(
-            children: [
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardTheme.color,
-                    borderRadius: BorderRadius.circular(PortalTokens.radius),
-                    border: Border.all(
-                        color: Theme.of(context).colorScheme.outlineVariant),
-                  ),
-                  child: TextField(
-                    onChanged: (v) => setState(() => _query = v.trim()),
-                    decoration: InputDecoration(
-                      hintText: 'بحث بالاسم أو رقم الجوال...',
-                      prefixIcon: Icon(Icons.search,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          size: 20),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: ListView.builder(
-            padding: EdgeInsetsDirectional.fromSTEB(
-                PortalTokens.gutter,
-                PortalTokens.lg,
-                PortalTokens.gutter,
-                PortalTokens.navClearance +
-                    MediaQuery.paddingOf(context).bottom),
-            itemCount: filtered.length,
-            itemBuilder: (context, i) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _SubscriberCard(
-                sub: filtered[i],
-                onJumpToBill: (_) {},
-                onToggle: (v) => setState(() {
-                  final idx = _subscribers.indexOf(filtered[i]);
-                  _subscribers[idx] = _subscribers[idx].copyWith(
-                    subscriptionStatus: v
-                        ? SubscriptionStatus.active
-                        : SubscriptionStatus.inactive,
-                  );
-                }),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showAddSheet(BuildContext context) {
-    final nameCtrl = TextEditingController();
-    final phoneCtrl = TextEditingController();
-    final addressCtrl = TextEditingController();
-    showPortalFormSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: Padding(
-          padding: const EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: 24,
-            bottom: 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text('إضافة مشترك جديد',
-                        style: Theme.of(context).textTheme.headlineMedium),
-                  ),
-                  IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context)),
-                ],
-              ),
-              const SizedBox(height: 20),
-              _SheetField(
-                  controller: nameCtrl,
-                  hint: 'الاسم الكامل',
-                  icon: Icons.person_outline),
-              const SizedBox(height: 12),
-              _SheetField(
-                  controller: phoneCtrl,
-                  readOnly: true,
-                  hint: 'رقم الهاتف (05xxxxxxxx)',
-                  icon: Icons.phone),
-              const SizedBox(height: 12),
-              _SheetField(
-                  controller: addressCtrl,
-                  hint: 'المنطقة / العنوان',
-                  icon: Icons.location_on_outlined),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  final name = nameCtrl.text.trim();
-                  final phone = phoneCtrl.text.trim();
-                  if (name.isEmpty || phone.isEmpty) return;
-                  setState(() {
-                    _subscribers.add(UserProfile(
-                      uid: DateTime.now().millisecondsSinceEpoch.toString(),
-                      phone: phone,
-                      name: name,
-                      address: addressCtrl.text.trim(),
-                      role: UserRole.consumer,
-                      subscriptionStatus: SubscriptionStatus.active,
-                      ampereLimit: 10,
-                      createdAt: DateTime.now(),
-                    ));
-                  });
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('تم إضافة المشترك ✓',
-                            textAlign: TextAlign.right)),
-                  );
-                },
-                child: const Text('إضافة المشترك'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _SheetField extends StatelessWidget {
   final bool readOnly;
   final String hint;
@@ -1205,15 +990,6 @@ class _BillsTabState extends ConsumerState<_BillsTab> {
     _scrollController.dispose();
     super.dispose();
   }
-
-  static const _mockBills = [
-    ('محمد أحمد', '₪284', 'يوليو 2024', 'pendingReview'),
-    ('سارة خالد', '₪310', 'يوليو 2024', 'pendingReview'),
-    ('أحمد محمود', '₪254', 'يونيو 2024', 'paid'),
-    ('فاطمة علي', '₪296', 'يونيو 2024', 'paid'),
-    ('خالد عمر', '₪210', 'مايو 2024', 'paid'),
-    ('ليلى حسن', '₪180', 'مايو 2024', 'rejected'),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -1327,16 +1103,6 @@ class _BillsTabState extends ConsumerState<_BillsTab> {
                   ),
                 ),
               ),
-              ..._mockBills
-                  .where((b) => _filter == 'all' || b.$4 == _filter)
-                  .map((b) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: _MockAdminBillCard(
-                            name: b.$1,
-                            amount: b.$2,
-                            month: b.$3,
-                            status: b.$4),
-                      )),
             ],
           );
         },
@@ -1992,239 +1758,18 @@ class _AdminBillCard extends StatelessWidget {
       icon: Icons.receipt_long_outlined,
       accent: _statusColor(context),
       onTap: () => _openReviewDialog(context),
-      footer: Column(children: [
-        if (bill.status == BillStatus.pendingReview) ...[
-          const SizedBox(height: 12),
-          if (bill.receiptBase64 != null)
-            GestureDetector(
-              onTap: () => _openReviewDialog(context),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(PortalTokens.radiusSmall),
-                child: Base64ImageViewer(
-                    base64String: bill.receiptBase64!, height: 120),
-              ),
-            ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    await FirebaseService()
-                        .updateBillStatus(bill.id, BillStatus.rejected);
-                    await NotificationService().addAlert(
-                      userId: bill.userId,
-                      title: 'تم رفض الإيصال',
-                      body:
-                          'تم رفض إيصال الدفع لفاتورة ${bill.month} ${bill.year}. يرجى التواصل مع المشرف.',
-                      type: 'receiptRejected',
-                    );
-                  },
-                  icon: const Icon(Icons.close, size: 16),
-                  label:
-                      Text('رفض', style: Theme.of(context).textTheme.bodySmall),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: PortalTone.danger.colors(context).$1,
-                    side:
-                        BorderSide(color: PortalTone.danger.colors(context).$1),
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(PortalTokens.radius)),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    await FirebaseService()
-                        .updateBillStatus(bill.id, BillStatus.paid);
-                    await NotificationService().addAlert(
-                      userId: bill.userId,
-                      title: 'تم قبول الإيصال ✓',
-                      body:
-                          'تم قبول إيصال الدفع لفاتورة ${bill.month} ${bill.year} بنجاح.',
-                      type: 'receiptApproved',
-                    );
-                  },
-                  icon: const Icon(Icons.check, size: 16),
-                  label: const Text('قبول'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                    minimumSize:
-                        const Size(PortalTokens.target, PortalTokens.target),
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(PortalTokens.radius)),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ]
-      ]));
-}
-
-class _MockAdminBillCard extends StatefulWidget {
-  final String name, amount, month, status;
-  const _MockAdminBillCard(
-      {required this.name,
-      required this.amount,
-      required this.month,
-      required this.status});
-
-  @override
-  _MockAdminBillCardState createState() => _MockAdminBillCardState();
-}
-
-class _MockAdminBillCardState extends State<_MockAdminBillCard> {
-  late String _localStatus;
-
-  @override
-  void initState() {
-    super.initState();
-    _localStatus = widget.status;
-  }
-
-  Color _color(BuildContext context) => switch (_localStatus) {
-        'pendingReview' => PortalTone.warning.colors(context).$1,
-        'paid' => PortalTone.success.colors(context).$1,
-        _ => PortalTone.danger.colors(context).$1,
-      };
-
-  String get _label => switch (_localStatus) {
-        'pendingReview' => 'بانتظار',
-        'paid' => 'مقبول',
-        _ => 'مرفوض',
-      };
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(PortalTokens.radiusPanel),
-      ),
-      child: Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: Theme.of(context)
-                    .colorScheme
-                    .primary
-                    .withValues(alpha: 0.12),
-                child: Text(widget.name[0],
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w700)),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(widget.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 2),
-                    Text('${widget.month} • ${widget.amount}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant)),
-                  ],
-                ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                    color: _color(context).withValues(alpha: 0.1),
-                    borderRadius:
-                        BorderRadius.circular(PortalTokens.radiusPanel)),
-                child: Text(_label,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600, color: _color(context))),
-              ),
-            ],
-          ),
-          if (_localStatus == 'pendingReview') ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => setState(() => _localStatus = 'rejected'),
-                    icon: const Icon(Icons.close, size: 16),
-                    label: Text('رفض',
-                        style: Theme.of(context).textTheme.bodySmall),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: PortalTone.danger.colors(context).$1,
-                      side: BorderSide(
-                          color: PortalTone.danger.colors(context).$1),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(PortalTokens.radius)),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => setState(() => _localStatus = 'paid'),
-                    icon: const Icon(Icons.check, size: 16),
-                    label: const Text('قبول'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                      minimumSize:
-                          const Size(PortalTokens.target, PortalTokens.target),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(PortalTokens.radius)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
+      footer: bill.status == BillStatus.pendingReview
+          ? TextButton.icon(
+              onPressed: () => _openReviewDialog(context),
+              icon: const Icon(Icons.fact_check_outlined),
+              label: const Text('مراجعة سجل الدفع'))
+          : null);
 }
 
 // ── Complaints Tab ────────────────────────────────────────────────────────────
 
 class _ComplaintsTab extends ConsumerWidget {
   const _ComplaintsTab();
-
-  static const _items = [
-    ('محمد أحمد', 'انقطاع متكرر للتيار خلال ساعات الذروة', 'منذ ساعة', 'open'),
-    (
-      'سارة خالد',
-      'المولد يعطي ضغطاً منخفضاً أضر بالأجهزة',
-      'منذ 3 ساعات',
-      'inProgress'
-    ),
-    ('ليلى حسن', 'تأخر في استلام الفاتورة الشهرية', 'أمس', 'open'),
-    ('خالد عمر', 'الرسوم الشهرية مرتفعة جداً', 'قبل يومين', 'resolved'),
-  ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -2248,20 +1793,7 @@ class _ComplaintsTab extends ConsumerWidget {
                   .toList(),
             ),
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => ListView(
-        padding: EdgeInsetsDirectional.fromSTEB(
-            PortalTokens.gutter,
-            PortalTokens.lg,
-            PortalTokens.gutter,
-            PortalTokens.navClearance + MediaQuery.paddingOf(context).bottom),
-        children: _items
-            .map((c) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _MockComplaintCard(
-                      name: c.$1, text: c.$2, time: c.$3, status: c.$4),
-                ))
-            .toList(),
-      ),
+      error: (_, __) => const PortalErrorState('تعذّر تحميل الشكاوى'),
     );
   }
 }
@@ -2442,157 +1974,6 @@ class _ComplaintCard extends StatelessWidget {
                       content:
                           Text('تم إرسال الرد ✓', textAlign: TextAlign.right)));
                 }
-              },
-              style: ElevatedButton.styleFrom(
-                  minimumSize:
-                      const Size(PortalTokens.target, PortalTokens.target),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8)),
-              child: const Text('إرسال الرد'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MockComplaintCard extends StatelessWidget {
-  final String name, text, time, status;
-  const _MockComplaintCard(
-      {required this.name,
-      required this.text,
-      required this.time,
-      required this.status});
-
-  Color _color(BuildContext context) => switch (status) {
-        'open' => PortalTone.danger.colors(context).$1,
-        'inProgress' => PortalTone.warning.colors(context).$1,
-        _ => PortalTone.success.colors(context).$1,
-      };
-
-  String get _label => switch (status) {
-        'open' => 'مفتوح',
-        'inProgress' => 'قيد المعالجة',
-        _ => 'محلول',
-      };
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final textColor = theme.colorScheme.onSurface;
-    final mutedColor = theme.brightness == Brightness.dark
-        ? Theme.of(context).colorScheme.onSurfaceVariant
-        : Theme.of(context).colorScheme.onSurfaceVariant;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(PortalTokens.radiusPanel),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: _color(context).withValues(alpha: 0.12),
-                child: Text(name[0],
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: _color(context), fontWeight: FontWeight.w700)),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                  child: Text(name,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(fontWeight: FontWeight.w600))),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                    color: _color(context).withValues(alpha: 0.1),
-                    borderRadius:
-                        BorderRadius.circular(PortalTokens.radiusPanel)),
-                child: Text(_label,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600, color: _color(context))),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(text,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: textColor, height: 1.4)),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(Icons.access_time, size: 13, color: mutedColor),
-              const SizedBox(width: 4),
-              Text(time,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: mutedColor)),
-              const Spacer(),
-              if (status != 'resolved')
-                TextButton(
-                  onPressed: () => _showMockReplyDialog(context),
-                  style: TextButton.styleFrom(
-                      foregroundColor: Theme.of(context).colorScheme.primary,
-                      padding: EdgeInsets.zero,
-                      minimumSize: Size.zero),
-                  child: Text('الرد على الشكوى',
-                      style: Theme.of(context).textTheme.bodySmall),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showMockReplyDialog(BuildContext context) {
-    final ctrl = TextEditingController();
-    showPortalFormDialog(
-      context: context,
-      builder: (_) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: AlertDialog(
-          scrollable: true,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(PortalTokens.radiusPanel)),
-          title: const Text('الرد على الشكوى'),
-          content: TextField(
-            controller: ctrl,
-            maxLines: 3,
-            autofocus: true,
-            decoration: InputDecoration(
-              hintText: 'اكتب ردك هنا...',
-              hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(PortalTokens.radius)),
-              contentPadding: const EdgeInsets.all(12),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('إلغاء'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (ctrl.text.trim().isEmpty) return;
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content:
-                        Text('تم إرسال الرد ✓', textAlign: TextAlign.right)));
               },
               style: ElevatedButton.styleFrom(
                   minimumSize:
@@ -2852,7 +2233,7 @@ class _PendingUsersTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final pendingAsync = ref.watch(pendingUsersProvider);
+    final pendingAsync = ref.watch(consumerRequestsProvider);
 
     return pendingAsync.when(
       data: (users) => users.isEmpty
@@ -2869,7 +2250,7 @@ class _PendingUsersTab extends ConsumerWidget {
                         size: 48, color: PortalTone.success.colors(context).$1),
                   ),
                   const SizedBox(height: 16),
-                  Text('لا توجد طلبات معلقة',
+                  Text('لا توجد طلبات للمراجعة',
                       style: Theme.of(context)
                           .textTheme
                           .titleMedium
@@ -2935,13 +2316,17 @@ class _PendingUserCardState extends ConsumerState<_PendingUserCard> {
   bool _loading = false;
 
   Future<void> _act(bool approve) async {
+    final reason = approve
+        ? ''
+        : await requestRejectionReason(context, title: 'سبب رفض طلب الاشتراك');
+    if (reason == null || !mounted) return;
     setState(() => _loading = true);
     try {
       if (approve) {
         await FirebaseService().approveUser(widget.user.uid);
         NotificationService().notifyUserApproved(widget.user.uid);
       } else {
-        await FirebaseService().rejectUser(widget.user.uid);
+        await FirebaseService().rejectUser(widget.user.uid, reason: reason);
         NotificationService().notifyUserRejected(widget.user.uid);
       }
       if (mounted) {
@@ -2976,8 +2361,12 @@ class _PendingUserCardState extends ConsumerState<_PendingUserCard> {
           title: u.name.isNotEmpty ? u.name : 'بدون اسم',
           subtitle: 'بانتظار',
           icon: Icons.person_outline,
-          statusLabel: 'بانتظار',
-          statusTone: PortalTone.warning),
+          statusLabel:
+              u.approvalStatus == ApprovalStatus.rejected ? 'مرفوض' : 'بانتظار',
+          statusTone: u.approvalStatus == ApprovalStatus.rejected
+              ? PortalTone.danger
+              : PortalTone.warning),
+      if (u.rejectionReason.isNotEmpty) Text(u.rejectionReason),
       PortalLabelValue(
           label: 'رقم الهوية', value: u.idNumber.isNotEmpty ? u.idNumber : '—'),
       if (u.address.isNotEmpty)
@@ -3032,208 +2421,6 @@ class _PendingUserCardState extends ConsumerState<_PendingUserCard> {
               ],
             ),
     ]));
-  }
-}
-
-class _MockPendingUsers extends StatefulWidget {
-  const _MockPendingUsers();
-
-  @override
-  State<_MockPendingUsers> createState() => _MockPendingUsersState();
-}
-
-class _MockPendingUsersState extends State<_MockPendingUsers> {
-  final _items = [
-    ('خالد محمود', '123456789', 'رام الله، الحي الشمالي'),
-    ('سارة عمر', '987654321', 'البيرة، شارع الاستقلال'),
-    ('محمد علي', '456789123', 'بيتونيا، المنطقة الغربية'),
-  ];
-  final _done = <int>{};
-
-  @override
-  Widget build(BuildContext context) {
-    final visible = List.generate(_items.length, (i) => i)
-        .where((i) => !_done.contains(i))
-        .toList();
-
-    if (visible.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                  color: PortalTone.success.colors(context).$2,
-                  shape: BoxShape.circle),
-              child: Icon(Icons.check_circle,
-                  size: 48, color: PortalTone.success.colors(context).$1),
-            ),
-            const SizedBox(height: 16),
-            Text('لا توجد طلبات معلقة',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w600)),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: EdgeInsetsDirectional.fromSTEB(
-          PortalTokens.gutter,
-          PortalTokens.lg,
-          PortalTokens.gutter,
-          PortalTokens.navClearance + MediaQuery.paddingOf(context).bottom),
-      itemCount: visible.length,
-      itemBuilder: (context, idx) {
-        final i = visible[idx];
-        final item = _items[i];
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardTheme.color,
-              borderRadius: BorderRadius.circular(PortalTokens.radiusPanel),
-              border: Border.all(
-                  color: PortalTone.warning
-                      .colors(context)
-                      .$1
-                      .withValues(alpha: 0.3),
-                  width: 1.5),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 22,
-                      backgroundColor: PortalTone.warning.colors(context).$2,
-                      child: Text(item.$1[0],
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(
-                                  color: PortalTone.warning.colors(context).$1,
-                                  fontWeight: FontWeight.w700)),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(item.$1,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(fontWeight: FontWeight.w700)),
-                          Text('رقم الهوية: ${item.$2}',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant)),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                          color: PortalTone.warning.colors(context).$2,
-                          borderRadius:
-                              BorderRadius.circular(PortalTokens.radiusPanel)),
-                      child: Text('بانتظار',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color:
-                                      PortalTone.warning.colors(context).$1)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Icon(Icons.location_on_outlined,
-                        size: 14,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant),
-                    const SizedBox(width: 4),
-                    Text(item.$3,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          setState(() => _done.add(i));
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: const Text('تم رفض الطلب',
-                                  textAlign: TextAlign.right),
-                              backgroundColor:
-                                  PortalTone.danger.colors(context).$1));
-                        },
-                        icon: const Icon(Icons.close, size: 16),
-                        label: const Text('رفض'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: PortalTone.danger.colors(context).$1,
-                          side: BorderSide(
-                              color: PortalTone.danger.colors(context).$1),
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(PortalTokens.radius)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          setState(() => _done.add(i));
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: const Text('تمت الموافقة ✓',
-                                  textAlign: TextAlign.right),
-                              backgroundColor:
-                                  Theme.of(context).colorScheme.primary));
-                        },
-                        icon: const Icon(Icons.check, size: 16),
-                        label: const Text('موافقة'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              Theme.of(context).colorScheme.primary,
-                          foregroundColor:
-                              Theme.of(context).colorScheme.onPrimary,
-                          minimumSize: const Size(
-                              PortalTokens.target, PortalTokens.target),
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(PortalTokens.radius)),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
   }
 }
 

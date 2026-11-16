@@ -8,7 +8,7 @@ import '../providers/auth_provider.dart';
 import 'auth_redirect.dart';
 import '../views/screens/auth_loading_screen.dart';
 import '../views/screens/login_screen.dart';
-import '../views/screens/phone_enrollment_screen.dart';
+import '../views/screens/enrollment_form_screen.dart';
 import '../views/screens/generator_requests_screen.dart';
 import '../views/screens/account_status_screen.dart';
 import '../providers/tenant_provider.dart';
@@ -60,16 +60,23 @@ class _RouterNotifier extends ChangeNotifier {
     final path = state.uri.path;
     if (_ref.read(credentialFlowProvider) &&
         {'/login', '/register', '/forgot-password', '/account-security'}
-            .contains(path)) return null;
+            .contains(path)) {
+      return null;
+    }
     if (authState.user != null &&
         authState.startupResolved &&
-        authState.needsEmailVerification)
+        authState.needsEmailVerification) {
       return path == '/verify-email' ? null : '/verify-email';
+    }
     if (authState.user == null &&
-        {'/login', '/register', '/forgot-password'}.contains(path)) return null;
+        {'/login', '/register', '/forgot-password'}.contains(path)) {
+      return null;
+    }
     if (path == '/account-security' &&
         authState.profile != null &&
-        authState.startupResolved) return null;
+        authState.startupResolved) {
+      return null;
+    }
     final resolving = !authState.startupResolved ||
         (authState.user != null &&
             authState.profile == null &&
