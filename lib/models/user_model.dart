@@ -4,7 +4,7 @@ enum UserRole { superAdmin, admin, consumer }
 
 enum SubscriptionStatus { active, inactive, pending }
 
-enum ApprovalStatus { pending, approved, rejected }
+enum ApprovalStatus { pending, approved, rejected, suspended }
 
 class UserProfile {
   final String uid;
@@ -42,7 +42,7 @@ class UserProfile {
           ? null
           : normalizedGeneratorId(map['generatorId']),
       rejectionReason: map['rejectionReason'] as String? ?? '',
-      idNumber: map['idNumber'] ?? map['phone'] ?? '',
+      idNumber: map['idNumber'] ?? '',
       phone: map['phone'] ?? '',
       name: map['name'] ?? '',
       address: map['address'] ?? '',
@@ -95,10 +95,8 @@ class UserProfile {
 
   static UserRole _parseRole(dynamic v) {
     final role = (v as String?)?.trim().toLowerCase() ?? '';
-    if (role.contains('super')) return UserRole.superAdmin;
-    if (role.contains('generator') ||
-        role.contains('owner') ||
-        role == 'admin') {
+    if (role == 'super_admin') return UserRole.superAdmin;
+    if (role == 'generator_owner' || role == 'admin') {
       return UserRole.admin;
     }
     return UserRole.consumer;
@@ -121,6 +119,8 @@ class UserProfile {
         return ApprovalStatus.approved;
       case 'rejected':
         return ApprovalStatus.rejected;
+      case 'suspended':
+        return ApprovalStatus.suspended;
       default:
         return ApprovalStatus.pending;
     }

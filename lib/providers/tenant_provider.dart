@@ -95,9 +95,7 @@ final currentGeneratorAccountProvider = StreamProvider<GeneratorAccount>((ref) {
 
 final tenantAccessProvider = Provider<AsyncValue<GeneratorAccount>?>((ref) {
   final state = ref.watch(authProvider);
-  if (state.isDemo ||
-      state.profile == null ||
-      state.profile!.role == UserRole.superAdmin) {
+  if (state.profile == null || state.profile!.role == UserRole.superAdmin) {
     return null;
   }
   return ref.watch(currentGeneratorAccountProvider);

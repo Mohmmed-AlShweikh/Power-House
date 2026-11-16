@@ -60,7 +60,7 @@ Stream<T> retryFirestore<T>(Stream<T> Function() open,
 bool firestoreReady(Ref ref,
     {bool profileRequired = true, bool operational = false}) {
   final state = ref.watch(authProvider);
-  if (state.user == null ||
+  if (state.needsEmailVerification || state.user == null ||
       !state.startupResolved ||
       (profileRequired && state.profile == null)) {
     return false;

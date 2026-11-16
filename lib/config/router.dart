@@ -50,61 +50,40 @@ class _RouterNotifier extends ChangeNotifier {
 
   _RouterNotifier(this._ref) {
     _ref.listen<AuthState>(authProvider, (_, __) => _refresh());
-    _ref.listen<bool>(demoModeProvider, (_, __) => _refresh());
     _ref.listen(tenantAccessProvider, (_, __) => _refresh());
     _ref.listen(credentialFlowProvider, (_, __) => _refresh());
   }
 
   String? redirect(BuildContext context, GoRouterState state) {
     final authState = _ref.read(authProvider);
-    final isDemo = _ref.read(demoModeProvider);
     final tenant = _ref.read(tenantAccessProvider);
     final path = state.uri.path;
-    if (path == '/forgot-password' || path == '/id-register') {
-      if (authState.user == null || _ref.read(credentialFlowProvider)) {
-        return null;
-      }
-    }
     if (_ref.read(credentialFlowProvider) &&
-        {'/credentials', '/account-security', '/onboarding'}.contains(path)) {
-      return null;
-    }
-    // Resume an interrupted ID-first registration without creating another UID.
-    if (authState.startupResolved &&
-        authState.needsRegistration &&
-        authState.user != null &&
-        authState.user!.phoneNumber == null) {
-      return path == '/credentials' ? null : '/credentials';
-    }
-    if (authState.startupResolved &&
-        authState.profile != null &&
-        !authState.isDemo &&
-        authState.needsCredentialCompletion &&
-        path != '/forgot-password') {
-      return path == '/credentials' ? null : '/credentials';
-    }
+        {'/login', '/register', '/forgot-password', '/account-security'}
+            .contains(path)) return null;
+    if (authState.user != null &&
+        authState.startupResolved &&
+        authState.needsEmailVerification)
+      return path == '/verify-email' ? null : '/verify-email';
+    if (authState.user == null &&
+        {'/login', '/register', '/forgot-password'}.contains(path)) return null;
     if (path == '/account-security' &&
         authState.profile != null &&
-        authState.startupResolved) {
-      return null;
-    }
-
+        authState.startupResolved) return null;
     final resolving = !authState.startupResolved ||
         (authState.user != null &&
             authState.profile == null &&
             authState.loading) ||
         (authState.profile != null && (tenant?.isLoading ?? false));
     // Keep the existing form for fast sign-in; never route by an unverified role.
-    if ({'/login', '/phone', '/register'}.contains(path) &&
-        resolving &&
-        !_graceExpired) {
+    if ({'/login', '/register'}.contains(path) && resolving && !_graceExpired) {
       return null;
     }
     return authRedirect(
       path: state.uri.path,
       startupResolved: authState.startupResolved,
       loading: authState.loading,
-      loggedIn: isDemo || authState.user != null,
+      loggedIn: authState.user != null,
       profile: authState.profile,
       needsRegistration: authState.needsRegistration,
       tenantLoading: tenant?.isLoading ?? false,
@@ -132,17 +111,13 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: notifier.redirect,
     routes: [
       GoRoute(
-          path: '/credentials',
+          path: '/verify-email',
           builder: (_, __) =>
-              const CredentialScreen(mode: CredentialMode.complete)),
+              const CredentialScreen(mode: CredentialMode.verify)),
       GoRoute(
           path: '/forgot-password',
           builder: (_, __) =>
               const CredentialScreen(mode: CredentialMode.recover)),
-      GoRoute(
-          path: '/id-register',
-          builder: (_, __) =>
-              const CredentialScreen(mode: CredentialMode.create)),
       GoRoute(
           path: '/account-security',
           builder: (_, __) =>
@@ -150,9 +125,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/splash', builder: (_, __) => const AuthLoadingScreen()),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(
-          path: '/register', builder: (_, __) => const PhoneEnrollmentScreen()),
-      GoRoute(
-          path: '/phone', builder: (_, __) => const PhoneEnrollmentScreen()),
+          path: '/register',
+          builder: (_, __) =>
+              const CredentialScreen(mode: CredentialMode.create)),
       GoRoute(
           path: '/onboarding',
           builder: (_, __) => const EnrollmentFormScreen()),

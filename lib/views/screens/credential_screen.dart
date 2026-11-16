@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/enrollment_provider.dart';
 import '../../models/user_model.dart';
 import '../../services/credential_service.dart';
 import '../../theme/portal_tokens.dart';
 import '../widgets/portal_components.dart';
 
-enum CredentialMode { complete, recover, create, manage }
+enum CredentialMode { login, create, recover, verify, manage }
 
 class CredentialScreen extends ConsumerStatefulWidget {
   final CredentialMode mode;
@@ -17,35 +18,22 @@ class CredentialScreen extends ConsumerStatefulWidget {
 }
 
 class _CredentialScreenState extends ConsumerState<CredentialScreen> {
-  final id = TextEditingController(),
-      phone = TextEditingController(),
+  final email = TextEditingController(),
       password = TextEditingController(),
       confirm = TextEditingController(),
-      current = TextEditingController(),
-      code = TextEditingController();
-  String? verificationId, error;
-  bool busy = false, authenticated = false, matched = false, created = false;
-  PhoneOperation operation = PhoneOperation.signIn;
-  CredentialService? pendingPhone;
+      current = TextEditingController();
+  final phone = TextEditingController(), id = TextEditingController();
+  bool busy = false, reauthenticated = false;
+  String? error, notice;
   CredentialService get service => ref.read(credentialServiceProvider);
-  bool get recovery => widget.mode == CredentialMode.recover;
-  bool get management => widget.mode == CredentialMode.manage;
   @override
   void initState() {
     super.initState();
     final profile = ref.read(authProvider).profile;
-    if (!recovery && widget.mode != CredentialMode.create) {
-      final recorded = profile?.idNumber ?? '';
-      final emailId = service.email.split('@').first;
-      id.text = service.hasPassword && validNationalId(emailId)
-          ? emailId
-          : (validNationalId(recorded) ? recorded : '');
-      phone.text = service.hasPhone ? service.phone : profile?.phone ?? '';
-    }
+    phone.text = profile?.phone ?? '';
+    id.text = profile?.idNumber ?? '';
     password.addListener(refresh);
     confirm.addListener(refresh);
-    id.addListener(refresh);
-    phone.addListener(refresh);
   }
 
   void refresh() {
@@ -54,299 +42,242 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> {
 
   @override
   void dispose() {
-    pendingPhone?.cancelPhone();
-    for (final c in [id, phone, password, confirm, current, code]) {
+    for (final c in [email, password, confirm, current, phone, id]) {
       c.dispose();
     }
     super.dispose();
   }
 
-  void hold() => ref.read(credentialFlowProvider.notifier).state = true;
   Future<void> run(Future<void> Function() action) async {
     if (busy) return;
     setState(() {
       busy = true;
       error = null;
+      notice = null;
     });
+    final flow = ref.read(credentialFlowProvider.notifier);
+    flow.state = true;
     try {
       await action();
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          error = credentialError(e);
-          if (management) authenticated = false;
-        });
-      }
+      if (mounted) setState(() => error = credentialError(e));
     } finally {
+      flow.state = false;
       if (mounted) setState(() => busy = false);
     }
   }
 
-  Future<void> send(PhoneOperation op) => run(() async {
-        hold();
-        final targetPhone = op == PhoneOperation.reauthenticate
-            ? service.phone
-            : phone.text.trim();
-        if (!RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(targetPhone)) {
-          throw const CredentialFailure('أدخل الهاتف مع رمز الدولة');
-        }
-        if (recovery && !validNationalId(id.text.trim())) {
-          throw const CredentialFailure('أدخل رقم هوية من 9 أو 10 أرقام');
-        }
-        if (widget.mode == CredentialMode.create && !created) {
-          await service.createId(id.text.trim(), password.text, confirm.text);
-          created = true;
-        }
-        operation = op;
-        pendingPhone = service;
-        await service.sendPhone(
-            op == PhoneOperation.reauthenticate
-                ? service.phone
-                : phone.text.trim(),
-            op, verified: () {
-          if (mounted) {
-            setState(() => busy = false);
-            run(afterPhoneVerified);
-          }
-        }, sent: (value) {
-          if (mounted) {
-            setState(() {
-              verificationId = value;
-              busy = false;
-            });
-          }
-        }, failed: (message) {
-          if (mounted) {
-            setState(() {
-              error = message;
-              busy = false;
-            });
-          }
-        });
-      });
-  Future<void> verify() => run(() async {
-        if (!RegExp(r'^\d{6}$').hasMatch(code.text.trim())) {
-          throw const CredentialFailure('أدخل رمز التحقق المكوّن من 6 أرقام');
-        }
-        await service.verifyPhone(verificationId!, code.text.trim(), operation);
-        await afterPhoneVerified();
-      });
-  Future<void> afterPhoneVerified() async {
-    verificationId = null;
-    code.clear();
-    if (recovery) {
-      matched = await service.matchRecoveryId(id.text.trim());
-      if (!matched) {
-        await ref.read(authProvider.notifier).signOut();
-        throw const CredentialFailure(genericAuthError);
-      }
-    } else if (operation == PhoneOperation.reauthenticate) {
-      authenticated = true;
-    } else if (widget.mode == CredentialMode.create ||
-        (widget.mode == CredentialMode.complete &&
-            ref.read(authProvider).profile == null)) {
-      await ref.read(authProvider.notifier).reloadProfile();
-      ref.read(credentialFlowProvider.notifier).state = false;
-      if (mounted) context.go('/onboarding');
-    }
-  }
-
   Future<void> submit() => run(() async {
-        hold();
-        final nationalId = id.text.trim();
-        if (!validNationalId(nationalId)) {
-          throw const CredentialFailure('أدخل رقم هوية من 9 أو 10 أرقام');
-        }
-        if (recovery) {
-          if (!matched) throw const CredentialFailure(genericAuthError);
-          await service.resetPassword(nationalId, password.text, confirm.text);
-          await ref.read(authProvider.notifier).signOut();
-          ref.read(loginNoticeProvider.notifier).state =
-              'تم تغيير كلمة المرور. سجّل الدخول بكلمة المرور الجديدة.';
-          ref.read(credentialFlowProvider.notifier).state = false;
-          if (mounted) context.go('/login');
-          return;
-        }
-        if (!service.hasPhone || phone.text.trim() != service.phone) {
-          throw const CredentialFailure('تحقق من رقم الهاتف أولاً');
-        }
-        if (management) {
-          if (!authenticated) {
-            throw const CredentialFailure('أعد التحقق من هويتك أولاً');
-          }
-          if (password.text.isNotEmpty) {
-            final issue = passwordError(
-                password.text, confirm.text, nationalId, phone.text.trim());
-            if (issue != null) throw CredentialFailure(issue);
-          }
-          await service.changeIdentity(nationalId);
-          if (password.text.isNotEmpty) {
-            await service.changePassword(
-                password.text, confirm.text, nationalId);
-          }
-        } else {
-          if (!service.hasPassword) {
-            await service.linkId(nationalId, password.text, confirm.text);
-          }
-          await service.changeIdentity(nationalId);
-        }
-        await ref.read(authProvider.notifier).reloadProfile();
-        ref.read(credentialFlowProvider.notifier).state = false;
-        if (mounted) {
-          context.go(ref.read(authProvider).profile?.role == UserRole.admin
-              ? '/admin'
-              : '/consumer');
+        switch (widget.mode) {
+          case CredentialMode.login:
+            final problem = await ref
+                .read(authProvider.notifier)
+                .login(email.text.trim(), password.text);
+            if (problem != null) throw CredentialFailure(problem);
+          case CredentialMode.create:
+            await service.registerEmail(
+                email.text.trim(), password.text, confirm.text);
+            await ref.read(authProvider.notifier).reloadProfile();
+          case CredentialMode.recover:
+            await service.sendReset(email.text.trim());
+            if (mounted)
+              setState(() => notice =
+                  'إذا كان البريد مسجلاً فستصلك رسالة لإعادة تعيين كلمة المرور. راجع أيضاً البريد غير المرغوب.');
+          case CredentialMode.verify:
+            await service.refresh();
+            await ref.read(authProvider.notifier).reloadProfile();
+            if (!service.verified)
+              throw const CredentialFailure(
+                  'لم يتم التحقق بعد. افتح رابط الرسالة ثم أعد المحاولة.');
+          case CredentialMode.manage:
+            if (!reauthenticated)
+              throw const CredentialFailure('تحقق بكلمة المرور الحالية أولاً');
+            if (id.text.isNotEmpty && !validNationalId(id.text.trim()))
+              throw const CredentialFailure(
+                  'الهوية اختيارية؛ أدخل 9 أو 10 أرقام');
+            if (password.text.isNotEmpty) {
+              final issue = passwordError(password.text, confirm.text,
+                  id.text.trim(), phone.text.trim());
+              if (issue != null) throw CredentialFailure(issue);
+              await service.changePassword(
+                  password.text, confirm.text, id.text.trim());
+            }
+            await service.finishAccount(
+                id: id.text.trim(), phone: phone.text.trim());
+            await ref.read(authProvider.notifier).reloadProfile();
+            if (mounted) setState(() => notice = 'تم حفظ بيانات الحساب');
         }
       });
-  Future<void> cancel() async {
-    if (!management) await ref.read(authProvider.notifier).signOut();
-    ref.read(credentialFlowProvider.notifier).state = false;
-    if (mounted) {
-      context.go(management
-          ? (ref.read(authProvider).profile?.role == UserRole.admin
-              ? '/admin'
-              : '/consumer')
-          : '/login');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final needsPassword = recovery
-        ? matched
-        : widget.mode == CredentialMode.create ||
-            management ||
-            !service.hasPassword;
-    return PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, _) {
-          if (!didPop && !busy) cancel();
-        },
-        child: PortalPage(
-            title: recovery
-                ? 'استعادة كلمة المرور'
-                : management
-                    ? 'إعدادات الدخول'
-                    : widget.mode == CredentialMode.create
-                        ? 'التسجيل برقم الهوية'
-                        : 'إكمال طرق الدخول',
-            subtitle: recovery
-                ? 'التحقق من الهاتف المسجّل'
-                : 'حساب واحد بالهاتف والهوية',
-            reserveNavigation: false,
-            children: [
-              if (widget.mode == CredentialMode.complete)
-                const Text(
-                    'أكمل ربط الهاتف والهوية مرة واحدة للدخول بالطريقتين إلى حسابك نفسه.'),
-              TextField(
-                  key: const ValueKey('credential-id'),
-                  controller: id,
-                  enabled: !busy && !matched && !created,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'رقم الهوية')),
-              const SizedBox(height: PortalTokens.lg),
-              if (!matched) ...[
-                TextField(
-                    key: const ValueKey('credential-phone'),
-                    controller: phone,
-                    enabled: !busy && verificationId == null,
-                    textDirection: TextDirection.ltr,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                        labelText: 'رقم الهاتف مع رمز الدولة')),
-                const SizedBox(height: PortalTokens.lg),
-              ],
-              if (management && !authenticated) ...[
-                TextField(
-                    controller: current,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                        labelText: 'كلمة المرور الحالية')),
-                PortalActionButton(
-                    label: 'تحقق بكلمة المرور الحالية',
-                    busy: busy,
-                    onPressed: () => run(() async {
-                          hold();
+    final mode = widget.mode;
+    final title = switch (mode) {
+      CredentialMode.login => 'تسجيل الدخول',
+      CredentialMode.create => 'إنشاء حساب',
+      CredentialMode.recover => 'استعادة كلمة المرور',
+      CredentialMode.verify => 'تحقق من بريدك',
+      CredentialMode.manage => 'إعدادات الحساب'
+    };
+    final passwordFields = {
+      CredentialMode.login,
+      CredentialMode.create,
+      CredentialMode.manage
+    }.contains(mode);
+    return PortalPage(
+        title: title,
+        subtitle: 'بوابة المولدات',
+        reserveNavigation: false,
+        children: [
+          if (mode == CredentialMode.login &&
+              ref.watch(loginNoticeProvider) != null)
+            PortalPanel(child: Text(ref.watch(loginNoticeProvider)!)),
+          if (mode == CredentialMode.create) ...[
+            const Text(
+                'التسجيل مجاني ضمن حدود الخدمات المجانية. الهاتف والهوية بيانات تواصل فقط.'),
+            Row(children: [
+              for (final role in [UserRole.consumer, UserRole.admin])
+                Expanded(
+                    child: Padding(
+                        padding: const EdgeInsets.all(PortalTokens.xs),
+                        child: OutlinedButton.icon(
+                            onPressed: busy
+                                ? null
+                                : () => ref
+                                    .read(enrollmentRoleProvider.notifier)
+                                    .state = role,
+                            icon: Icon(ref.watch(enrollmentRoleProvider) == role
+                                ? Icons.radio_button_checked
+                                : Icons.radio_button_off),
+                            label: Text(role == UserRole.admin
+                                ? 'صاحب مولد'
+                                : 'مشترك'))))
+            ]),
+          ],
+          if (mode == CredentialMode.verify) ...[
+            const PortalSection('افتح رسالة التحقق في بريدك'),
+            Text(service.email, textDirection: TextDirection.ltr),
+            const Text(
+                'بعد فتح الرابط اضغط «تحققت من البريد». لا نستخدم رسائل SMS.'),
+            TextButton(
+                onPressed: busy
+                    ? null
+                    : () => run(() async {
+                          await service.sendVerification();
+                          if (mounted)
+                            setState(() => notice =
+                                'أُرسلت رسالة التحقق. راجع البريد غير المرغوب أيضاً.');
+                        }),
+                child: const Text('إعادة إرسال رسالة التحقق')),
+          ] else if (mode != CredentialMode.manage) ...[
+            TextField(
+                key: const ValueKey('email'),
+                controller: email,
+                enabled: !busy,
+                keyboardType: TextInputType.emailAddress,
+                textDirection: TextDirection.ltr,
+                autofillHints: const [AutofillHints.email],
+                decoration: const InputDecoration(
+                    labelText: 'البريد الإلكتروني الحقيقي')),
+            const SizedBox(height: PortalTokens.lg),
+          ],
+          if (mode == CredentialMode.manage) ...[
+            Text(service.email, textDirection: TextDirection.ltr),
+            TextField(
+                controller: current,
+                obscureText: true,
+                decoration:
+                    const InputDecoration(labelText: 'كلمة المرور الحالية')),
+            TextButton(
+                onPressed: busy
+                    ? null
+                    : () => run(() async {
                           await service.reauthenticatePassword(current.text);
-                          authenticated = true;
-                        })),
-                if (service.hasPhone)
-                  TextButton(
-                      onPressed: busy
-                          ? null
-                          : () => send(PhoneOperation.reauthenticate),
-                      child:
-                          const Text('التحقق برمز الهاتف المسجّل بدلاً منها')),
-              ],
-              if (recovery && matched) const PortalSection('كلمة مرور جديدة'),
-              if (needsPassword) ...[
-                TextField(
-                    key: const ValueKey('credential-password'),
-                    controller: password,
-                    obscureText: true,
-                    decoration: InputDecoration(
-                        labelText: management
-                            ? 'كلمة مرور جديدة (اختياري)'
-                            : 'كلمة المرور الجديدة')),
-                const SizedBox(height: PortalTokens.sm),
-                const Text(passwordRules),
-                if (password.text.isNotEmpty)
-                  Text(passwordError(password.text, confirm.text,
-                          id.text.trim(), phone.text.trim()) ??
-                      'كلمة المرور تستوفي الشروط'),
-                const SizedBox(height: PortalTokens.lg),
-                TextField(
-                    key: const ValueKey('credential-confirm'),
-                    controller: confirm,
-                    obscureText: true,
-                    decoration:
-                        const InputDecoration(labelText: 'تأكيد كلمة المرور')),
-                const SizedBox(height: PortalTokens.lg),
-              ],
-              if (verificationId != null) ...[
-                TextField(
-                    key: const ValueKey('credential-otp'),
-                    controller: code,
-                    textDirection: TextDirection.ltr,
-                    keyboardType: TextInputType.number,
-                    maxLength: 6,
-                    decoration: const InputDecoration(labelText: 'رمز التحقق')),
-                PortalActionButton(
-                    label: 'تحقق من الرمز', busy: busy, onPressed: verify),
-                TextButton(
-                    onPressed: busy
-                        ? null
-                        : () => setState(() {
-                              verificationId = null;
-                              code.clear();
-                            }),
-                    child: const Text('تعديل الرقم أو طلب رمز جديد')),
-              ] else if ((recovery && !matched) ||
-                  widget.mode == CredentialMode.create ||
-                  (!recovery &&
-                      (!service.hasPhone ||
-                          phone.text.trim() != service.phone)))
-                PortalActionButton(
-                    label: 'إرسال رمز التحقق',
-                    busy: busy,
-                    onPressed: management && !authenticated
-                        ? null
-                        : () => send(recovery
-                            ? PhoneOperation.signIn
-                            : management
-                                ? PhoneOperation.change
-                                : PhoneOperation.link)),
-              if (error != null) PortalErrorState(error!),
-              if ((recovery && matched) ||
-                  management ||
-                  widget.mode == CredentialMode.complete)
-                PortalActionButton(
-                    label: recovery ? 'حفظ كلمة المرور' : 'حفظ ومتابعة',
-                    busy: busy,
-                    onPressed: submit),
-              TextButton(
-                  onPressed: busy ? null : cancel,
-                  child: Text(management ? 'رجوع' : 'العودة إلى الدخول')),
-            ]));
+                          if (mounted) setState(() => reauthenticated = true);
+                        }),
+                child: const Text('التحقق من الحساب')),
+            TextField(
+                key: const ValueKey('contact-phone'),
+                controller: phone,
+                keyboardType: TextInputType.phone,
+                maxLength: 32,
+                decoration: const InputDecoration(
+                    labelText: 'هاتف التواصل (غير متحقق منه)')),
+            TextField(
+                key: const ValueKey('contact-id'),
+                controller: id,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                    labelText: 'رقم الهوية (اختياري وخاص)')),
+          ],
+          if (passwordFields) ...[
+            TextField(
+                key: const ValueKey('password'),
+                controller: password,
+                obscureText: true,
+                enabled: !busy,
+                autofillHints: mode == CredentialMode.login
+                    ? const [AutofillHints.password]
+                    : null,
+                decoration: InputDecoration(
+                    labelText: mode == CredentialMode.manage
+                        ? 'كلمة مرور جديدة (اختياري)'
+                        : 'كلمة المرور')),
+            if (mode != CredentialMode.login) ...[
+              const Text(passwordRules),
+              if (password.text.isNotEmpty)
+                Text(passwordError(password.text, confirm.text, id.text.trim(),
+                        phone.text.trim()) ??
+                    'كلمة المرور تستوفي الشروط'),
+              TextField(
+                  key: const ValueKey('password-confirm'),
+                  controller: confirm,
+                  obscureText: true,
+                  enabled: !busy,
+                  decoration:
+                      const InputDecoration(labelText: 'تأكيد كلمة المرور')),
+            ],
+          ],
+          if (error != null) PortalErrorState(error!),
+          if (notice != null) PortalPanel(child: Text(notice!)),
+          const SizedBox(height: PortalTokens.lg),
+          PortalActionButton(
+              label: switch (mode) {
+                CredentialMode.login => 'تسجيل الدخول',
+                CredentialMode.create => 'إنشاء الحساب وإرسال التحقق',
+                CredentialMode.recover => 'إرسال رابط الاستعادة',
+                CredentialMode.verify => 'تحققت من البريد',
+                CredentialMode.manage => 'حفظ التغييرات'
+              },
+              busy: busy,
+              onPressed: submit),
+          if (mode == CredentialMode.login) ...[
+            TextButton(
+                onPressed: () => context.go('/forgot-password'),
+                child: const Text('نسيت كلمة المرور؟')),
+            TextButton(
+                onPressed: () => context.go('/register'),
+                child: const Text('ليس لديك حساب؟ أنشئ حساباً')),
+          ] else if (mode == CredentialMode.verify ||
+              mode == CredentialMode.manage)
+            TextButton(
+                onPressed: busy
+                    ? null
+                    : () async {
+                        await ref.read(authProvider.notifier).signOut();
+                        if (context.mounted) context.go('/login');
+                      },
+                child: const Text('تسجيل الخروج'))
+          else
+            TextButton(
+                onPressed: () => context.go('/login'),
+                child: const Text('العودة إلى الدخول')),
+          if (mode == CredentialMode.manage)
+            TextButton(
+                onPressed: () => context.go(
+                    ref.read(authProvider).profile?.role == UserRole.admin
+                        ? '/admin'
+                        : '/consumer'),
+                child: const Text('رجوع')),
+        ]);
   }
 }

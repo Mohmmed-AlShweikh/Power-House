@@ -7,6 +7,8 @@ class PhoneUser implements User {
   final String uid;
   @override
   final String? phoneNumber;
+  @override String? get email=>'test@example.com';
+  @override bool get emailVerified=>true;
   PhoneUser(this.uid, [this.phoneNumber = '+970591234567']);
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -19,13 +21,13 @@ class MultiAuthFixture extends StateNotifier<AuthState>
       [super.initial = const AuthState(loading: false, startupResolved: true)]);
   void replace(AuthState value) => state = value;
   @override
-  Future<void> enrollOwner(String name, String sector) async {
+  Future<void> enrollOwner(String name, String sector, {String phone='',String idNumber=''}) async {
     submittedName = name;
     submittedSector = sector;
   }
 
   @override
-  Future<void> enrollConsumer(String name, String gid) async {
+  Future<void> enrollConsumer(String name, String gid, {String phone='',String idNumber=''}) async {
     submittedName = name;
     submittedGenerator = gid;
   }

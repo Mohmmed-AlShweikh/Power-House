@@ -46,7 +46,7 @@ String? authRedirect({
   } else if (!loading &&
       path != '/login' &&
       path != '/register' &&
-      path != '/phone') {
+      path != '/forgot-password') {
     return '/login';
   }
   return null;

@@ -1,172 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../services/credential_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/enrollment_provider.dart';
 import '../../providers/tenant_provider.dart';
-import '../../services/phone_auth_service.dart';
 import '../../theme/portal_tokens.dart';
 import '../widgets/portal_components.dart';
-
-class PhoneEnrollmentScreen extends ConsumerStatefulWidget {
-  const PhoneEnrollmentScreen({super.key});
-  @override
-  ConsumerState<PhoneEnrollmentScreen> createState() =>
-      _PhoneEnrollmentScreenState();
-}
-
-class _PhoneEnrollmentScreenState extends ConsumerState<PhoneEnrollmentScreen> {
-  final phone = TextEditingController(text: '+970');
-  final code = TextEditingController();
-  String? verificationId, error;
-  bool busy = false;
-  PhoneGateway? pendingGateway;
-  @override
-  void dispose() {
-    pendingGateway?.cancel();
-    phone.dispose();
-    code.dispose();
-    super.dispose();
-  }
-
-  Future<void> send() async {
-    if (!RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(phone.text.trim())) {
-      setState(() => error = 'أدخل رقم الهاتف مع رمز الدولة، مثل +970');
-      return;
-    }
-    setState(() {
-      busy = true;
-      error = null;
-    });
-    try {
-      pendingGateway = ref.read(phoneGatewayProvider);
-      await pendingGateway!.send(phone.text.trim(), codeSent: (id) {
-        if (mounted) {
-          setState(() {
-            verificationId = id;
-            busy = false;
-          });
-        }
-      }, failed: (message) {
-        if (mounted) {
-          setState(() {
-            error = message;
-            busy = false;
-          });
-        }
-      });
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          error = credentialError(e);
-          busy = false;
-        });
-      }
-    }
-  }
-
-  Future<void> verify() async {
-    if (!RegExp(r'^\d{6}$').hasMatch(code.text.trim())) {
-      setState(() => error = 'أدخل رمز التحقق المكوّن من 6 أرقام');
-      return;
-    }
-    setState(() {
-      busy = true;
-      error = null;
-    });
-    try {
-      await ref
-          .read(phoneGatewayProvider)
-          .verify(verificationId!, code.text.trim());
-    } catch (e) {
-      if (mounted) {
-        setState(() => error = credentialError(e));
-      }
-    } finally {
-      if (mounted) setState(() => busy = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final role = ref.watch(enrollmentRoleProvider);
-    return PortalPage(
-        title: 'بوابة المولدات',
-        subtitle: 'التحقق من الهاتف',
-        reserveNavigation: false,
-        children: [
-          const PortalSection('نوع الحساب'),
-          Row(children: [
-            for (final item in [
-              (UserRole.consumer, 'مشترك'),
-              (UserRole.admin, 'صاحب مولد')
-            ])
-              Expanded(
-                  child: Padding(
-                      padding: const EdgeInsets.all(PortalTokens.xs),
-                      child: OutlinedButton.icon(
-                          onPressed: busy
-                              ? null
-                              : () => ref
-                                  .read(enrollmentRoleProvider.notifier)
-                                  .state = item.$1,
-                          icon: Icon(role == item.$1
-                              ? Icons.radio_button_checked
-                              : Icons.radio_button_off),
-                          label: Text(item.$2))))
-          ]),
-          const SizedBox(height: PortalTokens.xl),
-          PortalPanel(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                TextField(
-                    controller: phone,
-                    enabled: verificationId == null && !busy,
-                    textDirection: TextDirection.ltr,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
-                        labelText: 'رقم الهاتف مع رمز الدولة')),
-                const SizedBox(height: PortalTokens.lg),
-                if (verificationId != null) ...[
-                  TextField(
-                      controller: code,
-                      textDirection: TextDirection.ltr,
-                      keyboardType: TextInputType.number,
-                      maxLength: 6,
-                      decoration:
-                          const InputDecoration(labelText: 'رمز التحقق')),
-                  const SizedBox(height: PortalTokens.lg)
-                ],
-                if (error != null) ...[
-                  PortalErrorState(error!),
-                  const SizedBox(height: PortalTokens.lg)
-                ],
-                PortalActionButton(
-                    label: verificationId == null
-                        ? 'إرسال رمز التحقق'
-                        : 'تحقق ومتابعة',
-                    busy: busy,
-                    onPressed: verificationId == null ? send : verify),
-                if (verificationId != null)
-                  TextButton(
-                      onPressed: busy
-                          ? null
-                          : () => setState(() {
-                                verificationId = null;
-                                code.clear();
-                                error = null;
-                              }),
-                      child: const Text('تعديل الرقم أو إعادة إرسال الرمز')),
-              ])),
-          TextButton(
-              onPressed: () => context.go('/login'),
-              child: const Text('الدخول برقم الهوية')),
-        ]);
-  }
-}
 
 class EnrollmentFormScreen extends ConsumerStatefulWidget {
   const EnrollmentFormScreen({super.key});
@@ -177,6 +17,7 @@ class EnrollmentFormScreen extends ConsumerStatefulWidget {
 
 class _EnrollmentFormScreenState extends ConsumerState<EnrollmentFormScreen> {
   final name = TextEditingController(), sector = TextEditingController();
+  final contactPhone = TextEditingController();
   final nationalId = TextEditingController(),
       password = TextEditingController(),
       confirm = TextEditingController();
@@ -187,6 +28,7 @@ class _EnrollmentFormScreenState extends ConsumerState<EnrollmentFormScreen> {
   void dispose() {
     name.dispose();
     sector.dispose();
+    contactPhone.dispose();
     nationalId.dispose();
     password.dispose();
     confirm.dispose();
@@ -194,6 +36,8 @@ class _EnrollmentFormScreenState extends ConsumerState<EnrollmentFormScreen> {
   }
 
   Future<void> submit(bool owner) async {
+    if((nationalId.text.trim().isNotEmpty&&!validNationalId(nationalId.text.trim()))||contactPhone.text.length>32){setState(()=>error='الهوية اختيارية ومن 9 أو 10 أرقام؛ تحقق من بيانات التواصل');return;}
+
     if (name.text.trim().isEmpty ||
         (owner && sector.text.trim().isEmpty) ||
         (!owner && selectedId.isEmpty)) {
@@ -218,16 +62,13 @@ class _EnrollmentFormScreenState extends ConsumerState<EnrollmentFormScreen> {
     final flow = ref.read(credentialFlowProvider.notifier);
     flow.state = true;
     try {
-      final credentials = ref.read(credentialServiceProvider);
-      if (!credentials.hasPassword) {
-        await credentials.linkId(
-            nationalId.text.trim(), password.text, confirm.text);
-      }
       final auth = ref.read(authProvider.notifier);
       if (owner) {
-        await auth.enrollOwner(name.text.trim(), sector.text.trim());
+        await auth.enrollOwner(name.text.trim(), sector.text.trim(),
+            phone: contactPhone.text.trim(), idNumber: nationalId.text.trim());
       } else {
-        await auth.enrollConsumer(name.text.trim(), selectedId);
+        await auth.enrollConsumer(name.text.trim(), selectedId,
+            phone: contactPhone.text.trim(), idNumber: nationalId.text.trim());
       }
     } catch (e) {
       if (mounted) {
@@ -248,46 +89,22 @@ class _EnrollmentFormScreenState extends ConsumerState<EnrollmentFormScreen> {
         reserveNavigation: false,
         children: [
           PortalLabelValue(
-              label: 'الهاتف المتحقق منه',
-              value: ref.watch(authProvider).user?.phoneNumber ?? '—'),
+              label: 'البريد الإلكتروني',
+              value: ref.watch(authProvider).user?.email ?? '—'),
           const SizedBox(height: PortalTokens.lg),
           PortalInput(
               label: owner ? 'اسم المولد' : 'الاسم الكامل', controller: name),
           const SizedBox(height: PortalTokens.lg),
-          if (!ref.watch(credentialServiceProvider).hasPassword) ...[
-            PortalInput(
-                label: 'رقم الهوية',
-                controller: nationalId,
-                keyboardType: TextInputType.number),
-            const SizedBox(height: PortalTokens.lg),
-            StatefulBuilder(
-                builder: (context, update) => Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          TextField(
-                              controller: password,
-                              obscureText: true,
-                              onChanged: (_) => update(() {}),
-                              decoration: const InputDecoration(
-                                  labelText: 'كلمة المرور')),
-                          const Text(passwordRules),
-                          if (password.text.isNotEmpty)
-                            Text(passwordError(
-                                    password.text,
-                                    confirm.text,
-                                    nationalId.text.trim(),
-                                    ref.read(authProvider).user?.phoneNumber ??
-                                        '') ??
-                                'كلمة المرور تستوفي الشروط'),
-                          TextField(
-                              controller: confirm,
-                              obscureText: true,
-                              onChanged: (_) => update(() {}),
-                              decoration: const InputDecoration(
-                                  labelText: 'تأكيد كلمة المرور')),
-                        ])),
-            const SizedBox(height: PortalTokens.lg),
-          ],
+          PortalInput(
+              label: 'هاتف التواصل (اختياري وغير متحقق منه)',
+              controller: contactPhone,
+              keyboardType: TextInputType.phone),
+          const SizedBox(height: PortalTokens.lg),
+          PortalInput(
+              label: 'رقم الهوية (اختياري وخاص)',
+              controller: nationalId,
+              keyboardType: TextInputType.number),
+          const SizedBox(height: PortalTokens.lg),
           if (owner)
             PortalInput(label: 'القطاع / الحي', controller: sector)
           else ...[

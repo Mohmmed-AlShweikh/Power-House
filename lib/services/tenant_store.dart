@@ -55,7 +55,7 @@ class TenantStore {
   }
 
   void _validateEnrollment(String phone, String name, [String? sector]) {
-    if (!RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(phone) ||
+    if (phone.length > 32 ||
         name.trim().isEmpty ||
         name.trim().length > 120 ||
         (sector != null &&
@@ -96,7 +96,8 @@ class TenantStore {
       required String phone,
       required String name,
       required String sector,
-      String? idNumber}) async {
+      String? idNumber,
+      String? email}) async {
     _validateEnrollment(phone, name, sector);
     if (currentUid() != uid) throw StateError('هوية غير مطابقة');
     final user = db.collection('users').doc(uid);
@@ -108,13 +109,11 @@ class TenantStore {
     }
     final batch = db.batch();
     final now = DateTime.now().millisecondsSinceEpoch;
-    if (idNumber != null) {
-      batch.set(db.collection('idIndex').doc(idNumber), {'uid': uid});
-    }
     batch.set(user, {
       'name': name.trim(),
       if (idNumber != null) 'idNumber': idNumber,
-      if (idNumber != null) 'credentialVersion': 1,
+      'credentialVersion': 2,
+      if (email != null) 'email': email,
       'phone': phone,
       'address': sector.trim(),
       'role': 'generator_owner',
@@ -143,7 +142,8 @@ class TenantStore {
       required String phone,
       required String name,
       required String generatorId,
-      String? idNumber}) async {
+      String? idNumber,
+      String? email}) async {
     _validateEnrollment(phone, name);
     if (generatorId.isEmpty || generatorId.contains('/')) {
       throw ArgumentError('مولد غير صحيح');
@@ -158,13 +158,11 @@ class TenantStore {
       throw StateError('هذا المولد غير متاح للتسجيل');
     }
     final batch = db.batch();
-    if (idNumber != null) {
-      batch.set(db.collection('idIndex').doc(idNumber), {'uid': uid});
-    }
     batch.set(user, {
       'name': name.trim(),
       if (idNumber != null) 'idNumber': idNumber,
-      if (idNumber != null) 'credentialVersion': 1,
+      'credentialVersion': 2,
+      if (email != null) 'email': email,
       'phone': phone,
       'role': 'user',
       'generatorId': generatorId,
@@ -198,7 +196,9 @@ class TenantStore {
       {String reason = '', String? subscriptionStatus}) async {
     final who = await actor();
     if (!who.superAdmin) throw StateError('للمشرف العام فقط');
-    if (status == GeneratorApproval.rejected && reason.trim().isEmpty) {
+    if ([GeneratorApproval.rejected, GeneratorApproval.suspended]
+            .contains(status) &&
+        reason.trim().isEmpty) {
       throw ArgumentError('سبب الرفض مطلوب');
     }
     final ref = db.collection('generators').doc(gid);
