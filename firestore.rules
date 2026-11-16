@@ -111,6 +111,17 @@ service cloud.firestore {
           'isOn', 'pricePerKwh', 'lastChanged', 'lastOnAt', 'lastOffAt', 'scheduledOnAt', 'scheduledOffAt']));
       allow delete: if superAdmin();
     }
+    match /billingSettings/{id} {
+      allow read: if approved() && gid(me()) == id;
+      allow create, update: if owner() && gid(me()) == id &&
+        request.resource.data.keys().hasOnly(['generatorId','priceAgorot','minimumUnitsMilli','cycleDays','roundingThresholdAgorot','unitName','updatedBy','updatedAt']) &&
+        request.resource.data.generatorId == id && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time &&
+        request.resource.data.priceAgorot is int && request.resource.data.priceAgorot > 0 && request.resource.data.priceAgorot <= 1000000 &&
+        request.resource.data.minimumUnitsMilli is int && request.resource.data.minimumUnitsMilli >= 0 && request.resource.data.minimumUnitsMilli <= 1000000000 &&
+        request.resource.data.cycleDays is int && request.resource.data.cycleDays >= 1 && request.resource.data.cycleDays <= 366 &&
+        request.resource.data.roundingThresholdAgorot is int && request.resource.data.roundingThresholdAgorot >= 1 && request.resource.data.roundingThresholdAgorot <= 99 &&
+        request.resource.data.unitName is string && request.resource.data.unitName.size() > 0 && request.resource.data.unitName.size() <= 24;
+    }
     match /generatorDirectory/{id} {
       allow read: if signed();
       allow create, update: if superAdmin() &&
@@ -138,11 +149,20 @@ service cloud.firestore {
         payment.reference is string && payment.reference.size()>0 && payment.reference.size()<=80 &&
         payment.method in ['cash','bank','wallet','other'] && validEpoch(payment.submittedAt) && payment.version is int && payment.version>0;
     }
+    function validBillingSnapshot(data) {
+      return !data.keys().hasAny(['amountAgorot','billingSnapshot']) ||
+        (data.amountAgorot is int && data.amountAgorot == data.amount * 100 &&
+         data.billingSnapshot is map && data.billingSnapshot.amountAgorot == data.amountAgorot &&
+         data.billingSnapshot.denominator == 1000 && data.billingSnapshot.rawNumerator is int &&
+         data.billingSnapshot.minimumNumerator is int && data.billingSnapshot.settings.priceAgorot is int &&
+         data.billingSnapshot.settings.minimumUnitsMilli is int && data.billingSnapshot.settings.roundingThresholdAgorot is int);
+    }
     match /bills/{id} {
       allow read: if superAdmin() || (owner() && same(resource.data)) || own(resource.data);
       allow create: if (superAdmin() || (owner() && newTenant(request.resource.data) &&
         consumerMember(request.resource.data.userId,gid(me())))) &&
-        request.resource.data.keys().hasOnly(['generatorId','userId','month','year','amount','kwh','status','createdAt','weekNumber','billingPeriod']) &&
+        request.resource.data.keys().hasOnly(['generatorId','userId','month','year','amount','kwh','status','createdAt','weekNumber','billingPeriod','amountAgorot','billingSnapshot']) &&
+        validBillingSnapshot(request.resource.data) &&
         request.resource.data.amount is int && request.resource.data.amount > 0 &&
         request.resource.data.kwh is number && request.resource.data.kwh >= 0 &&
         request.resource.data.status == 'pending' && request.resource.data.month is string &&
