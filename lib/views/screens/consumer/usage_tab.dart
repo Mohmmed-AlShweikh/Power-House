@@ -132,7 +132,8 @@ class _UsageBody extends StatelessWidget {
     final totalVal = points.fold(0.0, (s, p) => s + p.value);
     final avgVal = points.isEmpty ? 0.0 : totalVal / points.length;
 
-    String unit = period == _Period.daily ? 'kWh/يوم' : 'kWh';
+    final unitName = bills.isEmpty ? 'وحدة' : bills.first.unitName;
+    String unit = period == _Period.daily ? '$unitName/يوم' : unitName;
     String totalLabel = period == _Period.daily
         ? 'آخر ٧ أيام'
         : period == _Period.weekly
@@ -148,7 +149,7 @@ class _UsageBody extends StatelessWidget {
         AnimatedBuilder(
             animation: anim,
             builder: (_, __) => PortalNumber(
-                '${(totalVal * anim.value).toStringAsFixed(1)} kWh',
+                '${(totalVal * anim.value).toStringAsFixed(1)} $unitName',
                 style: text.displaySmall)),
         Text(totalLabel, style: text.bodySmall),
         const SizedBox(height: PortalTokens.lg),
@@ -211,7 +212,7 @@ class _UsageBody extends StatelessWidget {
               : period == _Period.weekly
                   ? 'آخر ٤ أسابيع'
                   : 'الأشهر الأخيرة',
-          trailing: Text('kWh', style: text.labelMedium)),
+          trailing: Text(unitName, style: text.labelMedium)),
       PortalPanel(
           child: AnimatedBuilder(
               animation: anim,

@@ -1,0 +1,28 @@
+{
+  "base": "ad494a9",
+  "branch": "feature/free-tier-billing",
+  "completed_stages": [
+    1,
+    2,
+    3
+  ],
+  "stage2": "inherited implementation, regression verified only",
+  "pending_stages": [
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "flutter_tests_passed": 153,
+  "emulator_tests_passed": 19,
+  "analyzer_errors": 0,
+  "preexisting_warnings": 14,
+  "preexisting_infos": 18,
+  "new_diagnostics": [],
+  "android_debug_build": "passed",
+  "device_tested": false,
+  "production_access": false,
+  "firebase_deployed": false,
+  "partial_payments_added": false
+}

@@ -14,6 +14,9 @@ class Bill {
   final double kwh;
   final BillStatus status;
   final DateTime createdAt;
+  final Map<String, dynamic>? billingSnapshot;
+  String get unitName =>
+      (billingSnapshot?['settings'] as Map?)?['unitName'] as String? ?? 'وحدة';
   final PaymentRecord? payment;
   final String reviewReason;
   final String? reviewedBy;
@@ -34,6 +37,7 @@ class Bill {
     this.reviewedBy,
     this.reviewedAt,
     required this.createdAt,
+    this.billingSnapshot,
   });
 
   factory Bill.fromMap(String id, Map<String, dynamic> map) {
@@ -57,6 +61,9 @@ class Bill {
       reviewedBy: map['reviewedBy'] as String?,
       reviewedAt: map['reviewedAt'] as int?,
       createdAt: _parseDate(map['createdAt']),
+      billingSnapshot: map['billingSnapshot'] is Map
+          ? Map<String, dynamic>.unmodifiable(map['billingSnapshot'])
+          : null,
     );
   }
 
@@ -67,6 +74,8 @@ class Bill {
       'month': month,
       'year': year,
       'amount': amount,
+      if (billingSnapshot != null) 'billingSnapshot': billingSnapshot,
+      if (billingSnapshot != null) 'amountAgorot': amount * 100,
       'kwh': kwh,
       'status': status.name,
       if (payment != null) 'payment': payment!.toMap(),

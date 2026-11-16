@@ -1,3 +1,5 @@
+import 'package:generator_portal/features/billing_settings/models.dart';
+import 'package:generator_portal/features/billing_settings/providers.dart';
 import 'dart:async';
 import '../support/credential_fakes.dart';
 import 'package:generator_portal/services/credential_service.dart';
@@ -168,6 +170,7 @@ void main() {
             createdAt: now.subtract(const Duration(days: 1))),
       ];
       await tester.pumpWidget(ProviderScope(overrides: [
+          billingSettingsProvider.overrideWith((ref) => Stream.value(const BillingSettings())),
         authProvider.overrideWith((ref) => FixtureAuth(UserRole.admin)),
         generatorProvider.overrideWith((ref) => Stream.value(GeneratorState(
             isOn: true,
@@ -313,6 +316,7 @@ void main() {
       Future<void> boot(Widget child) async {
         await tester.pumpWidget(const SizedBox.shrink());
         await tester.pumpWidget(ProviderScope(overrides: [
+          billingSettingsProvider.overrideWith((ref) => Stream.value(const BillingSettings())),
           credentialServiceProvider.overrideWithValue(FakeCredentials()),
           authProvider.overrideWith((ref) => AuthReview(UserRole.consumer))
         ], child: _Frame(brightness: brightness, child: child)));
@@ -364,6 +368,7 @@ void main() {
       final semantics = tester.ensureSemantics();
       await tester.pumpWidget(ProviderScope(
           overrides: [
+          billingSettingsProvider.overrideWith((ref) => Stream.value(const BillingSettings())),
             authProvider
                 .overrideWith((ref) => FixtureAuth(UserRole.superAdmin)),
             generatorRequestsProvider.overrideWith((ref) => Stream.value([
@@ -450,6 +455,7 @@ void main() {
           status: BillStatus.pending,
           createdAt: DateTime(2026, 10, 28));
       await tester.pumpWidget(ProviderScope(overrides: [
+          billingSettingsProvider.overrideWith((ref) => Stream.value(const BillingSettings())),
         authProvider.overrideWith((ref) => FixtureAuth(UserRole.consumer)),
         billsProvider('').overrideWith((ref) => Stream.value([bill])),
         alertsProvider('').overrideWith((ref) => Stream.value(<AppAlert>[])),
@@ -494,6 +500,7 @@ void main() {
         Future<void> boot(Widget child, UserRole role) async {
           await tester.pumpWidget(const SizedBox.shrink());
           await tester.pumpWidget(ProviderScope(overrides: [
+          billingSettingsProvider.overrideWith((ref) => Stream.value(const BillingSettings())),
             authProvider.overrideWith((ref) => FixtureAuth(role)),
             generatorRequestsProvider
                 .overrideWith((ref) => fixture(state, <GeneratorAccount>[])),

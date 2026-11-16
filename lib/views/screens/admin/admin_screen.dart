@@ -1,3 +1,5 @@
+import '../../../features/billing_settings/models.dart';
+import '../../../features/billing_settings/providers.dart';
 import '../../../services/firestore_reads.dart';
 import '../../../providers/tenant_provider.dart';
 import 'dart:async';
@@ -156,6 +158,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                                         loading: () => null,
                                         error: (_, __) => null));
                               }),
+                          ListTile(leading: const Icon(Icons.calculate_outlined), title: const Text('إعدادات الفوترة'), onTap: () { Navigator.pop(sheetContext); context.push('/billing-settings'); }),
                           ListTile(
                               leading: const Icon(Icons.brightness_6_outlined),
                               title: const Text('تبديل المظهر'),
@@ -349,7 +352,7 @@ class _DashboardTab extends ConsumerWidget {
               icon: Icons.chat_bubble_outline),
           const Divider(height: PortalTokens.line),
           PortalDataRow(
-              label: 'كWh هذا الشهر',
+              label: 'عدد الفواتير هذا الشهر',
               value: stats.unpaidCount > 0 || stats.paidCount > 0
                   ? '${stats.unpaidCount + stats.paidCount} فاتورة'
                   : '-',
@@ -426,7 +429,7 @@ class _DashboardTab extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
-                Text('السعر الحالي لكل كيلوواط/ساعة',
+                Text('السعر الحالي للوحدة',
                     style: Theme.of(context).textTheme.bodySmall),
                 const SizedBox(height: 8),
                 TextField(
@@ -1294,20 +1297,13 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
   }
 
   void _calculateAmount() {
-    final kwh = double.tryParse(_kwhCtrl.text.trim());
-    if (kwh != null && kwh > 0) {
-      final currentPrice = ref.read(generatorProvider).when(
-            data: (g) => g.pricePerKwh,
-            loading: () => 2.0,
-            error: (_, __) => 2.0,
-          );
-      final calculated = (kwh * currentPrice).round();
-      _amountCtrl.text = calculated.toString();
-      setState(() {});
-    } else {
-      _amountCtrl.clear();
-      setState(() {});
-    }
+    try {
+      final settings = ref.read(billingSettingsProvider).valueOrNull;
+      if(settings == null) { _amountCtrl.clear(); return; }
+      final result = calculateBill(previousMilli: 0, currentMilli: parseFixed(_kwhCtrl.text, 3), settings: settings);
+      _amountCtrl.text = (result.amountAgorot ~/ 100).toString();
+    } catch (_) { _amountCtrl.clear(); }
+    setState(() {});
   }
 
   Future<void> _submit() async {
@@ -1366,7 +1362,8 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
   Widget build(BuildContext context) {
     final month = currentMonthArabic();
     final year = DateTime.now().year;
-    final canSubmit = _idValid && !_submitting && !_checking;
+    final billing = ref.watch(billingSettingsProvider);
+    final canSubmit = _idValid && !_submitting && !_checking && billing.hasValue && !billing.hasError;
 
     return Padding(
       padding: const EdgeInsets.only(
@@ -1601,6 +1598,7 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
             const SizedBox(height: 6),
             _SheetField(
                 controller: _amountCtrl,
+                readOnly: true,
                 hint: 'مثال: 280',
                 icon: Icons.payments_outlined,
                 keyboardType: TextInputType.number),
@@ -1608,7 +1606,7 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
             const SizedBox(height: 14),
 
             // kWh field
-            Text('الاستهلاك الأسبوعي (كيلوواط/ساعة)',
+            Text('الاستهلاك (${billing.valueOrNull?.unitName ?? 'وحدة'})',
                 style: Theme.of(context)
                     .textTheme
                     .bodySmall

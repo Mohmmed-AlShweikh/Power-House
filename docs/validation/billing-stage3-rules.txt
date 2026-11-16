@@ -1,0 +1,29 @@
+✔  firestore: Firestore Emulator UI websocket is running on 9150.
+✔ real email signup starts unverified; email action verifies the same UID (94.863448ms)
+✔ email password reset retains UID and invalidates old password (19.477565ms)
+✔ anonymous and unverified users cannot read data, even with a privileged profile (2267.925261ms)
+✔ verified fresh account can pick approved active directory without a profile; no owner personal data (347.817512ms)
+✔ owner registration is atomic pending pair, contact phone is optional and never verified identity (334.840967ms)
+✔ consumer registration always pending, cannot join suspended or inactive generator (516.241567ms)
+✔ registration rejects unverified or mismatched email and synthetic identities (475.581503ms)
+✔ self edits cannot approve, escalate, change generator or paid subscription (556.942198ms)
+✔ owners read/approve only consumers from their generator, suspension/rejection require reason (478.807109ms)
+✔ cross-generator bill and complaint reads are denied, own queries succeed (358.162741ms)
+✔ consumer records full payment but cannot approve it or submit for another user (578.280711ms)
+✔ payment validation blocks images, wrong amounts, invalid method, future dates and oversized reference (501.339572ms)
+✔ owner approval is immutable and cannot be repeated or reversed after payment (347.7607ms)
+✔ rejection requires reason; consumer can correct and resubmit; cross-tenant reviewer denied (817.195497ms)
+✔ direct paid status without a submitted payment and forged reviewer are denied (433.9767ms)
+✔ super-admin suspension blocks operational reads and directory projection follows private document (437.856091ms)
+✔ concurrent owner reviews commit one decision and one feedback record (516.356445ms)
+✔ billing settings owner only, validated integer money, cross-tenant denied (960.412808ms)
+✔ new invoice snapshot is retained and cannot be edited by payment actors (359.033268ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10578.574226
+✔  Script exited successfully (code 0)

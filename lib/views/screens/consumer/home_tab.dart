@@ -18,6 +18,7 @@ class HomeTab extends ConsumerWidget {
     final theme = Theme.of(context);
 
     final genAsync = ref.watch(generatorProvider);
+    final unitName = genAsync.valueOrNull?.unitName ?? 'وحدة';
     final isOn = genAsync.when(
         data: (g) => g.isOn, loading: () => true, error: (_, __) => false);
     final lastChanged = genAsync.when(
@@ -53,11 +54,11 @@ class HomeTab extends ConsumerWidget {
     );
 
     final totalKwh = currentMonthBill != null
-        ? '${currentMonthBill.kwh.toStringAsFixed(0)} kWh'
+        ? '${currentMonthBill.kwh.toStringAsFixed(0)} $unitName'
         : billsAsync.when(
-            data: (_) => '— kWh',
-            loading: () => '… kWh',
-            error: (_, __) => '— kWh');
+            data: (_) => '— $unitName',
+            loading: () => '… $unitName',
+            error: (_, __) => '— $unitName');
 
     final billAmount = currentMonthBill != null
         ? '₪ ${currentMonthBill.amount}'
@@ -66,10 +67,10 @@ class HomeTab extends ConsumerWidget {
 
     final dailyKwh = consumptionAsync.when(
         data: (c) => c.dailyUsage > 0
-            ? '${c.dailyUsage.toStringAsFixed(1)} kWh'
-            : '— kWh',
-        loading: () => '… kWh',
-        error: (_, __) => '— kWh');
+            ? '${c.dailyUsage.toStringAsFixed(1)} $unitName'
+            : '— $unitName',
+        loading: () => '… $unitName',
+        error: (_, __) => '— $unitName');
 
     final ampereLimit = profile?.ampereLimit ?? 0;
     final ampereStr = ampereLimit > 0 ? '$ampereLimit A' : '—';
@@ -136,7 +137,7 @@ class HomeTab extends ConsumerWidget {
                       icon: Icons.speed_outlined),
                   const Divider(height: PortalTokens.line),
                   PortalDataRow(
-                      label: 'سعر kWh',
+                      label: 'سعر $unitName',
                       value: '₪ ${currentPrice.toStringAsFixed(2)}',
                       icon: Icons.payments_outlined),
                 ])),

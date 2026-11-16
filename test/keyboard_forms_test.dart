@@ -1,3 +1,5 @@
+import 'package:generator_portal/features/billing_settings/models.dart';
+import 'package:generator_portal/features/billing_settings/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,6 +30,7 @@ void main() {
     addTearDown(tester.view.resetViewInsets);
     await tester.pumpWidget(ProviderScope(
         overrides: [
+          billingSettingsProvider.overrideWith((ref) => Stream.value(const BillingSettings())),
           authProvider.overrideWith((ref) => FixtureAuth(role)),
           alertsProvider('').overrideWith((ref) => Stream.value(<AppAlert>[])),
           subscribersProvider.overrideWith((ref) => Stream.value(<UserProfile>[

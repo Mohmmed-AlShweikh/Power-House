@@ -1,3 +1,4 @@
+import '../features/billing_settings/screen.dart';
 import 'dart:async';
 import '../services/credential_service.dart';
 import '../views/screens/credential_screen.dart';
@@ -117,6 +118,9 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: notifier,
     redirect: notifier.redirect,
     routes: [
+      GoRoute(
+          path: '/billing-settings',
+          builder: (_, __) => const BillingSettingsScreen()),
       GoRoute(
           path: '/verify-email',
           builder: (_, __) =>

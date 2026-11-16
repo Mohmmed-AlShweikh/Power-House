@@ -41,7 +41,10 @@ String? authRedirect({
     };
     final allowed = profile.role == UserRole.superAdmin
         ? <String>{'/super_admin', '/generator-requests'}
-        : <String>{correctPath};
+        : <String>{
+            correctPath,
+            if (profile.role == UserRole.admin) '/billing-settings'
+          };
     return allowed.contains(path) ? null : correctPath;
   } else if (!loading &&
       path != '/login' &&

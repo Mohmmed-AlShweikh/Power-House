@@ -302,7 +302,7 @@ void main() {
           expect(find.text('تبديل المظهر'), findsOneWidget);
           await tester.tap(find.text('السعر وجدول التشغيل'));
           await tester.pumpAndSettle();
-          expect(find.text('السعر الحالي لكل كيلوواط/ساعة'), findsOneWidget);
+          expect(find.text('السعر الحالي للوحدة'), findsOneWidget);
           await tester.tap(find.byIcon(Icons.close).last);
           await tester.pumpAndSettle();
           await tester.tap(find.byKey(const ValueKey('nav-نظرة عامة')));

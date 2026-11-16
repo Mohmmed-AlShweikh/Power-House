@@ -1,3 +1,4 @@
+import '../features/billing_settings/models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
 import '../providers/tenant_provider.dart';
@@ -61,11 +62,28 @@ class FirebaseService {
     await (await _generatorRef()).set(payload, SetOptions(merge: true));
   }
 
-  // Update current price per kWh for the system
+  // Compatibility UI entry point; the canonical price is integer agorot.
   Future<void> updatePricePerKwh(double pricePerKwh) async {
-    await (await _generatorRef()).set({
-      'pricePerKwh': pricePerKwh,
-    }, SetOptions(merge: true));
+    final actor = await _store.requireOwner();
+    if (actor.superAdmin) {
+      throw StateError('إعدادات صاحب المولد فقط');
+    }
+    final price = parseFixed(pricePerKwh.toString(), 2);
+    final ref = _db.collection('billingSettings').doc(actor.generatorId);
+    await _db.runTransaction((tx) async {
+      final old = await tx.get(ref);
+      final data = {
+        ...BillingSettings.fromMap(old.data() ?? {}).toMap(),
+        'priceAgorot': price
+      };
+      BillingSettings.fromMap(data).validate();
+      tx.set(ref, {
+        ...data,
+        'generatorId': actor.generatorId,
+        'updatedBy': actor.uid,
+        'updatedAt': FieldValue.serverTimestamp()
+      });
+    });
   }
 
   // Update the generator ON/OFF schedule times
@@ -272,16 +290,33 @@ class FirebaseService {
     });
   }
 
+  Future<BillingCalculation> _calculateUsage(
+      String userId, double usage) async {
+    final gid = await _store.targetGenerator(userId);
+    final doc = await _db.collection('billingSettings').doc(gid).get();
+    final settings = BillingSettings.fromMap(doc.data() ?? {});
+    // Compatibility API carries usage, never money; reject precision loss.
+    final milli = parseFixed(usage.toString(), 3);
+    return calculateBill(
+        previousMilli: 0, currentMilli: milli, settings: settings);
+  }
+
   // Create bill (legacy — single document)
   Future<void> createBill(
       String userId, String month, int year, int amount, double kwh) async {
     await _store.requireOwner();
+    final calculation = await _calculateUsage(userId, kwh);
+    if (amount != calculation.amountAgorot ~/ 100) {
+      throw StateError('تغيرت إعدادات الفوترة؛ أعد حساب المبلغ قبل الإصدار');
+    }
     await _db.collection('bills').add({
       'generatorId': await _store.targetGenerator(userId),
       'userId': userId,
       'month': month,
       'year': year,
       'amount': amount,
+      'amountAgorot': calculation.amountAgorot,
+      'billingSnapshot': calculation.toMap(),
       'kwh': kwh,
       'status': 'pending',
       'createdAt': DateTime.now().millisecondsSinceEpoch,
@@ -324,6 +359,10 @@ class FirebaseService {
     int? weekNumber,
   }) async {
     await _store.requireOwner();
+    final calculation = await _calculateUsage(userId, kwh);
+    if (amount != calculation.amountAgorot ~/ 100) {
+      throw StateError('تغيرت إعدادات الفوترة؛ أعد حساب المبلغ قبل الإصدار');
+    }
     final batch = _db.batch();
     final now = DateTime.now().millisecondsSinceEpoch;
 
@@ -336,6 +375,8 @@ class FirebaseService {
       'year': year,
       if (weekNumber != null) 'weekNumber': weekNumber,
       'amount': amount,
+      'amountAgorot': calculation.amountAgorot,
+      'billingSnapshot': calculation.toMap(),
       'kwh': kwh,
       'status': 'pending',
       'createdAt': now,

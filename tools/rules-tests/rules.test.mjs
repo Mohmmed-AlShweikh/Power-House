@@ -2,7 +2,7 @@ import {before,beforeEach,after,test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {initializeTestEnvironment,assertFails,assertSucceeds} from '@firebase/rules-unit-testing';
-import {doc,getDoc,setDoc,updateDoc,collection,getDocs,query,where,writeBatch,runTransaction} from 'firebase/firestore';
+import {doc,getDoc,setDoc,updateDoc,collection,getDocs,query,where,writeBatch,runTransaction,serverTimestamp} from 'firebase/firestore';
 if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8089')throw new Error('Local demo Firestore required');
 let env;
 const profile=(role,generatorId,status='approved',uid='test')=>({name:role,email:uid+'@example.test',credentialVersion:2,phone:'',idNumber:'',role,generatorId,status,subscriptionStatus:'active',ampereLimit:0,createdAt:1});
@@ -107,4 +107,23 @@ test('concurrent owner reviews commit one decision and one feedback record',asyn
  // being retried as ABORTED; either outcome must leave exactly one approval.
  assert.equal((await getDoc(doc(db('ca'),'bills','ba'))).data().status,'paid');
  const feedback=await getDocs(query(collection(db('ca'),'alerts'),where('generatorId','==','a'),where('userId','==','ca')));assert.equal(feedback.size,1);
+});
+test('billing settings owner only, validated integer money, cross-tenant denied',async()=>{
+ const settings={generatorId:'a',priceAgorot:2800,minimumUnitsMilli:1500,cycleDays:10,roundingThresholdAgorot:50,unitName:'وحدة',updatedBy:'oa',updatedAt:serverTimestamp()};
+ await assertSucceeds(setDoc(doc(db('oa'),'billingSettings','a'),settings));
+ await assertSucceeds(getDoc(doc(db('oa'),'billingSettings','a')));
+ await assertSucceeds(getDoc(doc(db('ca'),'billingSettings','a')));
+ for(const uid of ['ca','ob','pending','sa']){if(uid!=='ca')await assertFails(getDoc(doc(db(uid),'billingSettings','a')));await assertFails(setDoc(doc(db(uid),'billingSettings','a'),settings));}
+ await assertFails(updateDoc(doc(db('oa'),'billingSettings','a'),{priceAgorot:1.5,updatedAt:serverTimestamp()}));
+ await assertFails(updateDoc(doc(db('oa'),'billingSettings','a'),{roundingThresholdAgorot:0,updatedAt:serverTimestamp()}));
+ await assertFails(updateDoc(doc(db('oa'),'billingSettings','a'),{unitName:'',updatedAt:serverTimestamp()}));
+});
+test('new invoice snapshot is retained and cannot be edited by payment actors',async()=>{
+ const f=db('oa'),snapshot={amountAgorot:28000,denominator:1000,rawNumerator:28000000,minimumNumerator:4200000,settings:{priceAgorot:2800,minimumUnitsMilli:1500,roundingThresholdAgorot:50,unitName:'وحدة'}};
+ const bill={userId:'ca',generatorId:'a',status:'pending',amount:280,kwh:10,month:'نوفمبر',year:2026,createdAt:Date.now(),amountAgorot:28000,billingSnapshot:snapshot};
+ await assertSucceeds(setDoc(doc(f,'bills','frozen'),bill));
+ await assertFails(setDoc(doc(f,'bills','mismatch'),{...bill,amountAgorot:1}));
+ await assertFails(updateDoc(doc(f,'bills','frozen'),{'billingSnapshot.settings.priceAgorot':1}));
+ await assertFails(updateDoc(doc(db('ca'),'bills','frozen'),{billingSnapshot:{...snapshot,amountAgorot:1}}));
+ await assertFails(getDoc(doc(db('cb'),'bills','frozen')));
 });

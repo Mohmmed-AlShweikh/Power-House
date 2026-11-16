@@ -262,7 +262,7 @@ class PortalGeneratorPanel extends StatelessWidget {
                 child: ColoredBox(
                     color: fill,
                     child: PortalLabelValue(
-                        label: 'سعر kWh', value: tariff!, ink: ink))),
+                        label: 'سعر الوحدة', value: tariff!, ink: ink))),
           if (scheduledOnValue != null)
             PortalLabelValue(
                 label: 'تشغيل مجدول', value: scheduledOnValue!, ink: ink),

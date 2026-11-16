@@ -301,7 +301,7 @@ class _BillInfoCard extends StatelessWidget {
     return PortalInvoiceRow(
         title: '${bill.month} ${bill.year}',
         amount: '₪${bill.amount}',
-        note: '${bill.kwh.toStringAsFixed(1)} كيلوواط',
+        note: '${bill.kwh.toStringAsFixed(1)} ${bill.unitName}',
         status: isPaid ? 'مدفوع' : 'غير مدفوع',
         tone: isPaid ? PortalTone.success : PortalTone.danger,
         accent: color,
