@@ -159,6 +159,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                                         error: (_, __) => null));
                               }),
                           ListTile(leading: const Icon(Icons.calculate_outlined), title: const Text('إعدادات الفوترة'), onTap: () { Navigator.pop(sheetContext); context.push('/billing-settings'); }),
+                          ListTile(leading: const Icon(Icons.send_outlined),title:const Text('إرسال الفواتير'),onTap:(){Navigator.pop(sheetContext);context.push('/distribution');}),
                           ListTile(leading: const Icon(Icons.account_balance_wallet_outlined),title:const Text('المالية'),onTap:(){Navigator.pop(sheetContext);context.push('/finance');}),
                           ListTile(leading: const Icon(Icons.electric_meter_outlined),title:const Text('جولات القراءة والفوترة'),onTap:(){Navigator.pop(sheetContext);context.push('/rounds');}),
                           ListTile(leading: const Icon(Icons.badge_outlined),title:const Text('عمال قراءة العدادات'),onTap:(){Navigator.pop(sheetContext);context.push('/meter-staff');}),

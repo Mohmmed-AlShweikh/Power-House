@@ -9,7 +9,7 @@ Branch `feature/free-tier-billing`, base `feature/spark-email-phase1` / ad494a9.
 | 3 settings/calculation | Complete | stage-3, docs/billing-stage3.md |
 | 4 reader role/invites | Complete | stage-4; sanitized current-round access, revocable one-use invites |
 | 5 rounds/partial payments/statement | Complete | stage-5; separate cycle ledger, Phase-1 invoices unchanged |
-| 6 bulk publication/share | Not implemented yet | no new sends |
+| 6 bulk publication/share | Complete | stage-6; resumable publication and explicit Android sharing |
 | 7 finance/summaries | Complete | stage-7; exact summaries, soft-deleted expenses, reversal and repair |
 | 8 final full-product sweep | Pending later stages | stage-3-specific screenshots/build are validation, not completion of stage 8 |
 

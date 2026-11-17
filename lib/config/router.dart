@@ -1,3 +1,4 @@
+import '../features/distribution/screens.dart';
 import '../features/finance/screen.dart';
 import '../features/rounds/screens.dart';
 import '../features/metering/screens.dart';
@@ -121,6 +122,8 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: notifier,
     redirect: notifier.redirect,
     routes: [
+      GoRoute(path:'/distribution',builder:(_,__)=>const DistributionScreen()),
+      GoRoute(path:'/bill-sharing/:rid',builder:(_,s)=>BillSharingScreen(s.pathParameters['rid']!)),
       GoRoute(path:'/finance',builder:(_,__)=>const FinanceScreen()),
       GoRoute(path:'/rounds',builder:(_,__)=>const RoundsScreen()),
       GoRoute(path:'/round/:id',builder:(_,s)=>RoundScreen(s.pathParameters['id']!)),

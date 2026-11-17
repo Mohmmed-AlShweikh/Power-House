@@ -44,9 +44,9 @@ String? authRedirect({
         ? <String>{'/super_admin', '/generator-requests'}
         : <String>{
             correctPath,
-            if (profile.role == UserRole.admin) ...['/billing-settings','/meter-staff','/rounds','/finance']
+            if (profile.role == UserRole.admin) ...['/billing-settings','/meter-staff','/rounds','/finance','/distribution']
           };
-    if(profile.role == UserRole.admin && (path.startsWith('/round/') || path == '/cycle-statement')) return null;
+    if(profile.role == UserRole.admin && (path.startsWith('/round/') || path.startsWith('/bill-sharing/') || path == '/cycle-statement')) return null;
     if(profile.role == UserRole.consumer && path == '/cycle-statement') return null;
     return allowed.contains(path) ? null : correctPath;
   } else if (!loading &&

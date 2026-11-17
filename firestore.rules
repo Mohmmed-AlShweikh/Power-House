@@ -62,6 +62,10 @@ service cloud.firestore {
           get(/databases/$(database)/documents/generatorDirectory/$(data.generatorId)).data.status == 'approved' &&
           get(/databases/$(database)/documents/generatorDirectory/$(data.generatorId)).data.subscriptionStatus == 'active'));
     }
+    match /billShares/{id} {
+      allow read: if cycleOwner(resource.data);
+      allow create, update: if cycleOwner(request.resource.data) && (!exists(/databases/$(database)/documents/billShares/$(id)) || same(resource.data)) && request.resource.data.keys().hasOnly(['generatorId','billId','roundId','status','by','at']) && request.resource.data.billId == id && request.resource.data.roundId == get(/databases/$(database)/documents/cycleBills/$(id)).data.roundId && get(/databases/$(database)/documents/cycleBills/$(id)).data.generatorId == gid(me()) && request.resource.data.status == 'marked' && request.resource.data.by == request.auth.uid && request.resource.data.at == request.time;
+    }
     function financeOpen(id) { return !exists(/databases/$(database)/documents/financeControl/$(id)) || get(/databases/$(database)/documents/financeControl/$(id)).data.locked == false; }
     match /financeControl/{id} {
       allow get: if superAdmin() || (owner() && gid(me()) == id);
