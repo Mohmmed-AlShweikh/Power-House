@@ -176,3 +176,5 @@ lib/
 ### تطوير الفوترة على الفرع الجديد
 
 حالة المراحل في [BILLING-PROGRESS](docs/BILLING-PROGRESS.md)، وإعدادات الحساب في [billing-stage3](docs/billing-stage3.md). خطوات Firebase على Windows في [manual-steps](docs/manual-steps.md). دفعات المرحلة الأولى ما زالت لكامل الفاتورة؛ الجولات والدفعات الجزئية تأتي في المرحلة 5.
+
+اكتملت مراحل الفوترة 4–8 على `feature/free-tier-billing`. انظر [التقرير النهائي](docs/FINAL-REPORT.md) و[خطوات Windows وFirebase](docs/manual-steps.md).

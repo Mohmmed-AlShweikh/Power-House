@@ -88,7 +88,7 @@ class DistributionRepository {
     await store.db.collection('billShares').doc(billId).set({
       'generatorId': a.generatorId,
       'billId': billId,
-      'roundId':d.data()!['roundId'],
+      'roundId': d.data()!['roundId'],
       'status': 'marked',
       'by': a.uid,
       'at': FieldValue.serverTimestamp()

@@ -9,6 +9,23 @@
 7. Run `flutter pub get` and `flutter run -d YOUR_ANDROID_DEVICE_ID`. Real mail delivery and Android hardware must be tested on your device.
 8. Stage 3 adds `billingSettings/{generatorId}` and invoice snapshots. Deploy the matching rules from this branch; no new composite index is needed. In the owner app choose المزيد → إعدادات الفوترة, set the actual unit name, price, minimum consumption, cycle days and rounding threshold, then save before issuing new bills. Old invoices are never rewritten. Partial payments and reading rounds are not part of this stage.
 9. Stage 4: deploy rules/indexes together. Owner → المزيد → عمال قراءة العدادات → إنشاء رمز دعوة. Share the code privately. Worker registers/verifies email, then chooses «لدي رمز دعوة عامل عدادات» on onboarding. The code is single-use; revoke unused codes or worker access from the owner screen. Assignments appear only during the current open round (stage 5).
-10. Stage 5: owner → المزيد → جولات القراءة والفوترة. Add manual subscribers or enter the UID of an approved consumer to link it; assign a worker UID from the worker list (default is owner). Open a round, enter readings, confirm abnormal jumps, mark replacements explicitly, then close. Resume preparation/closing after interruption. Correct closed readings before opening the next round. Consumer: الفواتير → كشف حساب الجولات. New invoices become visible after stage-6 publication. Payments can be partial; one pending declaration per invoice. No image storage.
+10. Stage 5: owner → المزيد → جولات القراءة والفوترة. Add manual subscribers or choose an approved consumer by name with «إضافة حساب معتمد»; link an existing manual subscriber with «ربط حساب». Assign the reader by name (default is owner). Open a round, enter readings, confirm abnormal jumps, mark replacements explicitly, then close. Resume preparation/closing after interruption. Correct closed readings before opening the next round. Consumer: الفواتير → كشف حساب الجولات. New invoices become visible after stage-6 publication. Payments can be partial; one pending declaration per invoice. No image storage.
 11. Stage 7: deploy this branch's indexes/rules, then owner → المزيد → المالية → إعادة حساب الملخصات once to include existing test records. This is an owner action in your test project, not executed here. If the device dies during repair, wait 10 minutes and retry. Add/edit/soft-delete costs by category/date, inspect monthly/round/custom totals, and reverse erroneous cycle payments with a reason from the statement. Spark quotas are finite; repair scans history and should be rare.
 12. Stage 6: owner → المزيد → إرسال الفواتير, choose a closed round and publish. Retrying skips invoices already published for the same linked account and preserves alert read state. Use قائمة واتساب for ready text, open Android sharing, select WhatsApp/contact manually, then mark sent explicitly. No automatic WhatsApp/SMS or guaranteed closed-app delivery. Rebuild the Android app for the native share channel; no extra permissions or Firebase service are required.
+
+13. Final Windows test checkout/deployment (replace project/device placeholders yourself):
+
+```powershell
+git fetch origin
+git switch feature/free-tier-billing
+git pull --ff-only
+flutter pub get
+npm ci --prefix tools/rules-tests
+firebase emulators:exec --project demo-generator-portal --config firebase.auth-test.json --only auth,firestore "node --test tools/rules-tests/auth.test.mjs tools/rules-tests/rules.test.mjs"
+firebase deploy --only firestore:rules,firestore:indexes --project YOUR_TEST_PROJECT_ID
+flutter build apk --debug
+flutter run -d YOUR_ANDROID_DEVICE_ID
+```
+
+14. Super-admin bootstrap: create/verify your real email through the app, copy its Authentication UID, then create `users/{UID}` manually with `role: super_admin`, `status: approved`, `subscriptionStatus: active`, matching `email`, `name`, `phone: ""`, `idNumber: ""`, `credentialVersion: 2`, `ampereLimit: 0`, numeric epoch-millisecond `createdAt`; omit `generatorId`. Sign in again. All regular owner/consumer approvals thereafter use app screens, not console editing.
+15. Phone checklist: owner approval → consumer approval → invite/verify worker → assign/open round → offline reading then reconnect → close twice → publish twice → partial declaration/reject/correct/approve once → finance expense edit/soft-delete and payment reversal → repair summaries → Android share chooser and explicit sent marker. Test light/dark, keyboard and verification/reset email links. Never enable billing for this test.

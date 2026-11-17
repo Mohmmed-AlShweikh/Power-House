@@ -157,10 +157,12 @@ class MeterEntry extends ConsumerStatefulWidget {
 
 class _MeterEntryState extends ConsumerState<MeterEntry> {
   final input = TextEditingController();
+  final saveFocus = FocusNode(skipTraversal: true);
   String? message;
   @override
   void dispose() {
     input.dispose();
+    saveFocus.dispose();
     super.dispose();
   }
 
@@ -228,6 +230,7 @@ class _MeterEntryState extends ConsumerState<MeterEntry> {
                           ? 'تم الحفظ'
                           : 'لم تُسجّل بعد')),
               TextButton.icon(
+                  focusNode: saveFocus,
                   onPressed: save,
                   icon: const Icon(Icons.save_outlined),
                   label: const Text('حفظ والانتقال للتالي'))

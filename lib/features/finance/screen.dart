@@ -1,3 +1,4 @@
+import '../metering/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/portal_tokens.dart';
@@ -25,7 +26,11 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
   @override
   Widget build(BuildContext context) {
     final control = ref.watch(financeControlProvider);
-    final rounds = ref.watch(billingRoundsProvider).valueOrNull?.docs ?? [];
+    ref.watch(readerOpenRoundProvider);
+    final rounds = [
+      ...?ref.watch(billingRoundsProvider).valueOrNull?.docs
+    ]..sort(
+        (a, b) => (a.data()['date'] as int).compareTo(b.data()['date'] as int));
     return Scaffold(
         appBar: AppBar(title: const Text('المالية')),
         body: ListView(padding: PortalTokens.pagePadding, children: [
@@ -46,8 +51,15 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                 selected: period.kind == 'round',
                 onSelected: rounds.isEmpty
                     ? null
-                    : (_) => setState(() => period =
-                        (kind: 'round', key: rounds.last.id, end: ''))),
+                    : (_) => setState(() => period = (
+                          kind: 'round',
+                          key: ref
+                                  .read(readerOpenRoundProvider)
+                                  .valueOrNull
+                                  ?.data()?['roundId'] as String? ??
+                              rounds.last.id,
+                          end: ''
+                        ))),
             ActionChip(
                 label: const Text('فترة مخصصة'),
                 onPressed: () async {

@@ -1,0 +1,50 @@
+{
+  "branch": "feature/free-tier-billing",
+  "base": "f08fd58",
+  "priority_order": [
+    4,
+    5,
+    7,
+    6,
+    8
+  ],
+  "stages": {
+    "4": {
+      "flutter": 158,
+      "emulator": 22,
+      "new_analyzer_diagnostics": 0
+    },
+    "5": {
+      "flutter": 161,
+      "emulator": 25,
+      "new_analyzer_diagnostics": 0
+    },
+    "7": {
+      "flutter": 163,
+      "emulator": 27,
+      "new_analyzer_diagnostics": 0
+    },
+    "6": {
+      "flutter": 165,
+      "emulator": 28,
+      "new_analyzer_diagnostics": 0
+    },
+    "8": {
+      "flutter": 171,
+      "emulator": 31,
+      "new_analyzer_diagnostics": 0
+    }
+  },
+  "analyzer": {
+    "errors": 0,
+    "preexisting_warnings": 14,
+    "preexisting_infos": 18,
+    "new": 0
+  },
+  "android_debug_build": "passed",
+  "production_firebase_access": false,
+  "firebase_deployed": false,
+  "physical_device_tested": false,
+  "native_share_device_tested": false,
+  "real_email_delivery_tested": false
+}

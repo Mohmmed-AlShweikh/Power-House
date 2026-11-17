@@ -11,9 +11,9 @@ final shareBillsProvider = StreamProvider.family((ref, String rid) => ref
     .where('generatorId', isEqualTo: ref.watch(tenantIdProvider))
     .where('roundId', isEqualTo: rid)
     .autoSnapshots(ref));
-final billSharesProvider = StreamProvider.family((ref,String rid) => ref
+final billSharesProvider = StreamProvider.family((ref, String rid) => ref
     .watch(firestoreProvider)
     .collection('billShares')
-    .where('roundId',isEqualTo:rid)
+    .where('roundId', isEqualTo: rid)
     .where('generatorId', isEqualTo: ref.watch(tenantIdProvider))
     .autoSnapshots(ref));

@@ -1,3 +1,4 @@
+import 'selectors.dart';
 import '../finance/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,6 +39,26 @@ class RoundsScreen extends ConsumerWidget {
                     }
                   }),
               child: const Text('فتح جولة')),
+          OutlinedButton(
+              onPressed: () async {
+                final u = await chooseConsumer(context);
+                if (u == null || !context.mounted) return;
+                final v = await featureForm(context, 'إضافة الحساب للفوترة',
+                    {'رقم الاشتراك': '', 'قراءة البداية': '0'},
+                    numeric: {'قراءة البداية'});
+                if (v != null && context.mounted) {
+                  await featureAction(context, () async {
+                    await ref.read(roundsRepositoryProvider).addSubscriber(
+                        name: u.name,
+                        phone: u.phone,
+                        address: u.address,
+                        number: v['رقم الاشتراك']!,
+                        startingMilli: parseFixed(v['قراءة البداية']!, 3),
+                        userId: u.uid);
+                  });
+                }
+              },
+              child: const Text('إضافة حساب معتمد')),
           OutlinedButton(
               onPressed: () async {
                 final v = await featureForm(context, 'إضافة مشترك للفوترة', {
@@ -109,17 +130,14 @@ class RoundsScreen extends ConsumerWidget {
                           Wrap(children: [
                             TextButton(
                                 onPressed: () async {
-                                  final v = await featureForm(
-                                      context,
-                                      'ربط حساب المشترك',
-                                      {'معرف الحساب (UID)': ''});
-                                  if (v != null && context.mounted) {
+                                  final selected =
+                                      await chooseConsumer(context);
+                                  if (selected != null && context.mounted) {
                                     await featureAction(
                                         context,
                                         () => ref
                                             .read(roundsRepositoryProvider)
-                                            .linkAccount(
-                                                d.id, v.values.single));
+                                            .linkAccount(d.id, selected.uid));
                                   }
                                 },
                                 child: const Text('ربط حساب')),
@@ -132,18 +150,13 @@ class RoundsScreen extends ConsumerWidget {
                                 child: const Text('إكمال الربط')),
                             TextButton(
                                 onPressed: () async {
-                                  final v = await featureForm(
-                                      context, 'إسناد القراءة', {
-                                    'معرف العامل أو صاحب المولد':
-                                        d.data()['readerUid']
-                                  });
-                                  if (v != null && context.mounted) {
+                                  final selected = await chooseReader(context);
+                                  if (selected != null && context.mounted) {
                                     await featureAction(
                                         context,
                                         () => ref
                                             .read(roundsRepositoryProvider)
-                                            .assignReader(
-                                                d.id, v.values.single));
+                                            .assignReader(d.id, selected));
                                   }
                                 },
                                 child: const Text('إسناد عامل'))
@@ -162,11 +175,20 @@ class RoundScreen extends ConsumerWidget {
     final matches = rounds.valueOrNull?.docs.where((d) => d.id == rid).toList();
     final data =
         matches == null || matches.isEmpty ? null : matches.single.data();
-    final readings = ref.watch(roundReadingsProvider(rid)).valueOrNull;
+    final readingState = ref.watch(roundReadingsProvider(rid));
+    final readings = readingState.valueOrNull;
     final values = {for (final d in readings?.docs ?? []) d.id: d.data()};
     return Scaffold(
         appBar: AppBar(title: const Text('قراءات الجولة')),
         body: ListView(padding: PortalTokens.pagePadding, children: [
+          if (readingState.hasError)
+            Column(children: [
+              const PortalErrorState(
+                  'تعذر تحميل القراءات بعد المحاولات التلقائية'),
+              TextButton(
+                  onPressed: () => ref.invalidate(roundReadingsProvider(rid)),
+                  child: const Text('إعادة المحاولة'))
+            ]),
           if (data != null) ...[
             Text(data['status'] == 'closed'
                 ? 'الجولة مغلقة؛ التصحيح من كشف الحساب'

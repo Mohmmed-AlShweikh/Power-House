@@ -120,6 +120,14 @@ class RoundsRepository {
     for (final b in bills.docs) {
       if (b.data()['userId'] != uid) await b.reference.update({'userId': uid});
     }
+    final payments = await db
+        .collection('cyclePayments')
+        .where('generatorId', isEqualTo: a.generatorId)
+        .where('subscriberId', isEqualTo: sid)
+        .get();
+    for (final p in payments.docs) {
+      if (p.data()['userId'] != uid) await p.reference.update({'userId': uid});
+    }
   }
 
   Future<String> openRound(DateTime date) async {
@@ -347,7 +355,7 @@ class RoundsRepository {
   }
 
   Future<void> correct(String billId, int current, String reason,
-      {bool newMeter = false, int? starting}) async {
+      {bool? newMeter, int? starting}) async {
     final a = await owner();
     if (reason.trim().isEmpty || reason.length > 500) {
       throw StateError('سبب التصحيح مطلوب');
@@ -378,8 +386,8 @@ class RoundsRepository {
           previousMilli: old['previousMilli'],
           currentMilli: current,
           settings: BillingSettings.fromMap(old['settings']),
-          newMeter: newMeter,
-          startingMilli: starting);
+          newMeter: newMeter ?? old['newMeter'] == true,
+          startingMilli: starting ?? old['startingMilli']);
       if (calc.amountAgorot < (b['paidAgorot'] as int)) {
         throw StateError(
             'اعكس الدفعة المعتمدة أولاً قبل خفض الفاتورة دون المدفوع');
