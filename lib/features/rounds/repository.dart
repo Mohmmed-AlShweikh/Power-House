@@ -1,3 +1,4 @@
+import '../finance/ledger.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/tenant_store.dart';
 import '../../models/user_model.dart';
@@ -296,12 +297,21 @@ class RoundsRepository {
         throw StateError('جولة غير جاهزة');
       }
       final d = reading.data()!, s = subscriber.data()!, r = round.data()!;
+      final ledger = await readLedger(tx, db, a.generatorId);
       final calc = calculateBill(
           previousMilli: d['previousMilli'],
           currentMilli: d['currentMilli'],
           settings: BillingSettings.fromMap(r['settings']),
           newMeter: d['newMeter'] == true,
           startingMilli: d['startingMilli']);
+      await applyLedger(tx, db, ledger, [
+        {
+          'date': r['date'],
+          'roundId': rid,
+          'billedAgorot': calc.amountAgorot,
+          'outstandingAgorot': calc.amountAgorot
+        }
+      ]);
       tx.set(bill, {
         'generatorId': a.generatorId,
         'roundId': rid,
@@ -362,6 +372,7 @@ class RoundsRepository {
         throw StateError(
             'التصحيح قبل فتح الجولة التالية فقط؛ لا نغيّر سلسلة قراءات لاحقة تلقائياً');
       }
+      final ledger = await readLedger(tx, db, a.generatorId);
       final old = Map<String, dynamic>.from(b['snapshot']);
       final calc = calculateBill(
           previousMilli: old['previousMilli'],
@@ -373,6 +384,14 @@ class RoundsRepository {
         throw StateError(
             'اعكس الدفعة المعتمدة أولاً قبل خفض الفاتورة دون المدفوع');
       }
+      await applyLedger(tx, db, ledger, [
+        {
+          'date': b['date'],
+          'roundId': b['roundId'],
+          'billedAgorot': calc.amountAgorot - b['amountAgorot'],
+          'outstandingAgorot': calc.amountAgorot - b['amountAgorot']
+        }
+      ]);
       tx.update(ref, {
         'snapshot': calc.toMap(),
         'amountAgorot': calc.amountAgorot,
@@ -461,9 +480,24 @@ class RoundsRepository {
       final bill = await tx.get(doc('cycleBills', p['billId'])),
           balance = await tx.get(doc('accountBalances', p['subscriberId']));
       final b = bill.data()!;
+      final ledger = await readLedger(tx, db, a.generatorId);
       if (b['pendingPaymentId'] != pid) throw StateError('المراجعة قديمة');
       final paid = b['paidAgorot'] + (approve ? p['amountAgorot'] : 0);
       if (paid > b['amountAgorot']) throw StateError('الدفعة تتجاوز المستحق');
+      if (approve) {
+        await applyLedger(tx, db, ledger, [
+          {
+            'date': p['date'],
+            'roundId': b['roundId'],
+            'collectedAgorot': p['amountAgorot']
+          },
+          {
+            'date': b['date'],
+            'roundId': b['roundId'],
+            'outstandingAgorot': -p['amountAgorot']
+          }
+        ]);
+      }
       tx.update(payment.reference, {
         'status': approve ? 'approved' : 'rejected',
         'reason': reason.trim(),

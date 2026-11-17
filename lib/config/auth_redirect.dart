@@ -44,7 +44,7 @@ String? authRedirect({
         ? <String>{'/super_admin', '/generator-requests'}
         : <String>{
             correctPath,
-            if (profile.role == UserRole.admin) ...['/billing-settings','/meter-staff','/rounds']
+            if (profile.role == UserRole.admin) ...['/billing-settings','/meter-staff','/rounds','/finance']
           };
     if(profile.role == UserRole.admin && (path.startsWith('/round/') || path == '/cycle-statement')) return null;
     if(profile.role == UserRole.consumer && path == '/cycle-statement') return null;

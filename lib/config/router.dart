@@ -1,3 +1,4 @@
+import '../features/finance/screen.dart';
 import '../features/rounds/screens.dart';
 import '../features/metering/screens.dart';
 import '../features/billing_settings/screen.dart';
@@ -120,6 +121,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: notifier,
     redirect: notifier.redirect,
     routes: [
+      GoRoute(path:'/finance',builder:(_,__)=>const FinanceScreen()),
       GoRoute(path:'/rounds',builder:(_,__)=>const RoundsScreen()),
       GoRoute(path:'/round/:id',builder:(_,s)=>RoundScreen(s.pathParameters['id']!)),
       GoRoute(path:'/cycle-statement',builder:(_,__)=>const CycleStatementScreen()),

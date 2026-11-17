@@ -1,0 +1,7 @@
+# Finance
+
+Integer agorot only. Period billed/receivables follow invoice date; collections follow approved payment date (reversed payments excluded); costs follow expense date. Round views attribute all entries to the originating round. Profit/cash = collected − costs; cash has no opening balance or bank reconciliation. Phase-1 manual invoices are included under `manual`; new cycle invoices retain their round. Run repair once to initialize existing test records before trusting the finance screen.
+
+Money mutations read the generation/control and affected summary docs, then update summaries in the same transaction. Usually 4 summary reads/writes (total/month/day/round), up to 7 when dates cross periods, plus the underlying invoice/payment/balance reads/writes. A period reads 1 summary, custom periods ≤366 daily summaries, plus total cash/control; expenses list is date/round scoped and capped at 200. No per-screen scan of all bills.
+
+Repair intentionally scans invoices/payments/expenses once and writes grouped summaries to a new generation. It locks financial mutations; publication/contact linking remains possible. A new generation becomes visible only after completion. A crashed lock can be reclaimed after 10 minutes. Old generations and soft-deleted expenses/history are retained (no deletion). Repair can consume significant finite Spark quota; use rarely. Owner-written client records are not an immutable accounting audit.

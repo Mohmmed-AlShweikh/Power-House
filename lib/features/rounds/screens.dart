@@ -1,3 +1,4 @@
+import '../finance/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -445,6 +446,21 @@ class CycleStatementScreen extends ConsumerWidget {
                                     '')),
                             if (d.data()['reason'] != null)
                               Text(d.data()['reason']),
+                            if (owner && d.data()['status'] == 'approved')
+                              TextButton(
+                                  onPressed: () async {
+                                    final v = await featureForm(context,
+                                        'عكس دفعة معتمدة', {'سبب العكس': ''});
+                                    if (v != null && context.mounted) {
+                                      await featureAction(
+                                          context,
+                                          () => ref
+                                              .read(financeRepositoryProvider)
+                                              .reversePayment(
+                                                  d.id, v.values.single));
+                                    }
+                                  },
+                                  child: const Text('عكس الدفعة')),
                             if (owner && d.data()['status'] == 'pending')
                               Wrap(children: [
                                 TextButton(

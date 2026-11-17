@@ -1,3 +1,4 @@
+import '../features/finance/ledger.dart';
 import '../features/billing_settings/models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
@@ -204,6 +205,22 @@ class FirebaseService {
       if (data['status'] != 'pendingReview' || data['payment'] is! Map) {
         throw StateError('لا توجد إفادة دفع بانتظار المراجعة');
       }
+      if (status == BillStatus.paid) {
+        final ledger = await readLedger(
+            tx, _db, normalizedGeneratorId(data['generatorId']));
+        await applyLedger(tx, _db, ledger, [
+          {
+            'date': data['payment']['date'],
+            'roundId': 'manual',
+            'collectedAgorot': (data['amount'] as int) * 100
+          },
+          {
+            'date': data['createdAt'] ?? 0,
+            'roundId': 'manual',
+            'outstandingAgorot': -(data['amount'] as int) * 100
+          }
+        ]);
+      }
       tx.update(ref, {
         'status': status.name,
         'reviewReason': reason.trim(),
@@ -309,17 +326,29 @@ class FirebaseService {
     if (amount != calculation.amountAgorot ~/ 100) {
       throw StateError('تغيرت إعدادات الفوترة؛ أعد حساب المبلغ قبل الإصدار');
     }
-    await _db.collection('bills').add({
-      'generatorId': await _store.targetGenerator(userId),
-      'userId': userId,
-      'month': month,
-      'year': year,
-      'amount': amount,
-      'amountAgorot': calculation.amountAgorot,
-      'billingSnapshot': calculation.toMap(),
-      'kwh': kwh,
-      'status': 'pending',
-      'createdAt': DateTime.now().millisecondsSinceEpoch,
+    final gid = await _store.targetGenerator(userId);
+    await _db.runTransaction((tx) async {
+      final ledger = await readLedger(tx, _db, gid);
+      await applyLedger(tx, _db, ledger, [
+        {
+          'date': DateTime.now().millisecondsSinceEpoch,
+          'roundId': 'manual',
+          'billedAgorot': amount * 100,
+          'outstandingAgorot': amount * 100
+        }
+      ]);
+      tx.set(_db.collection('bills').doc(), {
+        'generatorId': gid,
+        'userId': userId,
+        'month': month,
+        'year': year,
+        'amount': amount,
+        'amountAgorot': calculation.amountAgorot,
+        'billingSnapshot': calculation.toMap(),
+        'kwh': kwh,
+        'status': 'pending',
+        'createdAt': DateTime.now().millisecondsSinceEpoch,
+      });
     });
   }
 
@@ -363,65 +392,75 @@ class FirebaseService {
     if (amount != calculation.amountAgorot ~/ 100) {
       throw StateError('تغيرت إعدادات الفوترة؛ أعد حساب المبلغ قبل الإصدار');
     }
-    final batch = _db.batch();
-    final now = DateTime.now().millisecondsSinceEpoch;
+    final gid = await _store.targetGenerator(userId);
+    await _db.runTransaction((batch) async {
+      final ledger = await readLedger(batch, _db, gid);
+      final now = DateTime.now().millisecondsSinceEpoch;
 
-    // 1. New bill document
-    final billRef = _db.collection('bills').doc();
-    batch.set(billRef, {
-      'generatorId': await _store.targetGenerator(userId),
-      'userId': userId,
-      'month': month,
-      'year': year,
-      if (weekNumber != null) 'weekNumber': weekNumber,
-      'amount': amount,
-      'amountAgorot': calculation.amountAgorot,
-      'billingSnapshot': calculation.toMap(),
-      'kwh': kwh,
-      'status': 'pending',
-      'createdAt': now,
-      'billingPeriod': weekNumber != null ? 'weekly' : 'monthly',
-    });
-
-    // 2. Upsert consumption document (doc ID = userId)
-    final consumptionRef = _db.collection('consumption').doc(userId);
-    final dailyUsage = double.parse((kwh / 30).toStringAsFixed(2));
-    final payload = {
-      'generatorId': await _store.targetGenerator(userId),
-      'userId': userId,
-      'monthlyUsage': kwh,
-      'dailyUsage': dailyUsage,
-      'month': month,
-      'updatedAt': now,
-    };
-
-    if (weekNumber != null) {
-      payload['weeklyUsage'] = FieldValue.arrayUnion([
+      await applyLedger(batch, _db, ledger, [
         {
-          'generatorId': await _store.targetGenerator(userId),
-          'month': month,
-          'year': year,
-          'weekNumber': weekNumber,
-          'kwh': kwh,
-          'amount': amount,
-          'createdAt': now,
+          'date': now,
+          'roundId': 'manual',
+          'billedAgorot': amount * 100,
+          'outstandingAgorot': amount * 100
         }
       ]);
-    }
+      // 1. New bill document
+      final billRef = _db.collection('bills').doc();
+      batch.set(billRef, {
+        'generatorId': gid,
+        'userId': userId,
+        'month': month,
+        'year': year,
+        if (weekNumber != null) 'weekNumber': weekNumber,
+        'amount': amount,
+        'amountAgorot': calculation.amountAgorot,
+        'billingSnapshot': calculation.toMap(),
+        'kwh': kwh,
+        'status': 'pending',
+        'createdAt': now,
+        'billingPeriod': weekNumber != null ? 'weekly' : 'monthly',
+      });
 
-    batch.set(consumptionRef, payload, SetOptions(merge: true));
+      // 2. Upsert consumption document (doc ID = userId)
+      final consumptionRef = _db.collection('consumption').doc(userId);
+      final dailyUsage = double.parse((kwh / 30).toStringAsFixed(2));
+      final payload = {
+        'generatorId': gid,
+        'userId': userId,
+        'monthlyUsage': kwh,
+        'dailyUsage': dailyUsage,
+        'month': month,
+        'updatedAt': now,
+      };
 
-    // 3. In-app alert belongs to the same tenant and atomic invoice batch.
-    batch.set(_db.collection('alerts').doc(), {
-      'generatorId': await _store.targetGenerator(userId),
-      'userId': userId,
-      'title': 'فاتورة مستحقة جديدة 🧾',
-      'body': 'تم إصدار فاتورة جديدة لشهر $month، يرجى المراجعة والسداد.',
-      'type': 'newBill',
-      'read': false,
-      'createdAt': now,
+      if (weekNumber != null) {
+        payload['weeklyUsage'] = FieldValue.arrayUnion([
+          {
+            'generatorId': gid,
+            'month': month,
+            'year': year,
+            'weekNumber': weekNumber,
+            'kwh': kwh,
+            'amount': amount,
+            'createdAt': now,
+          }
+        ]);
+      }
+
+      batch.set(consumptionRef, payload, SetOptions(merge: true));
+
+      // 3. In-app alert belongs to the same tenant and atomic invoice batch.
+      batch.set(_db.collection('alerts').doc(), {
+        'generatorId': gid,
+        'userId': userId,
+        'title': 'فاتورة مستحقة جديدة 🧾',
+        'body': 'تم إصدار فاتورة جديدة لشهر $month، يرجى المراجعة والسداد.',
+        'type': 'newBill',
+        'read': false,
+        'createdAt': now,
+      });
     });
-    await batch.commit();
   }
 
   // Update user profile
