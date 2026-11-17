@@ -105,6 +105,7 @@ void main() {
       await boot(tester, const EnrollmentFormScreen(), brightness,
           auth: auth, role: UserRole.admin);
       await tester.enterText(find.byType(TextField).first, 'مولد الحي');
+      await tester.enterText(find.widgetWithText(TextField,'هاتف التواصل (مطلوب)'), '٠٥٩١٢٣٤٥٦٧');
       await tester.enterText(find.byType(TextField).last, 'الرمال');
       await tapText(tester, 'تقديم الطلب');
       expect(auth.submittedName, 'مولد الحي');
@@ -121,6 +122,7 @@ void main() {
       await boot(tester, const EnrollmentFormScreen(), brightness,
           auth: auth, directory: const AsyncData([a, b]));
       await tester.enterText(find.byType(TextField).first, 'أحمد');
+      await tester.enterText(find.widgetWithText(TextField,'هاتف التواصل (مطلوب)'), '0591234567');
       await tester.tap(find.byType(DropdownButtonFormField<String>));
       await tester.pumpAndSettle();
       await tester.tap(find.text('الرمال').last);

@@ -1,3 +1,5 @@
+import '../../views/widgets/profile_edit_sheet.dart';
+import '../../views/widgets/portal_keyboard.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -129,12 +131,14 @@ class MeterReaderScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) => Scaffold(
       appBar: AppBar(title: const Text('قراءة العدادات'), actions: [
+ IconButton(tooltip:'بياناتي',onPressed:()=>showPortalFormSheet(context:context,builder:(_)=>const ProfileEditSheet()),icon:const Icon(Icons.person_outline)),
         IconButton(
             tooltip: 'تسجيل الخروج',
             onPressed: () => ref.read(authProvider.notifier).signOut(),
             icon: const Icon(Icons.logout))
       ]),
       body: ListView(padding: PortalTokens.pagePadding, children: [
+        const ContactCompletionPrompt(),
         FeatureData(
             value: ref.watch(meterAssignmentsProvider),
             retry: () => ref.invalidate(meterAssignmentsProvider),

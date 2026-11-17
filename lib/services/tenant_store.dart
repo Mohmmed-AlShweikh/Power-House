@@ -1,3 +1,4 @@
+import 'contact_fields.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/generator_model.dart';
 import '../models/user_model.dart';
@@ -55,7 +56,7 @@ class TenantStore {
   }
 
   void _validateEnrollment(String phone, String name, [String? sector]) {
-    if (phone.length > 32 ||
+    if (contactError(phone,'',requiredPhone:true)!=null ||
         name.trim().isEmpty ||
         name.trim().length > 120 ||
         (sector != null &&
@@ -98,6 +99,8 @@ class TenantStore {
       required String sector,
       String? idNumber,
       String? email}) async {
+    phone=normalizeMobile(phone);
+    idNumber=idNumber==null?null:normalizeDigits(idNumber).trim();
     _validateEnrollment(phone, name, sector);
     if (currentUid() != uid) throw StateError('هوية غير مطابقة');
     final user = db.collection('users').doc(uid);
@@ -144,6 +147,8 @@ class TenantStore {
       required String generatorId,
       String? idNumber,
       String? email}) async {
+    phone=normalizeMobile(phone);
+    idNumber=idNumber==null?null:normalizeDigits(idNumber).trim();
     _validateEnrollment(phone, name);
     if (generatorId.isEmpty || generatorId.contains('/')) {
       throw ArgumentError('مولد غير صحيح');

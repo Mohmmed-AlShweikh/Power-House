@@ -1,3 +1,4 @@
+import '../../services/contact_fields.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import '../../services/credential_service.dart';
@@ -37,13 +38,8 @@ class _EnrollmentFormScreenState extends ConsumerState<EnrollmentFormScreen> {
   }
 
   Future<void> submit(bool owner) async {
-    if ((nationalId.text.trim().isNotEmpty &&
-            !validNationalId(nationalId.text.trim())) ||
-        contactPhone.text.length > 32) {
-      setState(() =>
-          error = 'الهوية اختيارية ومن 9 أو 10 أرقام؛ تحقق من بيانات التواصل');
-      return;
-    }
+    final issue=contactError(contactPhone.text,nationalId.text,requiredPhone:true);
+    if(issue!=null){setState(()=>error=issue);return;}
 
     if (name.text.trim().isEmpty ||
         (owner && sector.text.trim().isEmpty) ||
@@ -72,10 +68,10 @@ class _EnrollmentFormScreenState extends ConsumerState<EnrollmentFormScreen> {
       final auth = ref.read(authProvider.notifier);
       if (owner) {
         await auth.enrollOwner(name.text.trim(), sector.text.trim(),
-            phone: contactPhone.text.trim(), idNumber: nationalId.text.trim());
+            phone: normalizeMobile(contactPhone.text), idNumber: normalizeDigits(nationalId.text).trim());
       } else {
         await auth.enrollConsumer(name.text.trim(), selectedId,
-            phone: contactPhone.text.trim(), idNumber: nationalId.text.trim());
+            phone: normalizeMobile(contactPhone.text), idNumber: normalizeDigits(nationalId.text).trim());
       }
     } catch (e) {
       if (mounted) {
@@ -103,7 +99,7 @@ class _EnrollmentFormScreenState extends ConsumerState<EnrollmentFormScreen> {
               label: owner ? 'اسم المولد' : 'الاسم الكامل', controller: name),
           const SizedBox(height: PortalTokens.lg),
           PortalInput(
-              label: 'هاتف التواصل (اختياري وغير متحقق منه)',
+              label: 'هاتف التواصل (مطلوب)',
               controller: contactPhone,
               keyboardType: TextInputType.phone),
           const SizedBox(height: PortalTokens.lg),

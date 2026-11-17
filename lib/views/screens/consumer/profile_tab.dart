@@ -56,6 +56,7 @@ class ProfileTab extends ConsumerWidget {
                       style: theme.textTheme.bodySmall),
                 ])),
           ])),
+          const ContactCompletionPrompt(),
           const PortalSection('بيانات الحساب'),
           _InfoCard(),
           const SizedBox(height: PortalTokens.xl),

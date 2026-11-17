@@ -1,3 +1,4 @@
+import '../services/contact_fields.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -226,13 +227,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> updateProfile(
-      {String? name, String? address, String? phone}) async {
+      {String? name, String? address, String? phone, String? idNumber}) async {
     final uid = state.user?.uid;
     if (uid == null) return;
     final data = <String, dynamic>{};
     if (name != null) data['name'] = name;
     if (address != null) data['address'] = address;
-    if (phone != null) data['phone'] = phone;
+    final issue=contactError(phone??state.profile?.phone??'',idNumber??state.profile?.idNumber??'');
+    if(issue!=null)throw CredentialFailure(issue);
+    if (phone != null) data['phone'] = normalizeMobile(phone);
+    if(idNumber!=null)data['idNumber']=normalizeDigits(idNumber).trim();
     if (data.isNotEmpty) {
       await _db.collection('users').doc(uid).update(data);
     }

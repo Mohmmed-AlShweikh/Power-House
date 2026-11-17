@@ -1,3 +1,4 @@
+import '../../services/contact_fields.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -92,7 +93,7 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> {
                   'لم يتم التحقق بعد. افتح رابط الرسالة ثم أعد المحاولة.');
             }
           case CredentialMode.manage:
-            if (!reauthenticated) {
+            if (password.text.isNotEmpty && !reauthenticated) {
               throw const CredentialFailure('تحقق بكلمة المرور الحالية أولاً');
             }
             if (id.text.isNotEmpty && !validNationalId(id.text.trim())) {
@@ -108,7 +109,7 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> {
                   phone: phone.text.trim());
             }
             await service.finishAccount(
-                id: id.text.trim(), phone: phone.text.trim());
+                id: normalizeDigits(id.text).trim(), phone: normalizeMobile(phone.text));
             await ref.read(authProvider.notifier).reloadProfile();
             if (mounted) setState(() => notice = 'تم حفظ بيانات الحساب');
         }
@@ -282,7 +283,7 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> {
                 onPressed: () => context.go(
                     ref.read(authProvider).profile?.role == UserRole.admin
                         ? '/admin'
-                        : '/consumer'),
+                        : ref.read(authProvider).profile?.role == UserRole.meterReader ? '/reader' : '/consumer'),
                 child: const Text('رجوع')),
         ]);
   }

@@ -1,3 +1,4 @@
+import 'package:generator_portal/services/contact_fields.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:generator_portal/providers/theme_provider.dart';
 import 'dart:async';
@@ -31,12 +32,12 @@ class EditAuth extends MultiAuthFixture {
             loading: false));
   @override
   Future<void> updateProfile(
-      {String? name, String? address, String? phone}) async {
+      {String? name, String? address, String? phone, String? idNumber}) async {
     saves++;
     await done.future;
     replace(state.copyWith(
-        profile: state.profile!
-            .copyWith(name: name, address: address, phone: phone)));
+        profile: state.profile!.copyWith(
+            name: name, address: address, phone: phone, idNumber: idNumber)));
   }
 }
 
@@ -102,6 +103,38 @@ void main() {
       if (!dismiss) expect(find.text('تم حفظ البيانات ✓'), findsOneWidget);
     });
   }
- test('system-dark first tap goes light and startup load cannot overwrite user choice',()async{SharedPreferences.setMockInitialValues({});final theme=ThemeNotifier();await Future<void>.delayed(Duration.zero);await theme.toggle(visibleBrightness:Brightness.dark);expect(theme.state,ThemeMode.light);theme.dispose();SharedPreferences.setMockInitialValues({'theme_mode':'dark'});final racing=ThemeNotifier();await racing.toggle(visibleBrightness:Brightness.dark);await Future<void>.delayed(Duration.zero);expect(racing.state,ThemeMode.light);racing.dispose();});
+  test(
+      'system-dark first tap goes light and startup load cannot overwrite user choice',
+      () async {
+    SharedPreferences.setMockInitialValues({});
+    final theme = ThemeNotifier();
+    await Future<void>.delayed(Duration.zero);
+    await theme.toggle(visibleBrightness: Brightness.dark);
+    expect(theme.state, ThemeMode.light);
+    theme.dispose();
+    SharedPreferences.setMockInitialValues({'theme_mode': 'dark'});
+    final racing = ThemeNotifier();
+    await racing.toggle(visibleBrightness: Brightness.dark);
+    await Future<void>.delayed(Duration.zero);
+    expect(racing.state, ThemeMode.light);
+    racing.dispose();
+  });
 
+  test(
+      'contact normalizes Arabic digits and Palestinian international mobile prefixes',
+      () {
+    for (final value in [
+      '٠٥٩١٢٣٤٥٦٧',
+      '۰۵۹۱۲۳۴۵۶۷',
+      '+970 59 123 4567',
+      '00972-59-1234567'
+    ]) {
+      expect(normalizeMobile(value), '0591234567');
+      expect(palestinianMobile(value), true);
+    }
+    expect(contactError('', '', requiredPhone: true), isNotNull);
+    expect(contactError('059123456', '123456789'), isNotNull);
+    expect(contactError('+972541234567', ''), isNotNull);
+    expect(contactError('0591234567', '١٢٣٤٥٦٧٨٩'), isNull);
+  });
 }

@@ -2048,6 +2048,7 @@ class _AdminProfileTab extends ConsumerWidget {
                 value: '$totalBills',
                 icon: Icons.receipt_long_outlined),
           ])),
+          const ContactCompletionPrompt(),
           const PortalSection('البيانات الشخصية'),
           PortalPanel(
               child: Column(children: [

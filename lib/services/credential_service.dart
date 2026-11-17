@@ -1,3 +1,4 @@
+import 'contact_fields.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,7 +8,7 @@ bool realEmail(String value) =>
     RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value.trim()) &&
     !value.trim().toLowerCase().endsWith('@powershare.app') &&
     !value.trim().toLowerCase().endsWith('@id.generatorportal.app');
-bool validNationalId(String value) => RegExp(r'^\d{9,10}$').hasMatch(value);
+bool validNationalId(String value) => RegExp(r'^\d{9,10}$').hasMatch(normalizeDigits(value).trim());
 String? passwordError(
     String password, String confirm, String id, String phone) {
   if (password.length < 8 ||
@@ -201,19 +202,9 @@ class FirebaseCredentialService extends CredentialService {
 
   @override
   Future<void> finishAccount({String id = '', String phone = ''}) async {
-    if (!verified ||
-        (id.isNotEmpty && !validNationalId(id)) ||
-        phone.length > 32) {
-      throw const CredentialFailure('تحقق من البريد وأدخل بيانات صحيحة');
-    }
-    await requireRecent();
-    final uid = user.uid, address = email;
-    await db.collection('users').doc(uid).update({
-      'email': address,
-      'phone': phone,
-      'credentialVersion': 2,
-      'idNumber': id
-    });
+    final issue=contactError(phone,id);
+    if(!verified||issue!=null)throw CredentialFailure(issue??'تحقق من البريد أولاً');
+    await db.collection('users').doc(user.uid).update({'phone':normalizeMobile(phone),'idNumber':normalizeDigits(id).trim()});
   }
 
   @override

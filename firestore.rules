@@ -43,13 +43,13 @@ service cloud.firestore {
       return data.keys().hasOnly(['name', 'phone', 'address', 'role', 'status',
         'subscriptionStatus', 'generatorId', 'ampereLimit', 'createdAt', 'idNumber', 'credentialVersion', 'email']) &&
         data.name is string && data.name.size() > 0 && data.name.size() <= 120 &&
-        validEpoch(data.createdAt) && data.ampereLimit is int && data.ampereLimit == 0 && validContact(data) &&
+        data.phone.matches('^05[69][0-9]{7}$') && validEpoch(data.createdAt) && data.ampereLimit is int && data.ampereLimit == 0 && validContact(data) &&
         data.status == 'pending' && data.generatorId is string && data.generatorId.size() > 0;
     }
     function validContact(data) {
       return data.get('name', '') is string && data.get('name', '').size() <= 120 &&
         data.get('address', '') is string && data.get('address', '').size() <= 240 &&
-        data.get('phone', '') is string && data.get('phone', '').size() <= 32 &&
+        data.get('phone', '') is string && (data.get('phone','') == '' || data.phone.matches('^05[69][0-9]{7}$')) &&
         data.get('idNumber','') is string && (data.get('idNumber','') == '' || data.idNumber.matches('^[0-9]{9,10}$'));
     }
     function canEnroll(data, uid) {
@@ -195,7 +195,7 @@ service cloud.firestore {
       allow create: if !request.resource.data.keys().hasAny(['password', 'passwordUpdatedAt']) && (superAdmin() || canEnroll(request.resource.data, uid) || invited(request.resource.data, uid));
       allow update: if (owner() && same(resource.data) && resource.data.role == 'meter_reader' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','rejectionReason']) && request.resource.data.status == 'suspended' && request.resource.data.rejectionReason is string && request.resource.data.rejectionReason.size()>0 && getAfter(/databases/$(database)/documents/meterStaff/$(uid)).data.active == false) || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['password', 'passwordUpdatedAt']) && (superAdmin() ||
         (signed() && uid == request.auth.uid && validContact(request.resource.data) &&
-          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'address', 'phone', 'idNumber']) || (recent() && verifiedEmail(request.resource.data) && request.resource.data.get('credentialVersion',0)==2 && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','address','phone','idNumber','email','credentialVersion'])))) ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'address', 'phone', 'idNumber'])) ||
         (owner() && consumer(resource.data) && same(resource.data) && validContact(request.resource.data) &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'name', 'address', 'status', 'subscriptionStatus', 'ampereLimit',
