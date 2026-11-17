@@ -1,3 +1,4 @@
+import 'package:generator_portal/views/widgets/portal_auth_page.dart';
 import 'package:generator_portal/services/contact_fields.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:generator_portal/providers/theme_provider.dart';
@@ -136,5 +137,32 @@ void main() {
     expect(contactError('059123456', '123456789'), isNotNull);
     expect(contactError('+972541234567', ''), isNotNull);
     expect(contactError('0591234567', '١٢٣٤٥٦٧٨٩'), isNull);
+  });
+  testWidgets(
+      'auth group centers on tablet and scrolls to focused field with keyboard',
+      (t) async {
+    t.view.physicalSize = const Size(1000, 1000);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
+    addTearDown(t.view.resetViewInsets);
+    await t.pumpWidget(MaterialApp(
+        theme: buildPortalTheme(Brightness.light),
+        home: PortalAuthPage(title: 'تسجيل الدخول', children: const [
+          TextField(decoration: InputDecoration(labelText: 'البريد')),
+          TextField(decoration: InputDecoration(labelText: 'كلمة المرور'))
+        ])));
+    await t.pumpAndSettle();
+    final group = t.getRect(find.byKey(const ValueKey('auth-centered-group')));
+    expect(group.width, lessThanOrEqualTo(420));
+    expect(group.center.dx, closeTo(500, 1));
+    expect(group.center.dy, closeTo(500, 2));
+    await t.tap(find.byType(TextField).last);
+    t.view.viewInsets = const FakeViewPadding(bottom: 650);
+    await t.pumpAndSettle();
+    await t.ensureVisible(find.byType(TextField).last);
+    expect(
+        t.getRect(find.byType(TextField).last).bottom, lessThanOrEqualTo(350));
+    expect(t.takeException(), isNull);
   });
 }

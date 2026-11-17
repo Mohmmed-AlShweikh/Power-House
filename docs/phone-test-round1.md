@@ -5,3 +5,5 @@
 2. **First theme tap:** missing saved preference resolves to `system`, but toggle treated system as light even when the OS was displaying dark. The asynchronous preference load could also overwrite a tap made during startup. Resolve from visible brightness and ignore stale preference loads after a user choice.
 
 3. **Contact fields / registration:** both profile forms deliberately made phone read-only and routed contact edits through password re-authentication; readers had no profile entry. Registration treated phone as optional. ID uniqueness is NOT enforced (no active idIndex writes), so no uniqueness feature is added. Share validation/Arabic-digit normalization, require Palestinian mobile for new owner/consumer enrollment, allow own contact-only updates without credential changes, and gently prompt existing empty profiles.
+
+4. **Auth layout:** CredentialScreen reused PortalPage's fixed identity header and top-aligned full-width list. There was no centered/max-width auth group and keyboard resizing inherited page layout. Add a bounded centered scrollable auth frame using existing identity tokens, retaining a scroll/reveal path with the keyboard open.
