@@ -1,3 +1,4 @@
+import '../../services/contact_fields.dart';
 import '../finance/ledger.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/tenant_store.dart';
@@ -63,7 +64,8 @@ class RoundsRepository {
         'readerUid': readerUid.isEmpty ? a.uid : readerUid,
         'userId': userId,
         'active': true,
-        'lastRoundId': ''
+        'lastRoundId': '',
+        'linkPending': false
       });
       if (userId.isNotEmpty) {
         tx.set(doc('billingLinks', userId),
@@ -95,7 +97,7 @@ class RoundsRepository {
           link.exists) {
         throw StateError('الربط غير متاح');
       }
-      tx.update(ref, {'userId': uid});
+      tx.update(ref, {'userId': uid, 'linkPending': true});
       tx.update(doc('accountBalances', sid), {'userId': uid});
       tx.set(doc('billingLinks', uid),
           {'generatorId': a.generatorId, 'subscriberId': sid});
@@ -128,6 +130,34 @@ class RoundsRepository {
     for (final p in payments.docs) {
       if (p.data()['userId'] != uid) await p.reference.update({'userId': uid});
     }
+    await s.reference.update({'linkPending': false});
+  }
+
+  Future<void> editSubscriber(String sid,
+      {required String name,
+      required String phone,
+      required String address,
+      required String number}) async {
+    final a = await owner();
+    final record = await doc('billingSubscribers', sid).get();
+    final issue = contactError(phone, '');
+    if (record.data()?['generatorId'] != a.generatorId) {
+      throw StateError('مشترك غير متاح');
+    }
+    if (issue != null ||
+        name.trim().isEmpty ||
+        name.length > 120 ||
+        address.length > 240 ||
+        number.trim().isEmpty ||
+        number.length > 80) {
+      throw FormatException(issue ?? 'تحقق من بيانات المشترك');
+    }
+    await record.reference.update({
+      'name': name.trim(),
+      'phone': normalizeMobile(phone),
+      'address': address.trim(),
+      'number': number.trim()
+    });
   }
 
   Future<String> openRound(DateTime date) async {

@@ -285,6 +285,24 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "cycleBills",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "generatorId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "roundId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "published",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []

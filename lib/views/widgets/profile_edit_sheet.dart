@@ -115,8 +115,9 @@ class ContactCompletionPrompt extends ConsumerWidget {
   const ContactCompletionPrompt({super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (ref.watch(authProvider).profile?.phone.isNotEmpty != false)
+    if (ref.watch(authProvider).profile?.phone.isNotEmpty != false) {
       return const SizedBox.shrink();
+    }
     return Padding(
         padding: const EdgeInsets.only(bottom: PortalTokens.lg),
         child: Card(

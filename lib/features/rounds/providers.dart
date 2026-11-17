@@ -61,3 +61,13 @@ final accountBalancesProvider = StreamProvider((ref) {
   }
   return q.autoSnapshots(ref);
 });
+
+final roundPublishedProvider = StreamProvider.family((ref, String rid) => ref
+    .watch(firestoreProvider)
+    .collection('cycleBills')
+    .where('generatorId', isEqualTo: ref.watch(tenantIdProvider))
+    .where('roundId', isEqualTo: rid)
+    .where('published', isEqualTo: false)
+    .limit(1)
+    .autoSnapshots(ref)
+    .map((s) => s.docs.isEmpty));

@@ -1,8 +1,7 @@
-import 'selectors.dart';
+import 'overview.dart';
 import '../finance/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/user_model.dart';
 import '../../theme/portal_tokens.dart';
@@ -14,156 +13,10 @@ import '../metering/models.dart';
 import 'models.dart';
 import 'providers.dart';
 
-class RoundsScreen extends ConsumerWidget {
+class RoundsScreen extends StatelessWidget {
   const RoundsScreen({super.key});
   @override
-  Widget build(BuildContext context, WidgetRef ref) => Scaffold(
-      appBar: AppBar(title: const Text('جولات القراءة والفوترة'), actions: [
-        IconButton(
-            tooltip: 'كشف الحساب',
-            onPressed: () => context.push('/cycle-statement'),
-            icon: const Icon(Icons.receipt_long_outlined))
-      ]),
-      body: ListView(padding: PortalTokens.pagePadding, children: [
-        Wrap(spacing: PortalTokens.sm, children: [
-          FilledButton(
-              onPressed: () => featureAction(context, () async {
-                    final date = await showDatePicker(
-                        context: context,
-                        initialDate: DateTime.now(),
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now());
-                    if (date != null) {
-                      await ref.read(roundsRepositoryProvider).openRound(
-                          DateTime.utc(date.year, date.month, date.day));
-                    }
-                  }),
-              child: const Text('فتح جولة')),
-          OutlinedButton(
-              onPressed: () async {
-                final u = await chooseConsumer(context);
-                if (u == null || !context.mounted) return;
-                final v = await featureForm(context, 'إضافة الحساب للفوترة',
-                    {'رقم الاشتراك': '', 'قراءة البداية': '0'},
-                    numeric: {'قراءة البداية'});
-                if (v != null && context.mounted) {
-                  await featureAction(context, () async {
-                    await ref.read(roundsRepositoryProvider).addSubscriber(
-                        name: u.name,
-                        phone: u.phone,
-                        address: u.address,
-                        number: v['رقم الاشتراك']!,
-                        startingMilli: parseFixed(v['قراءة البداية']!, 3),
-                        userId: u.uid);
-                  });
-                }
-              },
-              child: const Text('إضافة حساب معتمد')),
-          OutlinedButton(
-              onPressed: () async {
-                final v = await featureForm(context, 'إضافة مشترك للفوترة', {
-                  'الاسم': '',
-                  'هاتف التواصل': '',
-                  'الحي / العنوان': '',
-                  'رقم الاشتراك': '',
-                  'قراءة البداية': '0',
-                  'معرف حساب المشترك (اختياري)': ''
-                }, numeric: {
-                  'قراءة البداية'
-                }, optional: {
-                  'هاتف التواصل',
-                  'الحي / العنوان',
-                  'معرف حساب المشترك (اختياري)'
-                });
-                if (v != null && context.mounted) {
-                  await featureAction(context, () async {
-                    await ref.read(roundsRepositoryProvider).addSubscriber(
-                        name: v['الاسم']!,
-                        phone: v['هاتف التواصل']!,
-                        address: v['الحي / العنوان']!,
-                        number: v['رقم الاشتراك']!,
-                        startingMilli: parseFixed(v['قراءة البداية']!, 3),
-                        userId: v['معرف حساب المشترك (اختياري)']!);
-                  });
-                }
-              },
-              child: const Text('إضافة مشترك'))
-        ]),
-        const PortalSection('الجولات'),
-        FeatureData(
-            value: ref.watch(billingRoundsProvider),
-            retry: () => ref.invalidate(billingRoundsProvider),
-            builder: (s) => s.docs.isEmpty
-                ? const PortalEmptyState('أضف المشتركين ثم افتح أول جولة')
-                : Column(children: [
-                    for (final d in s.docs.reversed)
-                      ListTile(
-                          leading: const Icon(Icons.electric_meter_outlined),
-                          title: Text(
-                              'جولة ${DateTime.fromMillisecondsSinceEpoch(d.data()['date'], isUtc: true).toIso8601String().substring(0, 10)}'),
-                          subtitle: Text({
-                                'open': 'مفتوحة',
-                                'preparing': 'قيد التحضير',
-                                'closing': 'قيد إصدار الفواتير',
-                                'closed': 'مغلقة'
-                              }[d.data()['status']] ??
-                              ''),
-                          onTap: () => context.push('/round/${d.id}'))
-                  ])),
-        const PortalSection('المشتركون المسجلون للفوترة'),
-        FeatureData(
-            value: ref.watch(billingSubscribersProvider),
-            retry: () => ref.invalidate(billingSubscribersProvider),
-            builder: (s) => Column(children: [
-                  for (final d in s.docs)
-                    PortalPanel(
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                          Text(d.data()['name'],
-                              style: Theme.of(context).textTheme.titleMedium),
-                          Text(
-                              '${d.data()['number']} • ${d.data()['address']}'),
-                          PortalLabelValue(
-                              label: 'القراءة السابقة',
-                              value: formatFixed(d.data()['previousMilli'], 3)),
-                          Wrap(children: [
-                            TextButton(
-                                onPressed: () async {
-                                  final selected =
-                                      await chooseConsumer(context);
-                                  if (selected != null && context.mounted) {
-                                    await featureAction(
-                                        context,
-                                        () => ref
-                                            .read(roundsRepositoryProvider)
-                                            .linkAccount(d.id, selected.uid));
-                                  }
-                                },
-                                child: const Text('ربط حساب')),
-                            TextButton(
-                                onPressed: () => featureAction(
-                                    context,
-                                    () => ref
-                                        .read(roundsRepositoryProvider)
-                                        .repairLinks(d.id)),
-                                child: const Text('إكمال الربط')),
-                            TextButton(
-                                onPressed: () async {
-                                  final selected = await chooseReader(context);
-                                  if (selected != null && context.mounted) {
-                                    await featureAction(
-                                        context,
-                                        () => ref
-                                            .read(roundsRepositoryProvider)
-                                            .assignReader(d.id, selected));
-                                  }
-                                },
-                                child: const Text('إسناد عامل'))
-                          ])
-                        ]))
-                ]))
-      ]));
+  Widget build(BuildContext context) => const RoundsOverview();
 }
 
 class RoundScreen extends ConsumerWidget {

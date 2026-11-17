@@ -141,28 +141,6 @@ class ProfileTab extends ConsumerWidget {
   }
 }
 
-class _SheetField extends StatelessWidget {
-  final bool readOnly;
-  final TextEditingController controller;
-  final String hint;
-  final IconData icon;
-  final TextInputType? keyboardType;
-  const _SheetField(
-      {required this.controller,
-      required this.hint,
-      required this.icon,
-      this.keyboardType,
-      this.readOnly = false});
-
-  @override
-  Widget build(BuildContext context) => TextField(
-      controller: controller,
-      readOnly: readOnly,
-      keyboardType: keyboardType,
-      style: Theme.of(context).textTheme.bodyMedium,
-      decoration: InputDecoration(hintText: hint, prefixIcon: Icon(icon)));
-}
-
 class _InfoCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -727,10 +705,12 @@ class _ComplaintSheetState extends ConsumerState<_ComplaintSheet> {
       await NotificationService().notifyAdminNewComplaint(profile.name);
       if (mounted) completePortalSave(context,message:'تم إرسال الشكوى ✓');
     } catch (_) {
-      if(mounted) setState(() {
+      if(mounted) {
+        setState(() {
         _error = 'تعذّر إرسال الشكوى. حاول مجدداً.';
         _loading = false;
       });
+      }
     }
   }
 

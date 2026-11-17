@@ -1,0 +1,16 @@
+{
+  "base": "1443adb",
+  "branch": "fix/phone-test-round1",
+  "flutter_tests": 185,
+  "emulator_tests": 34,
+  "analyzer": {
+    "info": 18,
+    "warning": 12
+  },
+  "new_analyzer_diagnostics": [],
+  "android_debug_build": "passed",
+  "physical_device_tested": false,
+  "mail_intent_on_device_tested": false,
+  "production_firebase_access": false,
+  "firebase_rules_deployed": false
+}

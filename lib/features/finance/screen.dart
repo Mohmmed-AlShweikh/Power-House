@@ -161,35 +161,39 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                         title:
                             Text(expenseCategories[d.data()['category']] ?? ''),
                         subtitle: Text(
-                            '${utcDay(d.data()['date'])} • ${d.data()['note']}'),
-                        trailing: Wrap(children: [
-                          TextButton(
-                              onPressed: () =>
-                                  editExpense(context, d.id, d.data()),
-                              child: Text(
-                                  '₪${formatFixed(d.data()['amountAgorot'], 2)} • تعديل')),
-                          IconButton(
-                              tooltip: 'حذف المصروف مع حفظ الأثر',
-                              onPressed: () async {
-                                if (await featureConfirm(context,
-                                        'حذف المصروف؟ يُحفظ أثر التغيير') &&
-                                    context.mounted) {
-                                  await featureAction(
-                                      context,
-                                      () => ref
-                                          .read(financeRepositoryProvider)
-                                          .expense(
-                                              id: d.id,
-                                              amount: d.data()['amountAgorot'],
-                                              date: d.data()['date'],
-                                              category: d.data()['category'],
-                                              note: d.data()['note'],
-                                              roundId: d.data()['roundId'],
-                                              remove: true));
-                                }
-                              },
-                              icon: const Icon(Icons.delete_outline))
-                        ]))
+                            '₪${formatFixed(d.data()['amountAgorot'], 2)} • ${utcDay(d.data()['date'])} • ${d.data()['note']}'),
+                        trailing: PopupMenuButton<String>(
+                            tooltip: 'إجراءات المصروف',
+                            onSelected: (action) async {
+                              if (action == 'edit') {
+                                await editExpense(context, d.id, d.data());
+                                return;
+                              }
+                              if (await featureConfirm(context,
+                                      'حذف المصروف؟ يُحفظ أثر التغيير') &&
+                                  context.mounted) {
+                                await featureAction(
+                                    context,
+                                    () => ref
+                                        .read(financeRepositoryProvider)
+                                        .expense(
+                                            id: d.id,
+                                            amount: d.data()['amountAgorot'],
+                                            date: d.data()['date'],
+                                            category: d.data()['category'],
+                                            note: d.data()['note'],
+                                            roundId: d.data()['roundId'],
+                                            remove: true));
+                              }
+                            },
+                            itemBuilder: (_) => const [
+                                  PopupMenuItem(
+                                      value: 'edit', child: Text('تعديل')),
+                                  PopupMenuItem(
+                                      value: 'delete',
+                                      child: Text('حذف مع حفظ الأثر'))
+                                ]),
+                        onTap: () => editExpense(context, d.id, d.data()))
                 ]);
               }),
           const Text(

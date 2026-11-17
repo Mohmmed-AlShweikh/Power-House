@@ -1,3 +1,4 @@
+import '../../widgets/profile_edit_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/alert_model.dart';
@@ -113,6 +114,7 @@ class HomeTab extends ConsumerWidget {
                     lastChanged: lastChanged,
                     scheduledOnAt: scheduledOnAt,
                     scheduledOffAt: scheduledOffAt),
+                const ContactCompletionPrompt(),
                 PortalSection('الاستهلاك الشهري ($currentMonth)'),
                 PortalMetricPair(
                     first: PortalMetric(

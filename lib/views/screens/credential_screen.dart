@@ -40,19 +40,21 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> {
     id.text = profile?.idNumber ?? '';
     password.addListener(refresh);
     confirm.addListener(refresh);
-    startCooldown(service.emailCooldownSeconds);
+    if(widget.mode==CredentialMode.verify)startCooldown(service.emailCooldownSeconds);
   }
 
   void startCooldown(int seconds) {
     resendTimer?.cancel();
     resendSeconds = seconds;
     if (seconds <= 0) return;
+    var lastTick=0;
     resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
       }
-      setState(() => resendSeconds--);
+      final elapsed=timer.tick-lastTick;lastTick=timer.tick;
+      setState(() => resendSeconds=(resendSeconds-elapsed).clamp(0,60));
       if (resendSeconds <= 0) timer.cancel();
     });
   }
@@ -146,7 +148,24 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> {
                 id: normalizeDigits(id.text).trim(),
                 phone: normalizeMobile(phone.text));
             await ref.read(authProvider.notifier).reloadProfile();
-            if (mounted) setState(() => notice = 'تم حفظ بيانات الحساب');
+            if (mounted) {
+              final router = GoRouter.maybeOf(context);
+              if (router == null) {
+                setState(() => notice = 'تم حفظ بيانات الحساب');
+              } else {
+                final messenger = ScaffoldMessenger.maybeOf(context);
+                final role = ref.read(authProvider).profile?.role;
+                router.go(role == UserRole.admin
+                    ? '/admin'
+                    : role == UserRole.meterReader
+                        ? '/reader'
+                        : role == UserRole.superAdmin
+                            ? '/super_admin'
+                            : '/consumer');
+                messenger?.showSnackBar(
+                    const SnackBar(content: Text('تم حفظ بيانات الحساب')));
+              }
+            }
         }
       });
   @override

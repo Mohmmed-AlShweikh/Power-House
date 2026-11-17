@@ -1,4 +1,3 @@
-import 'package:flutter/services.dart';
 import 'package:generator_portal/views/screens/credential_screen.dart';
 import 'package:generator_portal/services/credential_service.dart';
 import 'package:generator_portal/services/mail_app.dart';
@@ -153,7 +152,7 @@ void main() {
     addTearDown(t.view.resetViewInsets);
     await t.pumpWidget(MaterialApp(
         theme: buildPortalTheme(Brightness.light),
-        home: PortalAuthPage(title: 'تسجيل الدخول', children: const [
+        home: const PortalAuthPage(title: 'تسجيل الدخول', children: [
           TextField(decoration: InputDecoration(labelText: 'البريد')),
           TextField(decoration: InputDecoration(labelText: 'كلمة المرور'))
         ])));
@@ -204,4 +203,6 @@ void main() {
     expect(find.text('إعادة الإرسال'), findsOneWidget);
     await t.pumpWidget(const SizedBox());
   });
+ for(final role in [UserRole.consumer,UserRole.admin,UserRole.meterReader]){testWidgets('profile phone and ID editable without reauth for $role',(t)async{final auth=EditAuth();auth.replace(auth.state.copyWith(profile:UserProfile(uid:'c',name:'اسم',generatorId:'g',role:role,createdAt:DateTime(2026))));await t.pumpWidget(ProviderScope(overrides:[authProvider.overrideWith((_)=>auth)],child:MaterialApp(theme:buildPortalTheme(Brightness.light),home:Scaffold(body:Builder(builder:(c)=>TextButton(onPressed:()=>showPortalFormSheet(context:c,builder:(_)=>const ProfileEditSheet()),child:const Text('ملفي')))))));await t.tap(find.text('ملفي'));await t.pumpAndSettle();await t.enterText(find.widgetWithText(TextField,'رقم الجوال'),'٠٥٦١٢٣٤٥٦٧');await t.enterText(find.widgetWithText(TextField,'رقم الهوية (اختياري وخاص)'),'١٢٣٤٥٦٧٨٩');await t.ensureVisible(find.text('حفظ التغييرات'));await t.tap(find.text('حفظ التغييرات'));auth.done.complete();await t.pumpAndSettle();expect(auth.state.profile!.phone,'0561234567');expect(auth.state.profile!.idNumber,'123456789');expect(t.takeException(),isNull);});}
+
 }

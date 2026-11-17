@@ -1,3 +1,4 @@
+import 'contact_fields.dart';
 import '../features/finance/ledger.dart';
 import '../features/billing_settings/models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -355,13 +356,18 @@ class FirebaseService {
   // Find a subscriber by their ID number (رقم الهوية)
   // Returns the UserProfile UID if found, null otherwise.
   Future<String?> findUserByIdNumber(String idNumber) async {
-    final trimmed = idNumber.trim();
+    final trimmed = normalizeDigits(idNumber).trim();
     if (trimmed.isEmpty) return null;
     final query = (await _store.query('users'))
         .where('role', whereIn: ['user', 'consumer']);
     for (final entry in [
       ('idNumber', trimmed),
+      ('phone', normalizeMobile(trimmed)),
       ('phone', trimmed),
+      if (palestinianMobile(trimmed))
+        ('phone', '+970${normalizeMobile(trimmed).substring(1)}'),
+      if (palestinianMobile(trimmed))
+        ('phone', '+972${normalizeMobile(trimmed).substring(1)}'),
       ('email', '$trimmed@powershare.app'),
     ]) {
       final snapshot =

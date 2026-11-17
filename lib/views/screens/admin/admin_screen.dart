@@ -363,6 +363,7 @@ class _DashboardTab extends ConsumerWidget {
                   : '-',
               icon: Icons.electric_bolt_outlined),
         ])),
+        const ContactCompletionPrompt(),
         const PortalSection('آخر النشاطات'),
         _RecentActivity(),
       ]),

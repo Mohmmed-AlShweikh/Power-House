@@ -49,7 +49,7 @@ service cloud.firestore {
     function validContact(data) {
       return data.get('name', '') is string && data.get('name', '').size() <= 120 &&
         data.get('address', '') is string && data.get('address', '').size() <= 240 &&
-        data.get('phone', '') is string && (data.get('phone','') == '' || data.phone.matches('^05[69][0-9]{7}$')) &&
+        data.get('phone', '') is string && (data.get('phone','') == '' || data.phone.matches('^(05[69][0-9]{7}|[+]97[02]5[69][0-9]{7})$')) &&
         data.get('idNumber','') is string && (data.get('idNumber','') == '' || data.idNumber.matches('^[0-9]{9,10}$'));
     }
     function canEnroll(data, uid) {
@@ -91,7 +91,7 @@ service cloud.firestore {
     match /billingSubscribers/{id} {
       allow get: if cycleOwner(resource.data) || (owner() && !exists(/databases/$(database)/documents/billingSubscribers/$(id)));
       allow list: if cycleOwner(resource.data);
-      allow create, update: if cycleOwner(request.resource.data) && (!exists(/databases/$(database)/documents/billingSubscribers/$(id)) || same(resource.data)) && request.resource.data.keys().hasOnly(['generatorId','name','phone','address','number','previousMilli','averageMilli','recentDifferences','readerUid','userId','active','lastRoundId']) && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 120 && request.resource.data.phone is string && request.resource.data.phone.size() <= 32 && request.resource.data.address is string && request.resource.data.address.size() <= 240 && request.resource.data.number is string && request.resource.data.previousMilli is int && request.resource.data.previousMilli >= 0 && request.resource.data.previousMilli <= 1000000000 && request.resource.data.averageMilli is int && request.resource.data.recentDifferences is list && request.resource.data.recentDifferences.size() <= 3 && request.resource.data.readerUid is string && request.resource.data.active is bool && (request.resource.data.userId == '' || consumerMember(request.resource.data.userId, gid(me())));
+      allow create, update: if cycleOwner(request.resource.data) && (!exists(/databases/$(database)/documents/billingSubscribers/$(id)) || same(resource.data)) && request.resource.data.keys().hasOnly(['generatorId','name','phone','address','number','previousMilli','averageMilli','recentDifferences','readerUid','userId','active','lastRoundId','linkPending']) && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 120 && request.resource.data.phone is string && request.resource.data.phone.size() <= 32 && request.resource.data.address is string && request.resource.data.address.size() <= 240 && request.resource.data.number is string && request.resource.data.previousMilli is int && request.resource.data.previousMilli >= 0 && request.resource.data.previousMilli <= 1000000000 && request.resource.data.averageMilli is int && request.resource.data.recentDifferences is list && request.resource.data.recentDifferences.size() <= 3 && request.resource.data.readerUid is string && request.resource.data.active is bool && request.resource.data.get('linkPending',false) is bool && (request.resource.data.userId == '' || consumerMember(request.resource.data.userId, gid(me())));
     }
     match /billingLinks/{uid} {
       allow get: if (signed() && uid == request.auth.uid) || (owner() && consumerMember(uid,gid(me())));
