@@ -101,3 +101,22 @@ class _PortalFocusRevealState extends State<PortalFocusReveal>
   @override
   Widget build(BuildContext context) => widget.child;
 }
+
+/// Never pop a replacement page when a save finishes after dismissal/redirect.
+bool completePortalSave<T>(BuildContext context,{T? result,String? message}) {
+ if(!context.mounted)return false;
+ final route=ModalRoute.of(context);
+ if(route is! PopupRoute || !route.isCurrent)return false;
+ final messenger=ScaffoldMessenger.maybeOf(context);
+ Navigator.of(context).pop(result);
+ if(message!=null)messenger?.showSnackBar(SnackBar(content:Text(message)));
+ return true;
+}
+
+bool returnAfterPortalSave(BuildContext context,String message){
+ if(!context.mounted || ModalRoute.of(context)?.isCurrent!=true || !Navigator.of(context).canPop())return false;
+ final messenger=ScaffoldMessenger.maybeOf(context);
+ Navigator.of(context).pop();
+ messenger?.showSnackBar(SnackBar(content:Text(message)));
+ return true;
+}

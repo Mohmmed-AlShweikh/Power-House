@@ -1,3 +1,4 @@
+import '../../widgets/portal_keyboard.dart';
 import '../../widgets/payment_details.dart';
 import '../../widgets/portal_reason_dialog.dart';
 import 'package:flutter/material.dart';
@@ -365,7 +366,7 @@ class _ReceiptReviewDialogState extends ConsumerState<ReceiptReviewDialog> {
       await ref.read(firebaseServiceProvider).updateBillStatus(
           widget.bill.id, status,
           reason: reason, expectedVersion: widget.bill.payment?.version);
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) completePortalSave(context,result:true,message:'تم حفظ العملية');
     } catch (_) {
       if (mounted) {
         setState(() {

@@ -1,3 +1,4 @@
+import '../../widgets/profile_edit_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -89,109 +90,8 @@ class ProfileTab extends ConsumerWidget {
   }
 
   void _showEditSheet(BuildContext context, WidgetRef ref) {
-    final profile = ref.read(authProvider).profile;
-    final nameCtrl = TextEditingController(text: profile?.name ?? '');
-    final addressCtrl = TextEditingController(text: profile?.address ?? '');
-    final phoneCtrl = TextEditingController(text: profile?.phone ?? '');
-
-    showPortalFormSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: Padding(
-          padding: const EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: 24,
-            bottom: 24,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text('تعديل البيانات',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleLarge
-                              ?.copyWith(fontWeight: FontWeight.w700)),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                _SheetField(
-                    controller: nameCtrl,
-                    hint: 'الاسم الكامل',
-                    icon: Icons.person_outline),
-                const SizedBox(height: 12),
-                _SheetField(
-                    controller: addressCtrl,
-                    hint: 'العنوان',
-                    icon: Icons.location_on_outlined),
-                const SizedBox(height: 12),
-                _SheetField(
-                    controller: phoneCtrl,
-                    readOnly: true,
-                    hint: 'رقم الجوال',
-                    icon: Icons.phone_outlined,
-                    keyboardType: TextInputType.phone),
-                const SizedBox(height: 20),
-                OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      context.go('/account-security');
-                    },
-                    icon: const Icon(Icons.manage_accounts_outlined),
-                    label: const Text('الهاتف والهوية وكلمة المرور')),
-                StatefulBuilder(builder: (ctx, setS) {
-                  bool saving = false;
-                  return ElevatedButton(
-                    onPressed: saving
-                        ? null
-                        : () async {
-                            setS(() => saving = true);
-                            await ref.read(authProvider.notifier).updateProfile(
-                                  name: nameCtrl.text.trim(),
-                                  address: addressCtrl.text.trim(),
-                                );
-                            setS(() => saving = false);
-                            if (context.mounted) {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('تم حفظ البيانات ✓',
-                                        textAlign: TextAlign.right)),
-                              );
-                            }
-                          },
-                    child: saving
-                        ? SizedBox(
-                            height: 22,
-                            width: 22,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: Theme.of(context).colorScheme.surface))
-                        : const Text('حفظ التغييرات'),
-                  );
-                }),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+    showPortalFormSheet(context:context,builder:(_)=>const ProfileEditSheet(title:'تعديل البيانات'));
   }
-
   void _showSecuritySheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -824,15 +724,9 @@ class _ComplaintSheetState extends ConsumerState<_ComplaintSheet> {
       if (profile == null) throw Exception('no profile');
       await FirebaseService().addComplaint(profile.uid, profile.name, text);
       await NotificationService().notifyAdminNewComplaint(profile.name);
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('تم إرسال الشكوى ✓', textAlign: TextAlign.right)),
-        );
-      }
+      if (mounted) completePortalSave(context,message:'تم إرسال الشكوى ✓');
     } catch (_) {
-      setState(() {
+      if(mounted) setState(() {
         _error = 'تعذّر إرسال الشكوى. حاول مجدداً.';
         _loading = false;
       });

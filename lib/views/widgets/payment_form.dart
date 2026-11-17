@@ -1,3 +1,4 @@
+import 'portal_keyboard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/bill_model.dart';
@@ -49,7 +50,7 @@ class _PaymentFormState extends ConsumerState<PaymentForm> {
                   .millisecondsSinceEpoch,
               reference: reference.text.trim(),
               method: method));
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) completePortalSave(context,result:true,message:'تم حفظ العملية');
     } catch (_) {
       if (mounted) {
         setState(() => error =

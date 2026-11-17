@@ -101,7 +101,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
       final s = values();
       await ref.read(billingSettingsRepositoryProvider).save(s);
       if (mounted) {
-        setState(() => message = 'تم الحفظ؛ الفواتير السابقة لا تتغير');
+        if(!returnAfterPortalSave(context,'تم الحفظ؛ الفواتير السابقة لا تتغير')) { setState(() => message = 'تم الحفظ؛ الفواتير السابقة لا تتغير'); }
       }
     } catch (_) {
       if (mounted) {

@@ -1,3 +1,4 @@
+import '../../widgets/profile_edit_sheet.dart';
 import '../../../features/billing_settings/models.dart';
 import '../../../features/billing_settings/providers.dart';
 import '../../../services/firestore_reads.dart';
@@ -516,11 +517,7 @@ class _DashboardTab extends ConsumerWidget {
                               .millisecondsSinceEpoch,
                         );
                         if (context.mounted) {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('تم تحديث السعر والجدول بنجاح.')),
-                          );
+                          completePortalSave(context,message:'تم تحديث السعر والجدول بنجاح.');
                         }
                       } catch (e) {
                         if (context.mounted) {
@@ -599,7 +596,7 @@ class _GeneratorToggleCard extends StatelessWidget {
   void _confirmToggle(BuildContext context, bool v) {
     showDialog(
       context: context,
-      builder: (_) => Directionality(
+      builder: (context) => Directionality(
         textDirection: TextDirection.rtl,
         child: AlertDialog(
           scrollable: true,
@@ -792,7 +789,7 @@ class _SubscribersTabState extends ConsumerState<_SubscribersTab> {
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => Directionality(
+      builder: (context) => Directionality(
         textDirection: TextDirection.rtl,
         child: Padding(
           padding: const EdgeInsets.only(
@@ -844,7 +841,7 @@ class _SubscriberCard extends StatelessWidget {
         text: sub.ampereLimit > 0 ? '${sub.ampereLimit}' : '');
     final result = await showPortalFormDialog<int>(
       context: context,
-      builder: (_) => Directionality(
+      builder: (context) => Directionality(
         textDirection: TextDirection.rtl,
         child: AlertDialog(
           scrollable: true,
@@ -1337,16 +1334,7 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
         year: year,
         weekNumber: weekNumber,
       );
-      if (!mounted) return;
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(
-              'تم إصدار فاتورة $month لـ $_resolvedName ✓',
-              textAlign: TextAlign.right,
-            ),
-            backgroundColor: PortalTone.success.colors(context).$1),
-      );
+      if (mounted) completePortalSave(context,message:'تم إصدار فاتورة $month لـ $_resolvedName ✓');
     } catch (e) {
       if (mounted) _showError('فشل إصدار الفاتورة: ${e.toString()}');
     } finally {
@@ -1933,7 +1921,7 @@ class _ComplaintCard extends StatelessWidget {
     final ctrl = TextEditingController();
     showPortalFormDialog(
       context: context,
-      builder: (_) => Directionality(
+      builder: (context) => Directionality(
         textDirection: TextDirection.rtl,
         child: AlertDialog(
           scrollable: true,
@@ -1971,10 +1959,7 @@ class _ComplaintCard extends StatelessWidget {
                   type: 'complaint',
                 );
                 if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content:
-                          Text('تم إرسال الرد ✓', textAlign: TextAlign.right)));
+                  completePortalSave(context,message:'تم إرسال الرد ✓');
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -2127,105 +2112,9 @@ class _AdminProfileTab extends ConsumerWidget {
   }
 
   void _showEditSheet(BuildContext context, WidgetRef ref) {
-    final profile = ref.read(authProvider).profile;
-    final nameCtrl = TextEditingController(text: profile?.name ?? '');
-    final addressCtrl = TextEditingController(text: profile?.address ?? '');
-    final phoneCtrl = TextEditingController(text: profile?.phone ?? '');
-
-    showPortalFormSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: Padding(
-          padding: const EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: 24,
-            bottom: 24,
-          ),
-          child: SingleChildScrollView(
-            child: SingleChildScrollView(
-                child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text('تعديل بيانات الحساب',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleLarge
-                              ?.copyWith(fontWeight: FontWeight.w700)),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                _SheetField(
-                  controller: nameCtrl,
-                  hint: 'الاسم الكامل',
-                  icon: Icons.person_outline,
-                ),
-                const SizedBox(height: 12),
-                _SheetField(
-                  controller: addressCtrl,
-                  hint: 'العنوان',
-                  icon: Icons.location_on_outlined,
-                ),
-                const SizedBox(height: 12),
-                _SheetField(
-                  controller: phoneCtrl,
-                  readOnly: true,
-                  hint: 'رقم الجوال',
-                  icon: Icons.phone_outlined,
-                  keyboardType: TextInputType.phone,
-                ),
-                const SizedBox(height: 20),
-                StatefulBuilder(builder: (ctx, setS) {
-                  bool saving = false;
-                  return ElevatedButton(
-                    onPressed: saving
-                        ? null
-                        : () async {
-                            setS(() => saving = true);
-                            await ref.read(authProvider.notifier).updateProfile(
-                                  name: nameCtrl.text.trim(),
-                                  address: addressCtrl.text.trim(),
-                                );
-                            setS(() => saving = false);
-                            if (context.mounted) {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('تم حفظ البيانات ✓',
-                                        textAlign: TextAlign.right)),
-                              );
-                            }
-                          },
-                    child: saving
-                        ? SizedBox(
-                            height: 22,
-                            width: 22,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: Theme.of(context).colorScheme.onPrimary))
-                        : const Text('حفظ التغييرات'),
-                  );
-                }),
-              ],
-            )),
-          ),
-        ),
-      ),
-    );
+    showPortalFormSheet(context:context,builder:(_)=>const ProfileEditSheet(title:'تعديل بيانات الحساب'));
   }
+
 }
 
 // ── Pending Users Tab ────────────────────────────────────────────────────────

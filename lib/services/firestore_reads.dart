@@ -59,18 +59,27 @@ Stream<T> retryFirestore<T>(Stream<T> Function() open,
 
 bool firestoreReady(Ref ref,
     {bool profileRequired = true, bool operational = false}) {
-  final state = ref.watch(authProvider);
-  if (state.needsEmailVerification || state.user == null ||
-      !state.startupResolved ||
-      (profileRequired && state.profile == null)) {
+  final state = ref.watch(authProvider.select((s) => (
+        uid: s.user?.uid,
+        verified: !s.needsEmailVerification,
+        resolved: s.startupResolved,
+        hasProfile: s.profile != null,
+        role: s.profile?.role,
+        status: s.profile?.approvalStatus,
+        subscription: s.profile?.subscriptionStatus,
+        gid: s.profile?.generatorId
+      )));
+  if (!state.verified ||
+      state.uid == null ||
+      !state.resolved ||
+      (profileRequired && !state.hasProfile)) {
     return false;
   }
-  if (!operational || state.profile?.role == UserRole.superAdmin) return true;
-  final profile = state.profile;
-  if (profile == null ||
-      profile.approvalStatus != ApprovalStatus.approved ||
-      (profile.role == UserRole.consumer &&
-          profile.subscriptionStatus != SubscriptionStatus.active)) {
+  if (!operational || state.role == UserRole.superAdmin) return true;
+  if (!state.hasProfile ||
+      state.status != ApprovalStatus.approved ||
+      (state.role == UserRole.consumer &&
+          state.subscription != SubscriptionStatus.active)) {
     return false;
   }
   final access = ref.watch(tenantAccessProvider);
