@@ -1,3 +1,5 @@
 # Phone round 1 — fixes (base stage-8 / 1443adb)
 
 1. **Address save / black screen:** readiness helpers watched the entire AuthState; the live profile update invalidated the generator-access stream, causing a transient loading redirect and disposal of an open sheet. Both profile editors then popped using the parent page context, with a save flag reinitialized on every StatefulBuilder rebuild. Save/submit audit: profile, tariff/schedule, subscriber/bill/complaint forms, receipt review, enrollment/auth, super-admin approvals, reader, settings, round/payment/expense forms. Modal completions must target the still-current modal; page saves return only when there is a previous page. Existing feature forms already collect data in a modal then save from the owning page; no additional pop is needed.
+
+2. **First theme tap:** missing saved preference resolves to `system`, but toggle treated system as light even when the OS was displaying dark. The asynchronous preference load could also overwrite a tap made during startup. Resolve from visible brightness and ignore stale preference loads after a user choice.

@@ -1,3 +1,5 @@
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:generator_portal/providers/theme_provider.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -100,4 +102,6 @@ void main() {
       if (!dismiss) expect(find.text('تم حفظ البيانات ✓'), findsOneWidget);
     });
   }
+ test('system-dark first tap goes light and startup load cannot overwrite user choice',()async{SharedPreferences.setMockInitialValues({});final theme=ThemeNotifier();await Future<void>.delayed(Duration.zero);await theme.toggle(visibleBrightness:Brightness.dark);expect(theme.state,ThemeMode.light);theme.dispose();SharedPreferences.setMockInitialValues({'theme_mode':'dark'});final racing=ThemeNotifier();await racing.toggle(visibleBrightness:Brightness.dark);await Future<void>.delayed(Duration.zero);expect(racing.state,ThemeMode.light);racing.dispose();});
+
 }

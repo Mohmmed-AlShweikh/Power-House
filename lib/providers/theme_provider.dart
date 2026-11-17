@@ -10,8 +10,11 @@ class ThemeNotifier extends StateNotifier<ThemeMode> {
 
   static const _key = 'theme_mode';
 
+  int _revision=0;
   Future<void> _load() async {
+    final revision=_revision;
     final prefs = await SharedPreferences.getInstance();
+    if(!mounted || revision!=_revision)return;
     final saved = prefs.getString(_key);
     if (saved == 'dark') state = ThemeMode.dark;
     else if (saved == 'light') state = ThemeMode.light;
@@ -19,13 +22,14 @@ class ThemeNotifier extends StateNotifier<ThemeMode> {
   }
 
   Future<void> setMode(ThemeMode mode) async {
+    _revision++;
     state = mode;
     final prefs = await SharedPreferences.getInstance();
     final name = mode == ThemeMode.dark ? 'dark' : mode == ThemeMode.light ? 'light' : 'system';
     await prefs.setString(_key, name);
   }
 
-  void toggle() => setMode(state == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark);
+  Future<void> toggle({Brightness? visibleBrightness}) => setMode((visibleBrightness ?? (state==ThemeMode.system?WidgetsBinding.instance.platformDispatcher.platformBrightness:state==ThemeMode.dark?Brightness.dark:Brightness.light))==Brightness.dark?ThemeMode.light:ThemeMode.dark);
 }
 
 final themeProvider = StateNotifierProvider<ThemeNotifier, ThemeMode>((ref) => ThemeNotifier());

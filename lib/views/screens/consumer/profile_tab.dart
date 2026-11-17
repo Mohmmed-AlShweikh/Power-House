@@ -644,10 +644,10 @@ class _ThemeToggleCard extends StatelessWidget {
             ),
             trailing: Switch(
               value: isDark,
-              onChanged: (_) => ref.read(themeProvider.notifier).toggle(),
+              onChanged: (_) => ref.read(themeProvider.notifier).toggle(visibleBrightness:Theme.of(context).brightness),
               activeThumbColor: Theme.of(context).colorScheme.primary,
             ),
-            onTap: () => ref.read(themeProvider.notifier).toggle(),
+            onTap: () => ref.read(themeProvider.notifier).toggle(visibleBrightness:Theme.of(context).brightness),
           ),
         ),
       ],

@@ -169,7 +169,7 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
                               title: const Text('تبديل المظهر'),
                               onTap: () {
                                 Navigator.pop(sheetContext);
-                                ref.read(themeProvider.notifier).toggle();
+                                ref.read(themeProvider.notifier).toggle(visibleBrightness:Theme.of(context).brightness);
                               }),
                           ListTile(
                               leading: const Icon(Icons.logout),
@@ -2091,8 +2091,8 @@ class _AdminProfileTab extends ConsumerWidget {
                 trailing: Switch(
                     value: isDark,
                     onChanged: (_) =>
-                        ref.read(themeProvider.notifier).toggle()),
-                onTap: () => ref.read(themeProvider.notifier).toggle()),
+                        ref.read(themeProvider.notifier).toggle(visibleBrightness:Theme.of(context).brightness)),
+                onTap: () => ref.read(themeProvider.notifier).toggle(visibleBrightness:Theme.of(context).brightness)),
           ])),
           const SizedBox(height: PortalTokens.xl),
           OutlinedButton.icon(
