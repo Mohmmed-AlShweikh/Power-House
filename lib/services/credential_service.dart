@@ -86,6 +86,7 @@ final sharedCredentialThrottle = AttemptThrottle();
 
 abstract class CredentialService {
   String get email;
+  int get emailCooldownSeconds=>0;
   bool get verified => false;
   Future<void> loginEmail(String email, String password);
   Future<void> registerEmail(String email, String password, String confirm);
@@ -104,6 +105,7 @@ class FirebaseCredentialService extends CredentialService {
   final AttemptThrottle throttle;
   FirebaseCredentialService(this.auth, this.db, {AttemptThrottle? throttle})
       : throttle = throttle ?? sharedCredentialThrottle;
+  @override int get emailCooldownSeconds {final sent=throttle.lastEmail;if(sent==null)return 0;return ((60000-throttle.now().difference(sent).inMilliseconds)/1000).ceil().clamp(0,60);}
   User get user =>
       auth.currentUser ?? (throw const CredentialFailure(genericAuthError));
   @override

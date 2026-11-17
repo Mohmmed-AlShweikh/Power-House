@@ -1,3 +1,5 @@
+import 'dart:async';
+import '../../services/mail_app.dart';
 import '../widgets/portal_auth_page.dart';
 import '../../services/contact_fields.dart';
 import 'package:flutter/material.dart';
@@ -25,7 +27,9 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> {
       confirm = TextEditingController(),
       current = TextEditingController();
   final phone = TextEditingController(), id = TextEditingController();
-  bool busy = false, reauthenticated = false;
+  bool busy = false, reauthenticated = false, resetSent = false;
+  int resendSeconds = 0;
+  Timer? resendTimer;
   String? error, notice;
   CredentialService get service => ref.read(credentialServiceProvider);
   @override
@@ -36,6 +40,30 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> {
     id.text = profile?.idNumber ?? '';
     password.addListener(refresh);
     confirm.addListener(refresh);
+    startCooldown(service.emailCooldownSeconds);
+  }
+
+  void startCooldown(int seconds) {
+    resendTimer?.cancel();
+    resendSeconds = seconds;
+    if (seconds <= 0) return;
+    resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() => resendSeconds--);
+      if (resendSeconds <= 0) timer.cancel();
+    });
+  }
+
+  Future<void> openMail() async {
+    final opened = await ref.read(mailAppProvider).open();
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'تعذر فتح البريد تلقائياً؛ افتح تطبيق بريدك أو موقعه في المتصفح.')));
+    }
   }
 
   void refresh() {
@@ -44,6 +72,7 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> {
 
   @override
   void dispose() {
+    resendTimer?.cancel();
     for (final c in [email, password, confirm, current, phone, id]) {
       c.dispose();
     }
@@ -82,6 +111,10 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> {
             await ref.read(authProvider.notifier).reloadProfile();
           case CredentialMode.recover:
             await service.sendReset(email.text.trim());
+            if (mounted) {
+              resetSent = true;
+              startCooldown(60);
+            }
             if (mounted) {
               setState(() => notice =
                   'إذا كان البريد مسجلاً فستصلك رسالة لإعادة تعيين كلمة المرور. راجع أيضاً البريد غير المرغوب.');
@@ -122,7 +155,8 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> {
     final title = switch (mode) {
       CredentialMode.login => 'تسجيل الدخول',
       CredentialMode.create => 'إنشاء حساب',
-      CredentialMode.recover => 'استعادة كلمة المرور',
+      CredentialMode.recover =>
+        resetSent ? 'تم إرسال رابط إعادة التعيين' : 'استعادة كلمة المرور',
       CredentialMode.verify => 'تحقق من بريدك',
       CredentialMode.manage => 'إعدادات الحساب'
     };
@@ -162,16 +196,31 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> {
         const Text(
             'افتح رابط رسالة التحقق ثم عد إلى التطبيق واضغط «تحققت من البريد».'),
         TextButton(
-            onPressed: busy
+            onPressed: busy || resendSeconds > 0
                 ? null
                 : () => run(() async {
                       await service.sendVerification();
+                      if (mounted) startCooldown(60);
                       if (mounted) {
                         setState(() => notice =
                             'أُرسلت رسالة التحقق. راجع البريد غير المرغوب أيضاً.');
                       }
                     }),
-            child: const Text('إعادة إرسال رسالة التحقق')),
+            child: Text(resendSeconds > 0
+                ? 'إعادة إرسال رسالة التحقق ($resendSeconds ث)'
+                : 'إعادة إرسال رسالة التحقق')),
+        TextButton.icon(
+            onPressed: openMail,
+            icon: const Icon(Icons.mail_outline),
+            label: const Text('فتح تطبيق البريد')),
+      ] else if (mode == CredentialMode.recover && resetSent) ...[
+        Text(email.text.trim(), textDirection: TextDirection.ltr),
+        const Text(
+            'افتح بريدك ثم اضغط الرابط ثم اختر كلمة مرور جديدة ثم عد للتطبيق. راجع البريد غير المرغوب أيضاً.'),
+        TextButton.icon(
+            onPressed: openMail,
+            icon: const Icon(Icons.mail_outline),
+            label: const Text('فتح تطبيق البريد')),
       ] else if (mode != CredentialMode.manage) ...[
         TextField(
             key: const ValueKey('email'),
@@ -248,12 +297,19 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> {
           label: switch (mode) {
             CredentialMode.login => 'تسجيل الدخول',
             CredentialMode.create => 'إنشاء الحساب وإرسال التحقق',
-            CredentialMode.recover => 'إرسال رابط الاستعادة',
+            CredentialMode.recover => resetSent
+                ? (resendSeconds > 0
+                    ? 'إعادة الإرسال ($resendSeconds ث)'
+                    : 'إعادة الإرسال')
+                : 'إرسال رابط الاستعادة',
             CredentialMode.verify => 'تحققت من البريد',
             CredentialMode.manage => 'حفظ التغييرات'
           },
           busy: busy,
-          onPressed: submit),
+          onPressed:
+              mode == CredentialMode.recover && resetSent && resendSeconds > 0
+                  ? null
+                  : submit),
       if (mode == CredentialMode.login) ...[
         TextButton(
             onPressed: () => context.go('/forgot-password'),
@@ -273,7 +329,7 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> {
       else
         TextButton(
             onPressed: () => context.go('/login'),
-            child: const Text('العودة إلى الدخول')),
+            child: const Text('العودة لتسجيل الدخول')),
       if (mode == CredentialMode.manage)
         TextButton(
             onPressed: () => context.go(ref.read(authProvider).profile?.role ==

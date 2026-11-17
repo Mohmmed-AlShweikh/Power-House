@@ -1,3 +1,8 @@
+import 'package:flutter/services.dart';
+import 'package:generator_portal/views/screens/credential_screen.dart';
+import 'package:generator_portal/services/credential_service.dart';
+import 'package:generator_portal/services/mail_app.dart';
+import 'support/credential_fakes.dart';
 import 'package:generator_portal/views/widgets/portal_auth_page.dart';
 import 'package:generator_portal/services/contact_fields.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -164,5 +169,39 @@ void main() {
     expect(
         t.getRect(find.byType(TextField).last).bottom, lessThanOrEqualTo(350));
     expect(t.takeException(), isNull);
+  });
+  testWidgets(
+      'reset confirmation counts down and mail opening safely falls back',
+      (t) async {
+    final credentials = FakeCredentials();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+            MailAppLauncher.channel, (call) async => false);
+    addTearDown(() => TestDefaultBinaryMessengerBinding
+        .instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(MailAppLauncher.channel, null));
+    await t.pumpWidget(ProviderScope(
+        overrides: [
+          credentialServiceProvider.overrideWithValue(credentials),
+          authProvider.overrideWith((_) => MultiAuthFixture())
+        ],
+        child: MaterialApp(
+            theme: buildPortalTheme(Brightness.light),
+            home: const CredentialScreen(mode: CredentialMode.recover))));
+    await t.enterText(find.byKey(const ValueKey('email')), 'test@example.com');
+    await t.ensureVisible(find.text('إرسال رابط الاستعادة'));
+    await t.tap(find.text('إرسال رابط الاستعادة'));
+    await t.pumpAndSettle();
+    expect(find.text('تم إرسال رابط إعادة التعيين'), findsOneWidget);
+    expect(find.textContaining('إذا كان البريد مسجلاً'), findsOneWidget);
+    expect(find.textContaining('إعادة الإرسال (60'), findsOneWidget);
+    await t.ensureVisible(find.text('فتح تطبيق البريد'));
+    await t.tap(find.text('فتح تطبيق البريد'));
+    await t.pumpAndSettle();
+    expect(find.textContaining('افتح تطبيق بريدك أو موقعه'), findsOneWidget);
+    await t.pump(const Duration(seconds: 60));
+    await t.pump();
+    expect(find.text('إعادة الإرسال'), findsOneWidget);
+    await t.pumpWidget(const SizedBox());
   });
 }
