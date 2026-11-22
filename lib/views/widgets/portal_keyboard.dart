@@ -9,14 +9,19 @@ Future<T?> showPortalFormSheet<T>({
   bool isScrollControlled = true,
   ShapeBorder? shape,
   Color? backgroundColor,
+  bool scrollable = true,
 }) =>
     showModalBottomSheet<T>(
       context: context,
       isScrollControlled: isScrollControlled,
       useSafeArea: true,
-      shape: shape??const RoundedRectangleBorder(borderRadius:BorderRadius.vertical(top:Radius.circular(PortalTokens.radiusPanel))),
-      backgroundColor:backgroundColor,
-      builder: (context) => PortalSheet(child:Builder(builder:builder)),
+      shape: shape ??
+          const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(PortalTokens.radiusPanel))),
+      backgroundColor: backgroundColor,
+      builder: (context) =>
+          PortalSheet(scrollable: scrollable, child: Builder(builder: builder)),
     );
 
 /// AlertDialog already applies viewInsets and constrains/scrolls its content.
@@ -116,6 +121,22 @@ bool returnAfterPortalSave(BuildContext context, String message) {
 }
 
 class PortalSheet extends StatelessWidget {
- final Widget child;const PortalSheet({super.key,required this.child});
- @override Widget build(BuildContext context)=>PortalFocusReveal(child:LayoutBuilder(builder:(context,c){final bottom=math.max(MediaQuery.viewInsetsOf(context).bottom,MediaQuery.paddingOf(context).bottom)+PortalTokens.lg;return Padding(padding:EdgeInsets.only(bottom:bottom),child:ConstrainedBox(constraints:BoxConstraints(maxHeight:math.max(0,math.min(c.maxHeight*.9,c.maxHeight-bottom))),child:SingleChildScrollView(child:child)));}));
+  final Widget child;
+  final bool scrollable;
+  const PortalSheet({super.key, required this.child, this.scrollable = true});
+  @override
+  Widget build(BuildContext context) =>
+      PortalFocusReveal(child: LayoutBuilder(builder: (context, c) {
+        final bottom = math.max(MediaQuery.viewInsetsOf(context).bottom,
+                MediaQuery.paddingOf(context).bottom) +
+            PortalTokens.lg;
+        return Padding(
+            padding: EdgeInsets.only(bottom: bottom),
+            child: ConstrainedBox(
+                constraints: BoxConstraints(
+                    maxHeight: math.max(
+                        0, math.min(c.maxHeight * .9, c.maxHeight - bottom))),
+                child:
+                    scrollable ? SingleChildScrollView(child: child) : child));
+      }));
 }

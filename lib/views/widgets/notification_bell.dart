@@ -63,6 +63,7 @@ class NotificationBell extends ConsumerWidget {
     }
     await showPortalFormSheet(
       context: context,
+      scrollable: false,
       isScrollControlled: true,
       backgroundColor: PortalTokens.transparent,
       builder: (_) => ProviderScope(

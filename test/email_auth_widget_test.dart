@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,11 +13,27 @@ import 'support/multi_auth_fixture.dart';
 
 class EmailFixture extends MultiAuthFixture {
   String? email, password;
+  Completer<void>? loginGate;
+  int reloads = 0;
+  @override
+  Future<void> reloadProfile() async {
+    reloads++;
+  }
+
   @override
   Future<String?> login(String email, String password) async {
     this.email = email;
     this.password = password;
+    await loginGate?.future;
     return password == 'wrong' ? genericAuthError : null;
+  }
+}
+
+class ResumeCredentials extends FakeCredentials {
+  int refreshes = 0;
+  @override
+  Future<void> refresh() async {
+    refreshes++;
   }
 }
 
@@ -77,6 +94,48 @@ void main() {
     await t.tap(f);
     await t.pumpAndSettle();
   }
+
+  testWidgets(
+      'resume reloads verification and resolves profile only when verified',
+      (t) async {
+    final service = ResumeCredentials()..verified = false;
+    final auth =
+        await boot(t, CredentialMode.verify, service, Brightness.light);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await t.pumpAndSettle();
+    expect(service.refreshes, 1);
+    expect(auth.reloads, 0);
+    service.verified = true;
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await t.pumpAndSettle();
+    expect(service.refreshes, 2);
+    expect(auth.reloads, 1);
+  });
+
+  testWidgets(
+      'typing does not submit; keyboard go immediately disables login and shows progress',
+      (t) async {
+    final auth = await boot(
+        t, CredentialMode.login, FakeCredentials(), Brightness.light);
+    auth.loginGate = Completer<void>();
+    await field(t, 'email', 'test@example.com');
+    await field(t, 'password', 'Strong123');
+    expect(auth.email, isNull);
+    await t.testTextInput.receiveAction(TextInputAction.go);
+    await t.pump();
+    expect(auth.email, 'test@example.com');
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(
+        t
+            .widgetList<TextField>(find.byType(TextField))
+            .every((f) => f.enabled == false),
+        true);
+    auth.loginGate!.complete();
+    await t.pumpAndSettle();
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+  });
 
   for (final brightness in Brightness.values) {
     testWidgets('email login and generic failure ${brightness.name}',

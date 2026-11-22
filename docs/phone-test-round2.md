@@ -17,3 +17,19 @@ Item 2 verification: targeted repository tests cover manual+linked preparation, 
 7. Numeric fields inherited ambient RTL and had no single digit/selection policy. A shared numeric-aware field now uses LTR digits/right alignment and a one-to-one Arabic digit/decimal formatter that preserves selection/composition. Formatting phone prefixes stays on submit, never while editing. Applied to phone/ID, reading, payment, price and generic numeric forms.
 
 8. Rounding was a terse range label and the unsaved-generator UI defaulted minimum to zero. Explain each setting, initialize only new unsaved settings with 1.5 units/10 days/50, and show threshold-driven rounding examples without altering saved settings or historical bill snapshots.
+
+
+## Commits and final verification
+
+| Item | Commits |
+| --- | --- |
+| 1 | b1d9f90 |
+| 2 | 9f9ab59 + c1bdea0 |
+| 3 | 7097db2 |
+| 4 | 340ecd7 |
+| 5 | ee488f1 |
+| 6 | f2f2cf3; final regression fixes bounded read-only draggable lists |
+| 7 | 105d8a8 |
+| 8 | 2b102df |
+
+Each item was pushed to origin/fix/phone-test-round2. Final validation adds updated goldens and explicit lifecycle/keyboard/cursor regressions. Shared-sheet regression found read-only draggable lists needed bounded constraints rather than a second outer scroll; forms retain shared scrolling. Full results and required manual phone checks: [validation/phone-round2-results.md](validation/phone-round2-results.md). No other branches, paid services, production data, or unrelated behavior changed.

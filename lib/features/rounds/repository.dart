@@ -172,8 +172,9 @@ class RoundsRepository {
     }
     if(subs.docs.any((s)=>(s.data()['readerUid'] as String? ?? '').isEmpty))throw StateError('هناك مشتركون دون قارئ؛ أسند قارئاً قبل فتح الجولة');
     final settingsDoc = await doc('billingSettings', a.generatorId).get();
-    if (!settingsDoc.exists)
+    if (!settingsDoc.exists) {
       throw StateError('احفظ إعدادات الفوترة قبل فتح جولة جديدة');
+    }
     final settings = BillingSettings.fromMap(settingsDoc.data()!);
     settings.validate();
     final rid = db.collection('billingRounds').doc().id;
@@ -208,7 +209,9 @@ class RoundsRepository {
     final a = await owner();
     final r = await doc('billingRounds', rid).get();
     if (r.data()?['generatorId'] == a.generatorId &&
-        r.data()?['status'] == 'open') return;
+        r.data()?['status'] == 'open') {
+      return;
+    }
     if (r.data()?['generatorId'] != a.generatorId ||
         r.data()?['status'] != 'preparing') {
       throw StateError('جولة غير متاحة للتحضير');
@@ -234,8 +237,9 @@ class RoundsRepository {
           active = await tx.get(doc('readerRounds', a.generatorId));
       if (fresh.data()?['status'] == 'open') return;
       if (fresh.data()?['status'] != 'preparing' ||
-          active.data()?['roundId'] != rid)
+          active.data()?['roundId'] != rid) {
         throw StateError('تغيرت حالة الجولة؛ أعد فتح الشاشة');
+      }
       tx.update(r.reference, {'status': 'open'});
       tx.update(active.reference, {'status': 'open'});
     });
@@ -249,15 +253,17 @@ class RoundsRepository {
         .where('roundId', isEqualTo: rid)
         .limit(1)
         .get();
-    if (bills.docs.isNotEmpty)
+    if (bills.docs.isNotEmpty) {
       throw StateError('لا يمكن إلغاء جولة صدرت لها فواتير');
+    }
     await db.runTransaction((tx) async {
       final r = await tx.get(doc('billingRounds', rid)),
           active = await tx.get(doc('readerRounds', a.generatorId));
       if (r.data()?['generatorId'] != a.generatorId ||
           r.data()?['status'] != 'preparing' ||
-          active.data()?['roundId'] != rid)
+          active.data()?['roundId'] != rid) {
         throw StateError('الإلغاء متاح للجولة التي لا تزال قيد التحضير فقط');
+      }
       tx.update(r.reference, {'status': 'cancelled'});
       tx.update(active.reference, {'status': 'cancelled'});
     });

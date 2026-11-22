@@ -91,8 +91,11 @@ class ProfileTab extends ConsumerWidget {
   }
 
   void _showEditSheet(BuildContext context, WidgetRef ref) {
-    showPortalFormSheet(context:context,builder:(_)=>const ProfileEditSheet(title:'تعديل البيانات'));
+    showPortalFormSheet(
+        context: context,
+        builder: (_) => const ProfileEditSheet(title: 'تعديل البيانات'));
   }
+
   void _showSecuritySheet(BuildContext context) {
     showPortalFormSheet(
       context: context,
@@ -130,6 +133,7 @@ class ProfileTab extends ConsumerWidget {
     final uid = ref.read(authProvider).profile?.uid ?? '';
     showPortalFormSheet(
       context: context,
+      scrollable: false,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
@@ -623,10 +627,14 @@ class _ThemeToggleCard extends StatelessWidget {
             ),
             trailing: Switch(
               value: isDark,
-              onChanged: (_) => ref.read(themeProvider.notifier).toggle(visibleBrightness:Theme.of(context).brightness),
+              onChanged: (_) => ref
+                  .read(themeProvider.notifier)
+                  .toggle(visibleBrightness: Theme.of(context).brightness),
               activeThumbColor: Theme.of(context).colorScheme.primary,
             ),
-            onTap: () => ref.read(themeProvider.notifier).toggle(visibleBrightness:Theme.of(context).brightness),
+            onTap: () => ref
+                .read(themeProvider.notifier)
+                .toggle(visibleBrightness: Theme.of(context).brightness),
           ),
         ),
       ],
@@ -703,13 +711,13 @@ class _ComplaintSheetState extends ConsumerState<_ComplaintSheet> {
       if (profile == null) throw Exception('no profile');
       await FirebaseService().addComplaint(profile.uid, profile.name, text);
       await NotificationService().notifyAdminNewComplaint(profile.name);
-      if (mounted) completePortalSave(context,message:'تم إرسال الشكوى ✓');
+      if (mounted) completePortalSave(context, message: 'تم إرسال الشكوى ✓');
     } catch (_) {
-      if(mounted) {
+      if (mounted) {
         setState(() {
-        _error = 'تعذّر إرسال الشكوى. حاول مجدداً.';
-        _loading = false;
-      });
+          _error = 'تعذّر إرسال الشكوى. حاول مجدداً.';
+          _loading = false;
+        });
       }
     }
   }
