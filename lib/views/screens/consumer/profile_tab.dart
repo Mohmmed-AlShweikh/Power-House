@@ -94,7 +94,7 @@ class ProfileTab extends ConsumerWidget {
     showPortalFormSheet(context:context,builder:(_)=>const ProfileEditSheet(title:'تعديل البيانات'));
   }
   void _showSecuritySheet(BuildContext context) {
-    showModalBottomSheet(
+    showPortalFormSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -104,7 +104,7 @@ class ProfileTab extends ConsumerWidget {
   }
 
   void _showHelpSheet(BuildContext context) {
-    showModalBottomSheet(
+    showPortalFormSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -128,7 +128,7 @@ class ProfileTab extends ConsumerWidget {
 
   void _showMyComplaintsSheet(BuildContext context, WidgetRef ref) {
     final uid = ref.read(authProvider).profile?.uid ?? '';
-    showModalBottomSheet(
+    showPortalFormSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(

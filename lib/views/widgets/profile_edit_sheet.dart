@@ -94,7 +94,8 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
                               : TextInputType.text,
                       decoration: InputDecoration(
                           hintText: entry.$2, prefixIcon: Icon(entry.$3)))),
-            OutlinedButton.icon(
+            const SizedBox(height:PortalTokens.xl),
+          OutlinedButton.icon(
                 onPressed: saving
                     ? null
                     : () {
@@ -105,7 +106,8 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
                 icon: const Icon(Icons.manage_accounts_outlined),
                 label: const Text('تغيير كلمة المرور')),
             if (error != null) Text(error!),
-            ElevatedButton(
+            const SizedBox(height:PortalTokens.lg),
+          ElevatedButton(
                 onPressed: saving ? null : save,
                 child: Text(saving ? 'جارٍ الحفظ…' : 'حفظ التغييرات'))
           ]));

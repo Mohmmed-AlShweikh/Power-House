@@ -11,3 +11,5 @@ Item 2 verification: targeted repository tests cover manual+linked preparation, 
 4. Login already set busy immediately, but password keyboard submission/autofill grouping were missing. Submit only on button or keyboard action (never automatically while typing), retain generic errors/throttle, and use the existing disabled spinner button for all auth submits.
 
 5. Password controls used bare obscured TextFields with no reveal action. All real password inputs now share one default-hidden control, RTL suffix eye, Arabic show/hide labels and an unchanged controller/selection across toggles.
+
+6. Modal spacing came from independent caller padding and nested scroll views; profile actions immediately followed the ID input. PortalSheet now centrally owns max height, keyboard/safe-area bottom margin and scrolling; existing title/actions remain reachable inside the scroll area. All modal sheets use this wrapper; dialog forms retain AlertDialog's inset-aware layout and focus reveal. Converted profile/help/complaints, bell log, owner more/subscriber forms, payment, reader/invite, reading/expense and billing forms.
