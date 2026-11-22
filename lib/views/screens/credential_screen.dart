@@ -1,3 +1,4 @@
+import '../widgets/portal_password_field.dart';
 import 'dart:async';
 import '../../services/mail_app.dart';
 import '../widgets/portal_auth_page.dart';
@@ -260,11 +261,7 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> with Widget
       ],
       if (mode == CredentialMode.manage) ...[
         Text(service.email, textDirection: TextDirection.ltr),
-        TextField(
-            controller: current,
-            obscureText: true,
-            decoration:
-                const InputDecoration(labelText: 'كلمة المرور الحالية')),
+        PortalPasswordField(key:const ValueKey('current-password'),controller:current,label:'كلمة المرور الحالية',enabled:!busy,action:TextInputAction.next,onSubmitted:null,hints:const [AutofillHints.password]),
         TextButton(
             onPressed: busy
                 ? null
@@ -288,35 +285,14 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> with Widget
                 const InputDecoration(labelText: 'رقم الهوية (اختياري وخاص)')),
       ],
       if (passwordFields) ...[
-        TextField(
-            key: const ValueKey('password'),
-            textInputAction:mode==CredentialMode.login?TextInputAction.go:TextInputAction.next,
-            onSubmitted:mode==CredentialMode.login?(_)=>submit():null,
-            controller: password,
-            obscureText: true,
-            enabled: !busy,
-            autofillHints: mode == CredentialMode.login
-                ? const [AutofillHints.password]
-                : null,
-            decoration: InputDecoration(
-                labelText: mode == CredentialMode.manage
-                    ? 'كلمة مرور جديدة (اختياري)'
-                    : 'كلمة المرور')),
+        PortalPasswordField(key:const ValueKey('password'),controller:password,label:mode==CredentialMode.manage?'كلمة مرور جديدة (اختياري)':'كلمة المرور',enabled:!busy,action:mode==CredentialMode.login?TextInputAction.go:TextInputAction.next,onSubmitted:mode==CredentialMode.login?(_)=>submit():null,hints:mode==CredentialMode.login?const [AutofillHints.password]:const [AutofillHints.newPassword]),
         if (mode != CredentialMode.login) ...[
           const Text(passwordRules),
           if (password.text.isNotEmpty)
             Text(passwordError(password.text, confirm.text, id.text.trim(),
                     phone.text.trim()) ??
                 'كلمة المرور تستوفي الشروط'),
-          TextField(
-              key: const ValueKey('password-confirm'),
-              textInputAction:TextInputAction.done,
-              onSubmitted:(_)=>submit(),
-              controller: confirm,
-              obscureText: true,
-              enabled: !busy,
-              decoration:
-                  const InputDecoration(labelText: 'تأكيد كلمة المرور')),
+          PortalPasswordField(key:const ValueKey('password-confirm'),controller:confirm,label:'تأكيد كلمة المرور',enabled:!busy,action:TextInputAction.done,onSubmitted:(_)=>submit(),hints:const [AutofillHints.newPassword]),
         ],
       ],
       if (error != null) PortalErrorState(error!),
