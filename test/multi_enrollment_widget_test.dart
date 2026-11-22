@@ -10,38 +10,13 @@ import 'package:generator_portal/models/user_model.dart';
 import 'package:generator_portal/providers/auth_provider.dart';
 import 'package:generator_portal/providers/enrollment_provider.dart';
 import 'package:generator_portal/providers/tenant_provider.dart';
-import 'package:generator_portal/services/phone_auth_service.dart';
 import 'package:generator_portal/theme/portal_theme.dart';
 import 'package:generator_portal/views/screens/account_status_screen.dart';
 import 'package:generator_portal/views/screens/generator_requests_screen.dart';
-import 'package:generator_portal/views/screens/phone_enrollment_screen.dart';
+import 'package:generator_portal/views/screens/enrollment_form_screen.dart';
 import 'support/multi_auth_fixture.dart';
 import 'support/credential_fakes.dart';
 import 'package:generator_portal/services/credential_service.dart';
-
-class FakePhoneGateway implements PhoneGateway {
-  @override
-  void cancel() {}
-  String? phone, verificationId, code;
-  bool fail = false;
-  @override
-  Future<void> send(String value,
-      {required void Function(String) codeSent,
-      required void Function(String) failed}) async {
-    phone = value;
-    if (fail) {
-      failed('تعذّر إرسال الرمز');
-    } else {
-      codeSent('fake-verification');
-    }
-  }
-
-  @override
-  Future<void> verify(String id, String value) async {
-    verificationId = id;
-    code = value;
-  }
-}
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
@@ -58,7 +33,6 @@ void main() {
       status: GeneratorApproval.approved);
   Future<void> boot(WidgetTester tester, Widget child, Brightness brightness,
       {MultiAuthFixture? auth,
-      FakePhoneGateway? phone,
       UserRole role = UserRole.consumer,
       AsyncValue<List<GeneratorAccount>>? directory,
       AsyncValue<List<GeneratorAccount>>? requests,
@@ -78,7 +52,6 @@ void main() {
                   loading: false))),
           credentialServiceProvider.overrideWithValue(FakeCredentials()),
           enrollmentRoleProvider.overrideWith((ref) => role),
-          if (phone != null) phoneGatewayProvider.overrideWithValue(phone),
           if (directory != null)
             generatorDirectoryProvider.overrideWith((ref) => directory.when(
                 data: (d) => Stream.value(d),
@@ -121,24 +94,8 @@ void main() {
   }
 
   for (final brightness in Brightness.values) {
-    testWidgets('OTP code send/verify and validation ${brightness.name}',
-        (tester) async {
-      final gateway = FakePhoneGateway();
-      await boot(tester, const PhoneEnrollmentScreen(), brightness,
-          phone: gateway);
-      await tapText(tester, 'إرسال رمز التحقق');
-      expect(
-          find.text('أدخل رقم الهاتف مع رمز الدولة، مثل +970'), findsOneWidget);
-      await tester.enterText(find.byType(TextField).first, '+970591234567');
-      await tapText(tester, 'إرسال رمز التحقق');
-      expect(gateway.phone, '+970591234567');
-      await tester.enterText(find.byType(TextField).last, '123456');
-      await tapText(tester, 'تحقق ومتابعة');
-      expect(gateway.verificationId, 'fake-verification');
-      expect(gateway.code, '123456');
-    });
     testWidgets(
-        'owner form uses verified phone and submits generator/sector ${brightness.name}',
+        'owner form uses verified email and submits generator/sector ${brightness.name}',
         (tester) async {
       final auth = MultiAuthFixture(AuthState(
           user: PhoneUser('new'),
@@ -148,6 +105,7 @@ void main() {
       await boot(tester, const EnrollmentFormScreen(), brightness,
           auth: auth, role: UserRole.admin);
       await tester.enterText(find.byType(TextField).first, 'مولد الحي');
+      await tester.enterText(find.widgetWithText(TextField,'هاتف التواصل (مطلوب)'), '٠٥٩١٢٣٤٥٦٧');
       await tester.enterText(find.byType(TextField).last, 'الرمال');
       await tapText(tester, 'تقديم الطلب');
       expect(auth.submittedName, 'مولد الحي');
@@ -164,6 +122,7 @@ void main() {
       await boot(tester, const EnrollmentFormScreen(), brightness,
           auth: auth, directory: const AsyncData([a, b]));
       await tester.enterText(find.byType(TextField).first, 'أحمد');
+      await tester.enterText(find.widgetWithText(TextField,'هاتف التواصل (مطلوب)'), '0591234567');
       await tester.tap(find.byType(DropdownButtonFormField<String>));
       await tester.pumpAndSettle();
       await tester.tap(find.text('الرمال').last);
@@ -315,6 +274,8 @@ void main() {
         'approved');
     expect(find.text('مقبول'), findsOneWidget);
     await tapText(tester, 'تعليق المولد');
+    await tester.enterText(find.byType(TextField).last, 'سبب الإيقاف');
+    await tapText(tester, 'تأكيد الإيقاف');
     expect(find.text('موقوف'), findsOneWidget);
     await tapText(tester, 'إعادة التفعيل');
     expect(find.text('مقبول'), findsOneWidget);

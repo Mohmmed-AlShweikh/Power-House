@@ -89,15 +89,16 @@ final currentGeneratorAccountProvider = StreamProvider<GeneratorAccount>((ref) {
   final gid = ref.watch(tenantIdProvider);
   final db = ref.watch(firestoreProvider);
   if (!firestoreReady(ref)) return const Stream.empty();
+  if(ref.watch(authProvider.select((s)=>s.profile?.role)) == UserRole.meterReader) {
+    return retryFirestore(()=>db.collection('generatorDirectory').doc(gid).snapshots()).map((d)=>GeneratorAccount.fromMap(gid,d.data()??{}));
+  }
   return retryFirestore(() => watchGenerator(db, gid))
       .map((data) => GeneratorAccount.fromMap(gid, data));
 });
 
 final tenantAccessProvider = Provider<AsyncValue<GeneratorAccount>?>((ref) {
   final state = ref.watch(authProvider);
-  if (state.isDemo ||
-      state.profile == null ||
-      state.profile!.role == UserRole.superAdmin) {
+  if (state.profile == null || state.profile!.role == UserRole.superAdmin) {
     return null;
   }
   return ref.watch(currentGeneratorAccountProvider);

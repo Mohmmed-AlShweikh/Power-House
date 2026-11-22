@@ -163,6 +163,146 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "meterAssignments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "generatorId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "readerUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "roundId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "financeSummaries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "generatorId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "generation",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "kind",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "key",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "expenses",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "generatorId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "deleted",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "expenses",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "generatorId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "deleted",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "roundId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "cycleBills",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "generatorId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "published",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "meterAssignments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "generatorId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "roundId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "meterReadings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "generatorId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "roundId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "cycleBills",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "generatorId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "roundId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "published",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []

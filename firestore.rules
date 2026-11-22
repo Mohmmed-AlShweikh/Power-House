@@ -1,23 +1,23 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signed() { return request.auth != null; }
+    function signed() { return request.auth != null && request.auth.token.get('email_verified', false) == true && !request.auth.token.email.matches('.*@(powershare[.]app|id[.]generatorportal[.]app)$'); }
     function userPath(uid) { return /databases/$(database)/documents/users/$(uid); }
     function genPath(gid) { return /databases/$(database)/documents/generators/$(gid); }
     function me() { return get(userPath(request.auth.uid)).data; }
-    function gid(data) { return data.get('generatorId', null) == null || data.get('generatorId', '') == '' ? 'default' : data.generatorId; }
+    function gid(data) { return data.get('generatorId', ''); }
     function consumer(data) { return data.get('role', '') in ['user', 'consumer']; }
     function superAdmin() { return signed() && me().get('role', '') == 'super_admin'; }
     function generatorAvailable(id) {
-      return (id == 'default' && !exists(genPath(id))) ||
-        (get(genPath(id)).data.status == 'approved' &&
-         get(genPath(id)).data.subscriptionStatus == 'active');
+      let generator = get(genPath(id)).data;
+      return generator.status == 'approved' && generator.subscriptionStatus == 'active';
     }
     function approved() {
-      return signed() && me().get('status', '') == 'approved' &&
-        me().get('role', '') in ['generator_owner', 'admin', 'user', 'consumer'] &&
-        (me().get('role', '') in ['generator_owner', 'admin'] ||
-          me().get('subscriptionStatus', 'active') == 'active') && generatorAvailable(gid(me()));
+      let profile=me();
+      return signed() && profile.get('status','') == 'approved' &&
+        profile.get('role','') in ['generator_owner','admin','user','consumer'] &&
+        (profile.role in ['generator_owner','admin'] || profile.get('subscriptionStatus','active') == 'active') &&
+        generatorAvailable(gid(profile));
     }
     function owner() {
       return approved() && me().get('role', '') in ['generator_owner', 'admin'];
@@ -34,62 +34,26 @@ service cloud.firestore {
     function newTenant(data) {
       return data.generatorId is string && data.generatorId.size() > 0 && same(data);
     }
-    function verifiedPhone(data) {
-      return signed() && data.phone is string && data.phone.size() > 0 &&
-        data.phone == request.auth.token.get('phone_number', '');
+    function verifiedEmail(data) {
+      return signed() && data.get('email', '') == request.auth.token.email;
     }
+    function recent() { return signed() && request.auth.token.get('auth_time',0)>0 && request.time.toMillis() / 1000 - request.auth.token.auth_time <= 300; }
     function validEpoch(value) { return value is int && value >= 0 && value <= 8640000000000000; }
-    function idPath(id) { return /databases/$(database)/documents/idIndex/$(id); }
-    function validId(id) { return id is string && id.matches('^[0-9]{9,10}$'); }
-    function recent() {
-      return signed() && request.auth.token.get('auth_time', 0) > 0 &&
-        request.time.toMillis() / 1000 - request.auth.token.auth_time <= 300;
-    }
-    function emailFor(id) {
-      return request.auth.token.get('email', '') == id + '@powershare.app';
-    }
-    function identity(data, uid) {
-      return validId(data.get('idNumber', '')) && emailFor(data.idNumber) &&
-        verifiedPhone(data) && data.get('credentialVersion', 0) == 1 &&
-        getAfter(idPath(data.idNumber)).data.uid == uid;
-    }
-    function ownIdentityUpdate(data, uid) {
-      return recent() && identity(data, uid) &&
-        data.diff(resource.data).affectedKeys().hasOnly(['name', 'address', 'phone', 'idNumber', 'credentialVersion']) &&
-        (!validId(resource.data.get('idNumber', '')) || resource.data.idNumber == data.idNumber ||
-          !exists(idPath(resource.data.idNumber)) ||
-          (get(idPath(resource.data.idNumber)).data.uid == uid && !existsAfter(idPath(resource.data.idNumber))));
-    }
-    match /idIndex/{id} {
-      allow get: if signed() && (superAdmin() ||
-        (exists(idPath(id)) && resource.data.uid == request.auth.uid) ||
-        (emailFor(id) && !exists(idPath(id))) ||
-        (exists(userPath(request.auth.uid)) && me().get('idNumber', '') == id));
-      allow list: if superAdmin();
-      allow create: if signed() && request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid is string && getAfter(userPath(request.resource.data.uid)).data.idNumber == id && (superAdmin() || (recent() && validId(id) && emailFor(id) &&
-        request.resource.data.keys().hasOnly(['uid']) && request.resource.data.uid == request.auth.uid &&
-        getAfter(userPath(request.auth.uid)).data.idNumber == id &&
-        verifiedPhone(getAfter(userPath(request.auth.uid)).data)));
-      allow update: if signed() && request.resource.data == resource.data && getAfter(userPath(resource.data.uid)).data.idNumber == id && (superAdmin() || (recent() && resource.data.uid == request.auth.uid &&
-        request.resource.data == resource.data && getAfter(userPath(request.auth.uid)).data.idNumber == id));
-      allow delete: if signed() && getAfter(userPath(resource.data.uid)).data.get('idNumber', '') != id && (superAdmin() || (recent() && resource.data.uid == request.auth.uid &&
-        getAfter(userPath(request.auth.uid)).data.idNumber != id &&
-        getAfter(idPath(getAfter(userPath(request.auth.uid)).data.idNumber)).data.uid == request.auth.uid));
-    }
     function validUser(data) {
       return data.keys().hasOnly(['name', 'phone', 'address', 'role', 'status',
-        'subscriptionStatus', 'generatorId', 'ampereLimit', 'createdAt', 'idNumber', 'credentialVersion']) &&
+        'subscriptionStatus', 'generatorId', 'ampereLimit', 'createdAt', 'idNumber', 'credentialVersion', 'email']) &&
         data.name is string && data.name.size() > 0 && data.name.size() <= 120 &&
-        validEpoch(data.createdAt) && data.ampereLimit is int && data.ampereLimit == 0 && validContact(data) &&
+        data.phone.matches('^05[69][0-9]{7}$') && validEpoch(data.createdAt) && data.ampereLimit is int && data.ampereLimit == 0 && validContact(data) &&
         data.status == 'pending' && data.generatorId is string && data.generatorId.size() > 0;
     }
     function validContact(data) {
       return data.get('name', '') is string && data.get('name', '').size() <= 120 &&
         data.get('address', '') is string && data.get('address', '').size() <= 240 &&
-        data.get('phone', '') is string && data.get('phone', '').size() <= 32;
+        data.get('phone', '') is string && (data.get('phone','') == '' || data.phone.matches('^(05[69][0-9]{7}|[+]97[02]5[69][0-9]{7})$')) &&
+        data.get('idNumber','') is string && (data.get('idNumber','') == '' || data.idNumber.matches('^[0-9]{9,10}$'));
     }
     function canEnroll(data, uid) {
-      return signed() && request.auth.uid == uid && verifiedPhone(data) && validUser(data) && recent() && identity(data, uid) &&
+      return signed() && request.auth.uid == uid && verifiedEmail(data) && validUser(data) && data.credentialVersion == 2 &&
         ((data.role == 'generator_owner' && data.generatorId != 'default' &&
           data.subscriptionStatus == 'active' &&
           getAfter(genPath(data.generatorId)).data.ownerUid == uid &&
@@ -98,38 +62,162 @@ service cloud.firestore {
           get(/databases/$(database)/documents/generatorDirectory/$(data.generatorId)).data.status == 'approved' &&
           get(/databases/$(database)/documents/generatorDirectory/$(data.generatorId)).data.subscriptionStatus == 'active'));
     }
-    function indexConsistent(data, uid) {
-      return !data.keys().hasAny(['idNumber']) || data.get('role', '') == 'super_admin' ||
-        (validId(data.idNumber) && getAfter(idPath(data.idNumber)).data.uid == uid);
+    match /billShares/{id} {
+      allow read: if cycleOwner(resource.data);
+      allow create, update: if cycleOwner(request.resource.data) && (!exists(/databases/$(database)/documents/billShares/$(id)) || same(resource.data)) && request.resource.data.keys().hasOnly(['generatorId','billId','roundId','status','by','at']) && request.resource.data.billId == id && request.resource.data.roundId == get(/databases/$(database)/documents/cycleBills/$(id)).data.roundId && get(/databases/$(database)/documents/cycleBills/$(id)).data.generatorId == gid(me()) && request.resource.data.status == 'marked' && request.resource.data.by == request.auth.uid && request.resource.data.at == request.time;
     }
-    function releasedOldId(data, uid) {
-      return !validId(resource.data.get('idNumber', '')) || data.get('idNumber', '') == resource.data.idNumber ||
-        !exists(idPath(resource.data.idNumber)) ||
-        (get(idPath(resource.data.idNumber)).data.uid == uid && !existsAfter(idPath(resource.data.idNumber)));
+    function financeOpen(id) { return !exists(/databases/$(database)/documents/financeControl/$(id)) || get(/databases/$(database)/documents/financeControl/$(id)).data.locked == false; }
+    match /financeControl/{id} {
+      allow get: if superAdmin() || (owner() && gid(me()) == id);
+      allow create, update: if owner() && gid(me()) == id && request.resource.data.keys().hasOnly(['generatorId','generation','locked','token','startedAt']) && request.resource.data.generatorId == id && request.resource.data.generation is string && request.resource.data.locked is bool && request.resource.data.token is string && request.resource.data.startedAt is int;
     }
+    match /financeSummaries/{id} {
+      allow get: if superAdmin() || (owner() && same(resource.data)) || (owner() && !exists(/databases/$(database)/documents/financeSummaries/$(id)));
+      allow list: if owner() && same(resource.data);
+      allow create, update: if (superAdmin() || cycleOwner(request.resource.data)) && (!exists(/databases/$(database)/documents/financeSummaries/$(id)) || request.resource.data.generatorId == resource.data.generatorId) && request.resource.data.keys().hasOnly(['generatorId','generation','kind','key','billedAgorot','collectedAgorot','outstandingAgorot','costAgorot','fuelAgorot','maintenanceAgorot','wagesAgorot','equipmentAgorot','otherAgorot']) && id == request.resource.data.generatorId+'_'+request.resource.data.generation+'_'+request.resource.data.kind+'_'+request.resource.data.key && request.resource.data.kind in ['total','month','day','round'] && request.resource.data.billedAgorot is int && request.resource.data.collectedAgorot is int && request.resource.data.outstandingAgorot is int && request.resource.data.costAgorot is int && request.resource.data.fuelAgorot is int && request.resource.data.maintenanceAgorot is int && request.resource.data.wagesAgorot is int && request.resource.data.equipmentAgorot is int && request.resource.data.otherAgorot is int;
+    }
+    match /expenses/{id} {
+      allow get: if cycleOwner(resource.data) || (owner() && !exists(/databases/$(database)/documents/expenses/$(id)));
+      allow list: if cycleOwner(resource.data);
+      allow create, update: if cycleOwner(request.resource.data) && financeOpen(gid(me())) && (!exists(/databases/$(database)/documents/expenses/$(id)) || same(resource.data)) && request.resource.data.keys().hasOnly(['generatorId','amountAgorot','date','roundId','category','note','deleted','createdBy','createdAt','updatedBy','updatedAt']) && request.resource.data.amountAgorot is int && request.resource.data.amountAgorot > 0 && request.resource.data.amountAgorot <= 1000000000000 && validEpoch(request.resource.data.date) && request.resource.data.category in ['fuel','maintenance','wages','equipment','other'] && request.resource.data.note is string && request.resource.data.note.size() <= 500 && request.resource.data.deleted is bool && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
+    }
+    match /expenseChanges/{id} {
+      allow read: if cycleOwner(resource.data);
+      allow create: if cycleOwner(request.resource.data) && financeOpen(gid(me())) && request.resource.data.keys().hasOnly(['generatorId','expenseId','before','after','by','at']) && request.resource.data.by == request.auth.uid && request.resource.data.at == request.time;
+    }
+
+    function cycleOwner(data) { return owner() && same(data); }
+    function cycleOwn(data) { return approved() && consumer(me()) && same(data) && data.userId == request.auth.uid; }
+    match /billingSubscribers/{id} {
+      allow get: if cycleOwner(resource.data) || (owner() && !exists(/databases/$(database)/documents/billingSubscribers/$(id)));
+      allow list: if cycleOwner(resource.data);
+      allow create, update: if cycleOwner(request.resource.data) && (!exists(/databases/$(database)/documents/billingSubscribers/$(id)) || same(resource.data)) && request.resource.data.keys().hasOnly(['generatorId','name','phone','address','number','previousMilli','averageMilli','recentDifferences','readerUid','userId','active','lastRoundId','linkPending']) && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 120 && request.resource.data.phone is string && request.resource.data.phone.size() <= 32 && request.resource.data.address is string && request.resource.data.address.size() <= 240 && request.resource.data.number is string && request.resource.data.previousMilli is int && request.resource.data.previousMilli >= 0 && request.resource.data.previousMilli <= 1000000000 && request.resource.data.averageMilli is int && request.resource.data.recentDifferences is list && request.resource.data.recentDifferences.size() <= 3 && request.resource.data.readerUid is string && request.resource.data.active is bool && request.resource.data.get('linkPending',false) is bool && (request.resource.data.userId == '' || consumerMember(request.resource.data.userId, gid(me())));
+    }
+    match /billingLinks/{uid} {
+      allow get: if (signed() && uid == request.auth.uid) || (owner() && consumerMember(uid,gid(me())));
+      allow create: if cycleOwner(request.resource.data) && consumerMember(uid,gid(me())) && getAfter(/databases/$(database)/documents/billingSubscribers/$(request.resource.data.subscriberId)).data.userId == uid && request.resource.data.keys().hasOnly(['generatorId','subscriberId']);
+    }
+    match /billingRounds/{id} {
+      allow read: if cycleOwner(resource.data);
+      allow create, update: if cycleOwner(request.resource.data) && (!exists(/databases/$(database)/documents/billingRounds/$(id)) || same(resource.data)) && request.resource.data.keys().hasOnly(['generatorId','status','date','cycleDays','settings','subscriberIds','createdBy']) && request.resource.data.status in ['preparing','open','closing','closed','cancelled'] && validEpoch(request.resource.data.date) && request.resource.data.cycleDays is int && request.resource.data.settings is map && request.resource.data.subscriberIds is list && request.resource.data.subscriberIds.size() <= 1000 && request.resource.data.createdBy == request.auth.uid && (request.resource.data.status != 'cancelled' || (resource.data.status == 'preparing' && resource.data.subscriberIds.size()>0 && !exists(/databases/$(database)/documents/cycleBills/$(id + '_' + resource.data.subscriberIds[0])) && getAfter(/databases/$(database)/documents/readerRounds/$(gid(me()))).data.status == 'cancelled'));
+    }
+    match /readingCorrections/{id} {
+      allow read: if cycleOwner(resource.data);
+      allow create: if cycleOwner(request.resource.data) && request.resource.data.keys().hasOnly(['generatorId','billId','before','after','reason','by','at']) && request.resource.data.by == request.auth.uid && request.resource.data.at == request.time && request.resource.data.reason is string && request.resource.data.reason.size() > 0 && request.resource.data.reason.size() <= 500;
+    }
+    function money(data) { return data.amountAgorot is int && data.amountAgorot >= 0 && data.amountAgorot <= 1000000000000 && data.paidAgorot is int && data.paidAgorot >= 0 && data.paidAgorot <= data.amountAgorot; }
+    match /cycleBills/{id} {
+      allow get: if cycleOwner(resource.data) || (cycleOwn(resource.data) && resource.data.published == true) || (owner() && !exists(/databases/$(database)/documents/cycleBills/$(id)) && same(get(/databases/$(database)/documents/meterAssignments/$(id)).data));
+      allow list: if cycleOwner(resource.data) || (cycleOwn(resource.data) && resource.data.published == true);
+      allow create: if cycleOwner(request.resource.data) && financeOpen(gid(me())) && money(request.resource.data) && id == request.resource.data.roundId + '_' + request.resource.data.subscriberId && request.resource.data.paidAgorot == 0 && request.resource.data.paymentSequence == 0 && request.resource.data.pendingPaymentId == '' && request.resource.data.published == false && request.resource.data.snapshot is map && request.resource.data.snapshot.amountAgorot == request.resource.data.amountAgorot;
+      allow update: if (cycleOwner(resource.data) && same(request.resource.data) && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['amountAgorot','paidAgorot']) || financeOpen(gid(me()))) && money(request.resource.data) && request.resource.data.generatorId == resource.data.generatorId && request.resource.data.subscriberId == resource.data.subscriberId && request.resource.data.roundId == resource.data.roundId) ||
+       (cycleOwn(resource.data) && resource.data.published == true && resource.data.pendingPaymentId == '' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pendingPaymentId','paymentSequence']) && request.resource.data.paymentSequence == resource.data.paymentSequence+1 && request.resource.data.pendingPaymentId == id + '_' + string(request.resource.data.paymentSequence) && getAfter(/databases/$(database)/documents/cyclePayments/$(request.resource.data.pendingPaymentId)).data.userId == request.auth.uid && getAfter(/databases/$(database)/documents/cyclePayments/$(request.resource.data.pendingPaymentId)).data.status == 'pending' && getAfter(/databases/$(database)/documents/cyclePayments/$(request.resource.data.pendingPaymentId)).data.billId == id);
+    }
+    match /accountBalances/{id} {
+      allow read: if cycleOwner(resource.data) || cycleOwn(resource.data);
+      allow create, update: if cycleOwner(request.resource.data) && financeOpen(gid(me())) && (!exists(/databases/$(database)/documents/accountBalances/$(id)) || same(resource.data)) && request.resource.data.keys().hasOnly(['generatorId','subscriberId','userId','billedAgorot','collectedAgorot']) && request.resource.data.subscriberId == id && request.resource.data.billedAgorot is int && request.resource.data.billedAgorot >= 0 && request.resource.data.collectedAgorot is int && request.resource.data.collectedAgorot >= 0 && request.resource.data.collectedAgorot <= request.resource.data.billedAgorot;
+    }
+    function paymentValid(data) {
+      let bill=get(/databases/$(database)/documents/cycleBills/$(data.billId)).data;
+      return data.keys().hasOnly(['generatorId','billId','subscriberId','userId','roundId','amountAgorot','date','reference','method','status','sequence','submittedAt']) && data.generatorId == bill.generatorId && data.userId == bill.userId && data.subscriberId == bill.subscriberId && data.roundId == bill.roundId && data.status == 'pending' && data.sequence is int && data.sequence == bill.paymentSequence + 1 && data.amountAgorot is int && data.amountAgorot > 0 && data.amountAgorot <= bill.amountAgorot-bill.paidAgorot && data.date is int && data.date >= 946684800000 && data.date <= request.time.toMillis()+86400000 && data.reference is string && data.reference.size() > 0 && data.reference.size() <= 80 && data.method in ['cash','bank','wallet','other'] && data.submittedAt == request.time && bill.pendingPaymentId == '';
+    }
+    match /cyclePayments/{id} {
+      allow read: if cycleOwner(resource.data) || cycleOwn(resource.data);
+      allow create: if (cycleOwner(request.resource.data) || (cycleOwn(request.resource.data) && get(/databases/$(database)/documents/cycleBills/$(request.resource.data.billId)).data.published == true)) && paymentValid(request.resource.data) && getAfter(/databases/$(database)/documents/cycleBills/$(request.resource.data.billId)).data.pendingPaymentId == id;
+      allow update: if (cycleOwner(resource.data) && resource.data.userId == '' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['userId']) && consumerMember(request.resource.data.userId,gid(me())) && request.resource.data.userId == get(/databases/$(database)/documents/cycleBills/$(resource.data.billId)).data.userId) || (cycleOwner(resource.data) && financeOpen(gid(me())) && resource.data.status == 'approved' && request.resource.data.status == 'reversed' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reversalReason','reversedBy','reversedAt']) && request.resource.data.reversedBy == request.auth.uid && request.resource.data.reversedAt == request.time && request.resource.data.reversalReason is string && request.resource.data.reversalReason.size()>0 && request.resource.data.reversalReason.size()<=500 && getAfter(/databases/$(database)/documents/cycleBills/$(resource.data.billId)).data.paidAgorot == get(/databases/$(database)/documents/cycleBills/$(resource.data.billId)).data.paidAgorot - resource.data.amountAgorot) || cycleOwner(resource.data) && financeOpen(gid(me())) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reason','reviewedBy','reviewedAt']) && resource.data.status == 'pending' && request.resource.data.status in ['approved','rejected'] && request.resource.data.reviewedBy == request.auth.uid && request.resource.data.reviewedAt == request.time && request.resource.data.reason is string && request.resource.data.reason.size() <= 500 && (request.resource.data.status == 'approved' || request.resource.data.reason.size()>0) && getAfter(/databases/$(database)/documents/cycleBills/$(resource.data.billId)).data.pendingPaymentId == '' && getAfter(/databases/$(database)/documents/cycleBills/$(resource.data.billId)).data.paidAgorot == get(/databases/$(database)/documents/cycleBills/$(resource.data.billId)).data.paidAgorot + (request.resource.data.status == 'approved' ? resource.data.amountAgorot : 0);
+    }
+
+    function reader() {
+      return signed() && me().role == 'meter_reader' && me().status == 'approved' &&
+        generatorAvailable(gid(me())) && get(/databases/$(database)/documents/meterStaff/$(request.auth.uid)).data.active == true;
+    }
+    function invited(data, uid) {
+      let code=data.get('inviteCode','');
+      let invite=get(/databases/$(database)/documents/meterInvites/$(code)).data;
+      return signed() && uid == request.auth.uid && verifiedEmail(data) && validContact(data) &&
+        data.keys().hasOnly(['name','email','phone','idNumber','address','credentialVersion','role','generatorId','status','subscriptionStatus','ampereLimit','createdAt','inviteCode']) &&
+        data.role == 'meter_reader' && data.status == 'approved' && data.subscriptionStatus == 'active' && data.credentialVersion == 2 && data.ampereLimit == 0 && validEpoch(data.createdAt) &&
+        data.generatorId == invite.generatorId && invite.revoked == false && invite.usedBy == '' && (invite.expiresAt == 0 || invite.expiresAt > request.time.toMillis()) && generatorAvailable(invite.generatorId) &&
+        getAfter(/databases/$(database)/documents/meterInvites/$(code)).data.usedBy == uid &&
+        getAfter(/databases/$(database)/documents/meterStaff/$(uid)).data.active == true;
+    }
+    match /meterInvites/{code} {
+      allow get: if signed();
+      allow list: if owner() && same(resource.data);
+      allow create: if owner() && code.matches('^[a-f0-9]{32}$') && same(request.resource.data) &&
+        request.resource.data.keys().hasOnly(['generatorId','createdBy','createdAt','expiresAt','revoked','usedBy']) && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time &&
+        request.resource.data.expiresAt is int && (request.resource.data.expiresAt == 0 || request.resource.data.expiresAt > request.time.toMillis()) && request.resource.data.revoked == false && request.resource.data.usedBy == '';
+      allow update: if (owner() && same(resource.data) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['revoked']) && request.resource.data.revoked == true) ||
+        (signed() && !exists(userPath(request.auth.uid)) && resource.data.revoked == false && resource.data.usedBy == '' &&
+        (resource.data.expiresAt == 0 || resource.data.expiresAt > request.time.toMillis()) && generatorAvailable(resource.data.generatorId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usedBy']) && request.resource.data.usedBy == request.auth.uid && getAfter(userPath(request.auth.uid)).data.role == 'meter_reader' && getAfter(userPath(request.auth.uid)).data.inviteCode == code && getAfter(userPath(request.auth.uid)).data.generatorId == resource.data.generatorId);
+    }
+    match /meterStaff/{uid} {
+      allow read: if (owner() && same(resource.data)) || (signed() && uid == request.auth.uid);
+      allow create: if signed() && uid == request.auth.uid && !exists(userPath(uid)) && request.resource.data.keys().hasOnly(['generatorId','name','active','inviteCode']) && request.resource.data.active == true && request.resource.data.name == getAfter(userPath(uid)).data.name && request.resource.data.generatorId == getAfter(userPath(uid)).data.generatorId && request.resource.data.inviteCode == getAfter(userPath(uid)).data.inviteCode && getAfter(userPath(uid)).data.role == 'meter_reader';
+      allow update: if owner() && same(resource.data) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active']) && request.resource.data.active == false && getAfter(userPath(uid)).data.status == 'suspended';
+    }
+    function openRound(data) {
+      let round=get(/databases/$(database)/documents/readerRounds/$(data.generatorId)).data;
+      return round.status == 'open' && round.roundId == data.roundId;
+    }
+    match /readerRounds/{id} {
+      allow read: if (owner() || reader()) && gid(me()) == id;
+      allow create, update: if owner() && gid(me()) == id && request.resource.data.keys().hasOnly(['generatorId','roundId','status','date','cycleDays']) && request.resource.data.generatorId == id && request.resource.data.roundId is string && request.resource.data.status in ['preparing','open','closing','closed','cancelled'] && validEpoch(request.resource.data.date) && request.resource.data.cycleDays is int && (request.resource.data.status != 'cancelled' || (resource.data.status == 'preparing' && getAfter(/databases/$(database)/documents/billingRounds/$(request.resource.data.roundId)).data.status == 'cancelled'));
+    }
+    match /meterAssignments/{id} {
+      allow get: if (owner() && (!exists(/databases/$(database)/documents/meterAssignments/$(id)) || same(resource.data))) || (reader() && same(resource.data) && resource.data.readerUid == request.auth.uid && openRound(resource.data));
+      allow list: if (owner() && same(resource.data)) || (reader() && same(resource.data) && resource.data.readerUid == request.auth.uid && openRound(resource.data));
+      allow create, update: if owner() && same(request.resource.data) && (!exists(/databases/$(database)/documents/meterAssignments/$(id)) || same(resource.data)) && request.resource.data.keys().hasOnly(['generatorId','readerUid','roundId','name','address','number','previousMilli','averageMilli']) && request.resource.data.name is string && request.resource.data.name.size() <= 120 && request.resource.data.address is string && request.resource.data.address.size() <= 240 && request.resource.data.number is string && request.resource.data.number.size() <= 80 && request.resource.data.previousMilli is int && request.resource.data.previousMilli >= 0 && request.resource.data.previousMilli <= 1000000000 && request.resource.data.averageMilli is int && request.resource.data.averageMilli >= 0;
+    }
+    function assigned(data, id) {
+      let row=get(/databases/$(database)/documents/meterAssignments/$(id)).data;
+      return reader() && same(data) && data.roundId == row.roundId && data.readerUid == request.auth.uid && row.readerUid == request.auth.uid && openRound(data);
+    }
+    function validReading(data, id) {
+      let row=get(/databases/$(database)/documents/meterAssignments/$(id)).data;
+      return data.keys().hasOnly(['generatorId','roundId','subscriberId','readerUid','previousMilli','currentMilli','confirmedJump','updatedBy','updatedAt','newMeter','startingMilli','reason']) &&
+        id == data.roundId + '_' + data.subscriberId && data.generatorId == row.generatorId && data.roundId == row.roundId && data.previousMilli == row.previousMilli && data.readerUid == row.readerUid &&
+        data.currentMilli is int && data.currentMilli >= 0 && data.currentMilli <= 1000000000 && data.updatedBy == request.auth.uid && data.updatedAt == request.time && data.confirmedJump is bool &&
+        (data.currentMilli >= data.previousMilli || (owner() && data.get('newMeter',false) == true && data.startingMilli is int && data.startingMilli >= 0 && data.currentMilli >= data.startingMilli && data.reason is string && data.reason.size() > 0)) &&
+        (owner() || (!data.get('newMeter',false) && !data.keys().hasAny(['startingMilli','reason']))) &&
+        (row.averageMilli == 0 || data.currentMilli - data.previousMilli <= row.averageMilli * 3 || data.confirmedJump);
+    }
+    match /meterReadings/{id} {
+      allow get: if (owner() && same(get(/databases/$(database)/documents/meterAssignments/$(id)).data)) || (reader() && assigned(get(/databases/$(database)/documents/meterAssignments/$(id)).data,id));
+      allow list: if (owner() && same(resource.data)) || assigned(resource.data,id);
+      allow create, update: if ((owner() && same(request.resource.data) && openRound(request.resource.data)) || assigned(request.resource.data,id)) && validReading(request.resource.data,id);
+    }
+
     match /users/{uid} {
       allow get: if signed() && (uid == request.auth.uid || superAdmin() ||
         (owner() && consumer(resource.data) && same(resource.data)));
       allow list: if superAdmin() || (owner() && consumer(resource.data) && same(resource.data));
-      allow create: if indexConsistent(request.resource.data, uid) && !request.resource.data.keys().hasAny(['password', 'passwordUpdatedAt']) && (superAdmin() || canEnroll(request.resource.data, uid));
-      allow update: if (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['idNumber', 'credentialVersion']) || indexConsistent(request.resource.data, uid)) && releasedOldId(request.resource.data, uid) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['password', 'passwordUpdatedAt']) && (superAdmin() ||
+      allow create: if !request.resource.data.keys().hasAny(['password', 'passwordUpdatedAt']) && (superAdmin() || canEnroll(request.resource.data, uid) || invited(request.resource.data, uid));
+      allow update: if (owner() && same(resource.data) && resource.data.role == 'meter_reader' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','rejectionReason']) && request.resource.data.status == 'suspended' && request.resource.data.rejectionReason is string && request.resource.data.rejectionReason.size()>0 && getAfter(/databases/$(database)/documents/meterStaff/$(uid)).data.active == false) || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['password', 'passwordUpdatedAt']) && (superAdmin() ||
         (signed() && uid == request.auth.uid && validContact(request.resource.data) &&
-          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'address']) || ownIdentityUpdate(request.resource.data, uid))) ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'address', 'phone', 'idNumber'])) ||
         (owner() && consumer(resource.data) && same(resource.data) && validContact(request.resource.data) &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'name', 'address', 'status', 'subscriptionStatus', 'ampereLimit',
             'rejectionReason']) &&
           request.resource.data.get('ampereLimit', 0) is int && request.resource.data.get('ampereLimit', 0) >= 0 &&
           request.resource.data.get('rejectionReason', '') is string && request.resource.data.get('rejectionReason', '').size() <= 500 &&
-          request.resource.data.status in ['pending', 'approved', 'rejected'] &&
+          request.resource.data.status in ['pending', 'approved', 'rejected', 'suspended'] &&
+          (!(request.resource.data.status in ['rejected','suspended']) || request.resource.data.get('rejectionReason','').size()>0) &&
           request.resource.data.subscriptionStatus in ['active', 'inactive']));
       allow delete: if superAdmin();
     }
     function validGeneratorState(data) {
       return data.get('isOn', false) is bool && data.get('pricePerKwh', 2) is number && data.get('pricePerKwh', 2) >= 0;
     }
+    function validGeneratorReview(data) {
+      return data.status in ['pending','approved','rejected','suspended'] && data.subscriptionStatus in ['active','inactive'] &&
+        data.get('rejectionReason','') is string && data.get('rejectionReason','').size()<=500 &&
+        (!(data.status in ['rejected','suspended']) || data.get('rejectionReason','').size()>0);
+    }
     match /generators/{id} {
-      allow get: if superAdmin() || (signed() && gid(me()) == id);
+      allow get: if superAdmin() || (signed() && me().role != 'meter_reader' && gid(me()) == id);
       allow list: if superAdmin();
       allow create: if superAdmin() ||
         (signed() && id != 'default' && !exists(userPath(request.auth.uid)) &&
@@ -145,10 +233,21 @@ service cloud.firestore {
           getAfter(userPath(request.auth.uid)).data.role == 'generator_owner' &&
           getAfter(userPath(request.auth.uid)).data.status == 'pending' &&
           getAfter(userPath(request.auth.uid)).data.generatorId == id);
-      allow update: if superAdmin() || (owner() && gid(me()) == id && validGeneratorState(request.resource.data) &&
+      allow update: if (superAdmin() && validGeneratorReview(request.resource.data)) || (owner() && gid(me()) == id && validGeneratorState(request.resource.data) &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'isOn', 'pricePerKwh', 'lastChanged', 'lastOnAt', 'lastOffAt', 'scheduledOnAt', 'scheduledOffAt']));
       allow delete: if superAdmin();
+    }
+    match /billingSettings/{id} {
+      allow read: if approved() && gid(me()) == id;
+      allow create, update: if owner() && gid(me()) == id &&
+        request.resource.data.keys().hasOnly(['generatorId','priceAgorot','minimumUnitsMilli','cycleDays','roundingThresholdAgorot','unitName','updatedBy','updatedAt']) &&
+        request.resource.data.generatorId == id && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time &&
+        request.resource.data.priceAgorot is int && request.resource.data.priceAgorot > 0 && request.resource.data.priceAgorot <= 1000000 &&
+        request.resource.data.minimumUnitsMilli is int && request.resource.data.minimumUnitsMilli >= 0 && request.resource.data.minimumUnitsMilli <= 1000000000 &&
+        request.resource.data.cycleDays is int && request.resource.data.cycleDays >= 1 && request.resource.data.cycleDays <= 366 &&
+        request.resource.data.roundingThresholdAgorot is int && request.resource.data.roundingThresholdAgorot >= 1 && request.resource.data.roundingThresholdAgorot <= 99 &&
+        request.resource.data.unitName is string && request.resource.data.unitName.size() > 0 && request.resource.data.unitName.size() <= 24;
     }
     match /generatorDirectory/{id} {
       allow read: if signed();
@@ -169,21 +268,46 @@ service cloud.firestore {
       allow delete: if superAdmin();
     }
     function own(data) { return approved() && data.userId == request.auth.uid && same(data); }
+    function validPayment(payment, bill) {
+      return payment is map && payment.keys().hasAll(['amountMinor','date','reference','method','submittedAt','version']) &&
+        payment.keys().hasOnly(['amountMinor','date','reference','method','submittedAt','version']) &&
+        payment.amountMinor is int && payment.amountMinor > 0 && payment.amountMinor == bill.amount * 100 &&
+        validEpoch(payment.date) && payment.date >= 946684800000 && payment.date <= request.time.toMillis()+86400000 &&
+        payment.reference is string && payment.reference.size()>0 && payment.reference.size()<=80 &&
+        payment.method in ['cash','bank','wallet','other'] && validEpoch(payment.submittedAt) && payment.version is int && payment.version>0;
+    }
+    function validBillingSnapshot(data) {
+      return !data.keys().hasAny(['amountAgorot','billingSnapshot']) ||
+        (data.amountAgorot is int && data.amountAgorot == data.amount * 100 &&
+         data.billingSnapshot is map && data.billingSnapshot.amountAgorot == data.amountAgorot &&
+         data.billingSnapshot.denominator == 1000 && data.billingSnapshot.rawNumerator is int &&
+         data.billingSnapshot.minimumNumerator is int && data.billingSnapshot.settings.priceAgorot is int &&
+         data.billingSnapshot.settings.minimumUnitsMilli is int && data.billingSnapshot.settings.roundingThresholdAgorot is int);
+    }
     match /bills/{id} {
       allow read: if superAdmin() || (owner() && same(resource.data)) || own(resource.data);
-      allow create: if superAdmin() || (owner() && newTenant(request.resource.data) &&
-        consumerMember(request.resource.data.userId, gid(me())) &&
-        request.resource.data.amount is int && request.resource.data.amount >= 0 &&
+      allow create: if (superAdmin() || (owner() && newTenant(request.resource.data) &&
+        consumerMember(request.resource.data.userId,gid(me())))) &&
+        request.resource.data.keys().hasOnly(['generatorId','userId','month','year','amount','kwh','status','createdAt','weekNumber','billingPeriod','amountAgorot','billingSnapshot']) &&
+        financeOpen(request.resource.data.generatorId) && validBillingSnapshot(request.resource.data) &&
+        request.resource.data.amount is int && request.resource.data.amount > 0 &&
         request.resource.data.kwh is number && request.resource.data.kwh >= 0 &&
         request.resource.data.status == 'pending' && request.resource.data.month is string &&
-        request.resource.data.year is int && validEpoch(request.resource.data.createdAt));
-      allow update: if superAdmin() || (owner() && same(resource.data) &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
-        request.resource.data.status in ['paid', 'rejected', 'pending', 'pendingReview']) ||
-        (own(resource.data) && resource.data.status in ['pending', 'rejected'] &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['receiptBase64', 'status']) &&
-          request.resource.data.status == 'pendingReview' && request.resource.data.receiptBase64 is string &&
-          request.resource.data.receiptBase64.size() > 0 && request.resource.data.receiptBase64.size() < 1000000);
+        request.resource.data.year is int && validEpoch(request.resource.data.createdAt);
+      allow update: if
+        ((superAdmin() || (owner() && same(resource.data))) && resource.data.status == 'pendingReview' &&
+          validPayment(resource.data.get('payment',null), resource.data) && (request.resource.data.status != 'paid' || financeOpen(resource.data.generatorId)) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reviewReason','reviewedBy','reviewedAt','reviewedVersion']) &&
+          request.resource.data.reviewedVersion == resource.data.payment.version && request.resource.data.status in ['paid','rejected'] && request.resource.data.reviewedBy == request.auth.uid &&
+          request.resource.data.reviewedAt is int && request.resource.data.reviewedAt >= request.time.toMillis()-300000 &&
+          request.resource.data.reviewedAt <= request.time.toMillis()+300000 &&
+          request.resource.data.reviewReason is string && request.resource.data.reviewReason.size() <= 500 &&
+          (request.resource.data.status != 'rejected' || request.resource.data.reviewReason.size() > 0)) ||
+        (own(resource.data) && consumer(me()) && resource.data.status in ['pending','rejected'] &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['payment','status']) &&
+          request.resource.data.payment.version == resource.data.get('payment', {}).get('version', 0) + 1 && request.resource.data.status == 'pendingReview' && validPayment(request.resource.data.payment, resource.data) &&
+          request.resource.data.payment.submittedAt >= request.time.toMillis()-300000 &&
+          request.resource.data.payment.submittedAt <= request.time.toMillis()+300000);
       allow delete: if superAdmin();
     }
     match /complaints/{id} {

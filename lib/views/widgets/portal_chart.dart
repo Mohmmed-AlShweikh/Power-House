@@ -55,7 +55,7 @@ class PortalBarChart extends StatelessWidget {
     final width =
         math.max(points.length * PortalTokens.control, PortalTokens.zero);
     return Semantics(
-        label: 'الاستهلاك بالكيلوواط ساعة',
+        label: 'الاستهلاك بوحدات القياس',
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: SizedBox(

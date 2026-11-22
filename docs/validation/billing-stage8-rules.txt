@@ -1,0 +1,41 @@
+✔  firestore: Firestore Emulator UI websocket is running on 9150.
+✔ real email signup starts unverified; email action verifies the same UID (142.513363ms)
+✔ email password reset retains UID and invalidates old password (45.548724ms)
+✔ anonymous and unverified users cannot read data, even with a privileged profile (4190.54666ms)
+✔ verified fresh account can pick approved active directory without a profile; no owner personal data (535.093824ms)
+✔ owner registration is atomic pending pair, contact phone is optional and never verified identity (347.744018ms)
+✔ consumer registration always pending, cannot join suspended or inactive generator (546.041104ms)
+✔ registration rejects unverified or mismatched email and synthetic identities (369.832746ms)
+✔ self edits cannot approve, escalate, change generator or paid subscription (484.514044ms)
+✔ owners read/approve only consumers from their generator, suspension/rejection require reason (447.997739ms)
+✔ cross-generator bill and complaint reads are denied, own queries succeed (184.205277ms)
+✔ consumer records full payment but cannot approve it or submit for another user (181.551172ms)
+✔ payment validation blocks images, wrong amounts, invalid method, future dates and oversized reference (241.916602ms)
+✔ owner approval is immutable and cannot be repeated or reversed after payment (299.581191ms)
+✔ rejection requires reason; consumer can correct and resubmit; cross-tenant reviewer denied (453.333839ms)
+✔ direct paid status without a submitted payment and forged reviewer are denied (177.595229ms)
+✔ super-admin suspension blocks operational reads and directory projection follows private document (203.588139ms)
+✔ concurrent owner reviews commit one decision and one feedback record (354.906397ms)
+✔ billing settings owner only, validated integer money, cross-tenant denied (433.373508ms)
+✔ new invoice snapshot is retained and cannot be edited by payment actors (201.208731ms)
+✔ meter invite consumed atomically once, forged self-approval and expired invite denied (272.82309ms)
+✔ reader cannot see prices, money, past rounds or other generator; current row writes only (351.429243ms)
+✔ owner revocation immediately blocks reader and cannot be self-reversed (313.994501ms)
+✔ new round collections owner only and isolated; no reader money or past/private subscriber data (1195.887866ms)
+✔ partial payment atomic submission and immutable approval cannot duplicate or exceed balance (510.159262ms)
+✔ offline reader write queues one row and reconciles after reconnect (295.806101ms)
+✔ finance summaries, control and expense history owner-only; cross-tenant and reader denied (1384.534659ms)
+✔ approved cycle payment reversal requires reason and matching bill balance once (165.304413ms)
+✔ publication and share markers are owner-only; linked bill and alert publish atomically (579.277749ms)
+✔ expired and revoked invitations never create a reader; unauthenticated codes are private (201.195754ms)
+✔ summary updates remain exact under concurrent transactions (1144.246424ms)
+✔ manual account linking can repair payment ownership without altering amounts (249.075685ms)
+ℹ tests 31
+ℹ suites 0
+ℹ pass 31
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 16702.878077
+✔  Script exited successfully (code 0)

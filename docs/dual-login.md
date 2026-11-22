@@ -1,3 +1,5 @@
+> Historical document. For the clean-project email-only Phase 1, follow [spark-phase1.md](spark-phase1.md). Do not run legacy account/data migration for this phase.
+
 # Dual login — audit and implementation plan
 
 Base: `fix/splash-and-owner-switch`; work only on `fix/auto-load-and-dual-login`.

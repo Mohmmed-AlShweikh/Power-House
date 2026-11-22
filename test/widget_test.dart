@@ -16,7 +16,7 @@ void main() {
     ], child: const GeneratorPortalApp()));
     await tester.pumpAndSettle();
     expect(find.text('تسجيل الدخول'), findsWidgets);
-    expect(find.widgetWithText(TextField, 'xxxxxxxxxx'), findsOneWidget);
+    expect(find.byKey(const ValueKey('email')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

@@ -1,0 +1,27 @@
+✔  firestore: Firestore Emulator UI websocket is running on 9150.
+✔ real email signup starts unverified; email action verifies the same UID (118.403928ms)
+✔ email password reset retains UID and invalidates old password (27.563457ms)
+✔ anonymous and unverified users cannot read data, even with a privileged profile (2496.793993ms)
+✔ verified fresh account can pick approved active directory without a profile; no owner personal data (366.427104ms)
+✔ owner registration is atomic pending pair, contact phone is optional and never verified identity (213.346608ms)
+✔ consumer registration always pending, cannot join suspended or inactive generator (253.693988ms)
+✔ registration rejects unverified or mismatched email and synthetic identities (161.666728ms)
+✔ self edits cannot approve, escalate, change generator or paid subscription (286.784963ms)
+✔ owners read/approve only consumers from their generator, suspension/rejection require reason (265.335586ms)
+✔ cross-generator bill and complaint reads are denied, own queries succeed (132.97581ms)
+✔ consumer records full payment but cannot approve it or submit for another user (183.559881ms)
+✔ payment validation blocks images, wrong amounts, invalid method, future dates and oversized reference (251.291324ms)
+✔ owner approval is immutable and cannot be repeated or reversed after payment (288.423769ms)
+✔ rejection requires reason; consumer can correct and resubmit; cross-tenant reviewer denied (320.305795ms)
+✔ direct paid status without a submitted payment and forged reviewer are denied (166.02876ms)
+✔ super-admin suspension blocks operational reads and directory projection follows private document (153.084583ms)
+✔ concurrent owner reviews commit one decision and one feedback record (225.191566ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6142.266842
+✔  Script exited successfully (code 0)

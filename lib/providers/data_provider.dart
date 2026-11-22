@@ -1,3 +1,5 @@
+import '../features/billing_settings/models.dart';
+import '../features/billing_settings/providers.dart';
 import '../services/firestore_reads.dart';
 
 import 'package:flutter/material.dart';
@@ -17,6 +19,7 @@ T settledValue<T>(AsyncValue<T> state, T fallback) =>
 // Generator status and system configuration
 class GeneratorState {
   final bool isOn;
+  final String unitName;
   final DateTime? lastChanged;
   final DateTime? lastOnAt;
   final DateTime? lastOffAt;
@@ -29,6 +32,7 @@ class GeneratorState {
 
   const GeneratorState({
     this.isOn = false,
+    this.unitName = 'وحدة',
     this.lastChanged,
     this.lastOnAt,
     this.lastOffAt,
@@ -45,6 +49,7 @@ final generatorProvider = StreamProvider<GeneratorState>((ref) {
   final db = ref.watch(firestoreProvider);
   final gid = ref.watch(tenantIdProvider);
   if (!firestoreReady(ref, operational: true)) return const Stream.empty();
+  final billing = ref.watch(billingSettingsProvider);
   return retryFirestore(() => watchGenerator(db, gid)).map((d) {
     DateTime? parseTimestamp(dynamic value) {
       if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
@@ -53,12 +58,16 @@ final generatorProvider = StreamProvider<GeneratorState>((ref) {
 
     return GeneratorState(
       isOn: d['isOn'] ?? false,
+      unitName: billing.valueOrNull?.unitName ?? 'وحدة',
       lastChanged: parseTimestamp(d['lastChanged']),
       lastOnAt: parseTimestamp(d['lastOnAt']),
       lastOffAt: parseTimestamp(d['lastOffAt']),
       scheduledOnAt: parseTimestamp(d['scheduledOnAt']),
       scheduledOffAt: parseTimestamp(d['scheduledOffAt']),
-      pricePerKwh: (d['pricePerKwh'] ?? 2.0).toDouble(),
+      // Legacy display API only: all new billing arithmetic uses integer agorot.
+      pricePerKwh: billing.valueOrNull != null
+          ? billing.valueOrNull!.priceAgorot / 100
+          : (d['pricePerKwh'] ?? 2.0).toDouble(),
     );
   });
 });
@@ -112,7 +121,8 @@ final subscribersProvider = StreamProvider<List<UserProfile>>((ref) {
             .map((d) => UserProfile.fromMap(d.id, d.data()))
             .where((u) =>
                 u.role == UserRole.consumer &&
-                u.approvalStatus == ApprovalStatus.approved)
+                [ApprovalStatus.approved, ApprovalStatus.suspended]
+                    .contains(u.approvalStatus))
             .toList();
         list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
         return list;
@@ -136,6 +146,21 @@ final pendingUsersProvider = StreamProvider<List<UserProfile>>((ref) {
         return list;
       });
 });
+
+// Owner request inbox retains rejections for review without creating a second UID.
+final consumerRequestsProvider = StreamProvider<List<UserProfile>>((ref) =>
+    scopedQuery(ref, 'users')
+        .where('role', whereIn: ['user', 'consumer'])
+        .autoSnapshots(ref)
+        .map((snapshot) {
+          final items = snapshot.docs
+              .map((doc) => UserProfile.fromMap(doc.id, doc.data()))
+              .where((user) => [ApprovalStatus.pending, ApprovalStatus.rejected]
+                  .contains(user.approvalStatus))
+              .toList();
+          items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return items;
+        }));
 
 // Pending generator owners (awaiting super admin approval)
 // Tenant constrained on the server; role/status presentation filtering follows.
@@ -347,7 +372,14 @@ List<DailyUsagePoint> _buildDailyUsagePoints(
     return DailyUsagePoint(
       label: dayLabels[i],
       kwh: double.parse(value.toStringAsFixed(1)),
-      cost: (value * pricePerKwh).round(),
+      cost: calculateBill(
+                  previousMilli: 0,
+                  currentMilli: parseFixed(value.toStringAsFixed(3), 3),
+                  settings: BillingSettings(
+                      priceAgorot:
+                          parseFixed(pricePerKwh.toStringAsFixed(2), 2)))
+              .amountAgorot ~/
+          100,
     );
   });
 }
@@ -369,7 +401,7 @@ List<WeeklyUsagePoint> _buildWeeklyUsagePoints(
         month: bill.month,
         weekNumber: bill.weekNumber ?? 0,
         kwh: bill.kwh,
-        cost: (bill.kwh * pricePerKwh).round(),
+        cost: bill.amount,
       );
     }).toList();
   }
@@ -385,7 +417,7 @@ List<WeeklyUsagePoint> _buildWeeklyUsagePoints(
           month: bill.month,
           weekNumber: bill.weekNumber ?? 0,
           kwh: bill.kwh,
-          cost: (bill.kwh * pricePerKwh).round(),
+          cost: bill.amount,
         );
       })
       .toList()
@@ -396,19 +428,21 @@ List<WeeklyUsagePoint> _buildWeeklyUsagePoints(
 List<MonthlyUsagePoint> _buildMonthlyUsagePoints(
     List<Bill> bills, double pricePerKwh) {
   final grouped = <String, double>{};
+  final storedCharges = <String, int>{};
   final ordered = <String>[];
 
   for (final bill in bills) {
     final key = '${bill.month} ${bill.year}';
     if (!grouped.containsKey(key)) ordered.add(key);
     grouped[key] = (grouped[key] ?? 0) + bill.kwh;
+    storedCharges[key] = (storedCharges[key] ?? 0) + bill.amount;
   }
 
   return ordered
       .map((key) => MonthlyUsagePoint(
             label: key,
             kwh: grouped[key] ?? 0,
-            cost: ((grouped[key] ?? 0) * pricePerKwh).round(),
+            cost: storedCharges[key] ?? 0,
           ))
       .toList();
 }
@@ -460,7 +494,7 @@ final recentActivitiesProvider = Provider<List<ActivityItem>>((ref) {
       final name = subsMap[bill.userId] ?? 'مشترك';
       activities.add(ActivityItem(
         name: name,
-        action: 'رفع إيصال ${bill.month}',
+        action: 'تسجيل دفعة ${bill.month}',
         createdAt: bill.createdAt,
         color: _kActivitySuccess,
       ));

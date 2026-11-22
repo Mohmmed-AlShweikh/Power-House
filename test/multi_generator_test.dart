@@ -88,7 +88,7 @@ void main() {
         data.keys.toSet(), {'name', 'sector', 'status', 'subscriptionStatus'});
     expect(GeneratorAccount.fromMap('a', data).available, isTrue);
     final admin = TenantStore(db, () => 'sa');
-    await admin.reviewGenerator('a', GeneratorApproval.suspended);
+    await admin.reviewGenerator('a', GeneratorApproval.suspended,reason:'سبب الإيقاف');
     data = (await db.collection('generatorDirectory').doc('a').get()).data()!;
     expect(GeneratorAccount.fromMap('a', data).available, isFalse);
     await admin.reviewGenerator('a', GeneratorApproval.approved,
@@ -265,7 +265,7 @@ void main() {
         TenantStore(db, () => 'a').requireOwner(), throwsStateError);
     await approve('a');
     await TenantStore(db, () => 'sa')
-        .reviewGenerator('a', GeneratorApproval.suspended);
+        .reviewGenerator('a', GeneratorApproval.suspended,reason:'سبب الإيقاف');
     await expectLater(
         FirebaseService.forTesting(db, () => 'a').toggleGenerator(true),
         throwsStateError);
@@ -322,7 +322,7 @@ void main() {
     expect(
         container
             .read(recentActivitiesProvider)
-            .any((a) => a.action.contains('إيصال')),
+            .any((a) => a.action.contains('دفعة')),
         isTrue);
     auth.replace(AuthState(
         loading: false,

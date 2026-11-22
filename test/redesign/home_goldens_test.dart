@@ -178,7 +178,7 @@ void main() {
               recentActivitiesProvider.overrideWith((ref) => [
                     ActivityItem(
                         name: 'محمد أحمد',
-                        action: 'رفع إيصال نوفمبر',
+                        action: 'تسجيل دفعة نوفمبر',
                         createdAt: now,
                         color: PortalTokens.primary)
                   ]),
@@ -302,7 +302,7 @@ void main() {
           expect(find.text('تبديل المظهر'), findsOneWidget);
           await tester.tap(find.text('السعر وجدول التشغيل'));
           await tester.pumpAndSettle();
-          expect(find.text('السعر الحالي لكل كيلوواط/ساعة'), findsOneWidget);
+          expect(find.text('السعر الحالي للوحدة'), findsOneWidget);
           await tester.tap(find.byIcon(Icons.close).last);
           await tester.pumpAndSettle();
           await tester.tap(find.byKey(const ValueKey('nav-نظرة عامة')));
@@ -338,16 +338,18 @@ void main() {
             await tester.pumpAndSettle();
             await capture(item.$2);
             if (item.$2 == 'bills') {
-              await tester.tap(find.text('ارسال وصل').first);
+              await tester.tap(find.text('تسجيل دفعة').first);
               await tester.pumpAndSettle();
-              expect(find.text('اختر صورة أولاً'), findsOneWidget);
-              await capture('upload_receipt');
+              expect(find.byKey(const ValueKey('payment-reference')),
+                  findsOneWidget);
+              await capture('payment_form');
               await tester.tap(find.byIcon(Icons.close).last);
               await tester.pumpAndSettle();
               // Rejected bill retains the original receipt action too.
-              await tester.tap(find.text('تم رفض الوصل').first);
+              await tester.tap(find.text('مرفوضة').first);
               await tester.pumpAndSettle();
-              expect(find.text('اختر صورة أولاً'), findsOneWidget);
+              expect(find.byKey(const ValueKey('payment-reference')),
+                  findsOneWidget);
               await tester.tap(find.byIcon(Icons.close).last);
               await tester.pumpAndSettle();
             } else {

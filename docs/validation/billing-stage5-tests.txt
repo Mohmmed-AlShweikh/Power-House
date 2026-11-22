@@ -1,0 +1,168 @@
+00:00 +0: loading /workspace/Power-House/test/redesign/navigation_review_test.dart
+00:00 +0: /workspace/Power-House/test/redesign/navigation_review_test.dart: (setUpAll)
+00:00 +0: /workspace/Power-House/test/redesign/navigation_review_test.dart: amount isolation preserves the source and Latin currency/unit order
+00:00 +1: /workspace/Power-House/test/redesign/navigation_review_test.dart: three navigation structures side by side, both roles and themes
+00:01 +2: /workspace/Power-House/test/redesign/navigation_review_test.dart: three navigation structures side by side, both roles and themes
+00:01 +3: /workspace/Power-House/test/redesign/navigation_review_test.dart: three navigation structures side by side, both roles and themes
+00:01 +4: /workspace/Power-House/test/redesign/navigation_review_test.dart: three navigation structures side by side, both roles and themes
+00:01 +5: /workspace/Power-House/test/redesign/chart_test.dart: actual switch parts contrast with hero: Brightness.dark / true
+00:01 +6: /workspace/Power-House/test/redesign/navigation_review_test.dart: navigation PortalNavAlternative.raisedTiles: 320dp, RTL and 48dp targets
+00:01 +7: /workspace/Power-House/test/redesign/chart_test.dart: actual switch parts contrast with hero: Brightness.dark / false
+00:01 +8: /workspace/Power-House/test/redesign/chart_test.dart: actual switch parts contrast with hero: Brightness.dark / false
+00:01 +9: /workspace/Power-House/test/redesign/navigation_review_test.dart: navigation PortalNavAlternative.focusWindow: 320dp, RTL and 48dp targets
+00:01 +10: /workspace/Power-House/test/redesign/navigation_review_test.dart: navigation PortalNavAlternative.focusWindow: 320dp, RTL and 48dp targets
+00:01 +11: /workspace/Power-House/test/redesign/navigation_review_test.dart: (tearDownAll)
+00:01 +11: /workspace/Power-House/test/redesign/chart_test.dart: actual switch parts contrast with hero: Brightness.light / false
+00:01 +12: /workspace/Power-House/test/redesign/chart_test.dart: ledger wraps long Arabic addresses on a narrow phone
+00:02 +13: /workspace/Power-House/test/redesign/consumer_states_test.dart: (setUpAll)
+00:02 +13: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual empty surfaces dark
+00:04 +14: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:04 +15: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:05 +16: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:05 +17: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:06 +18: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:06 +19: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_dark
+00:07 +20: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_dark
+00:08 +21: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey dark
+00:10 +22: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey dark
+00:11 +23: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey dark
+00:13 +24: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey dark
+00:13 +25: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: auth and source-only setup dark
+00:14 +26: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: superadmin populated, diagnostic dialog and global error dark
+00:14 +27: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: receipt preview and busy presentation dark
+00:15 +28: /workspace/Power-House/test/features/billing_settings_widget_test.dart: (setUpAll)
+00:15 +28: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin empty dark
+00:15 +29: /workspace/Power-House/test/features/billing_settings_widget_test.dart: owner saves future billing settings dark
+00:16 +30: /workspace/Power-House/test/features/billing_settings_widget_test.dart: owner saves future billing settings dark
+00:16 +31: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin error dark
+00:16 +32: /workspace/Power-House/test/features/billing_settings_widget_test.dart: owner saves future billing settings light
+00:17 +33: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey light
+00:17 +34: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey light
+00:17 +35: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey light
+00:17 +36: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey light
+00:17 +37: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey light
+00:17 +38: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey light
+00:17 +39: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey light
+00:17 +40: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey light
+00:17 +41: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey light
+00:17 +42: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey light
+00:17 +43: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey light
+00:17 +44: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey light
+00:17 +45: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey light
+00:18 +46: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey light
+00:18 +47: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey light
+00:18 +48: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: auth and source-only setup light
+00:19 +49: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: auth and source-only setup light
+00:19 +50: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: superadmin populated, diagnostic dialog and global error light
+00:19 +51: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: receipt preview and busy presentation light
+00:19 +52: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: receipt preview and busy presentation light
+00:19 +53: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin empty light
+00:20 +54: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin loading light
+00:20 +55: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin loading light
+00:20 +56: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin loading light
+00:20 +57: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin loading light
+00:20 +58: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin error light
+00:21 +59: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: (tearDownAll)
+00:21 +59: /workspace/Power-House/test/multi_enrollment_widget_test.dart: owner form uses verified email and submits generator/sector dark
+00:23 +60: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL dark
+00:24 +61: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL dark
+00:24 +62: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL dark
+00:24 +63: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL dark
+00:24 +64: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL dark
+00:24 +65: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL dark
+00:24 +66: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL dark
+00:24 +67: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL dark
+00:25 +68: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL dark
+00:25 +69: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL dark
+00:25 +70: /workspace/Power-House/test/multi_enrollment_widget_test.dart: picker and generator requests loading states
+00:25 +71: /workspace/Power-House/test/tab_navigation_test.dart: consumer already ignores main-tab swipes dark
+00:25 +72: /workspace/Power-House/test/tab_navigation_test.dart: consumer already ignores main-tab swipes dark
+00:26 +73: /workspace/Power-House/test/multi_enrollment_widget_test.dart: super-admin approval UI updates private and public records locally
+00:26 +74: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL light
+00:27 +75: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL light
+00:27 +76: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL light
+00:27 +77: /workspace/Power-House/test/multi_enrollment_widget_test.dart: all owner review states remain listed and support search and status filter
+00:27 +78: /workspace/Power-House/test/tab_navigation_test.dart: consumer already ignores main-tab swipes light
+00:27 +79: /workspace/Power-House/test/tab_navigation_test.dart: consumer already ignores main-tab swipes light
+00:28 +80: /workspace/Power-House/test/tab_navigation_test.dart: admin lazily retains subscriber search and bill filter state
+00:28 +81: /workspace/Power-House/test/tab_navigation_test.dart: subscriber bill shortcut still synchronizes page/title/highlight
+00:28 +82: /workspace/Power-House/test/payment_record_test.dart: minor amounts parse exactly without floating-point rounding
+00:29 +83: /workspace/Power-House/test/payment_record_test.dart: submitting payment stores compact fields only and same retry is idempotent
+00:29 +84: /workspace/Power-House/test/payment_record_test.dart: approval repeats no mutation or notification and cannot be reversed
+00:29 +85: /workspace/Power-House/test/payment_record_test.dart: rejection needs reason, resubmission increments version, stale dialog cannot approve
+00:29 +86: /workspace/Power-House/test/payment_record_test.dart: foreign owner and wrong payment amount cannot mutate bill
+00:29 +87: /workspace/Power-House/test/payment_record_test.dart: cannot approve a bill with no payment declaration
+00:29 +88: /workspace/Power-House/test/multi_generator_test.dart: public generator IDs do not reveal the owner Auth UID
+00:29 +89: /workspace/Power-House/test/multi_generator_test.dart: auth membership clears explicitly on sign-out
+00:29 +90: /workspace/Power-House/test/multi_generator_test.dart: owner enrollment atomically creates pending private records, not public directory
+00:29 +91: /workspace/Power-House/test/multi_generator_test.dart: approval projection has exactly four public fields; suspension and subscription hide it
+00:29 +92: /workspace/Power-House/test/multi_generator_test.dart: reject requires reason and publishes no owner personal data
+00:29 +93: /workspace/Power-House/test/multi_generator_test.dart: only the owning generator reviews consumers; caller cannot choose someone else uid
+00:30 +94: /workspace/Power-House/test/multi_generator_test.dart: bill+usage+alert and generator changes cannot escape actor tenant
+00:30 +95: /workspace/Power-House/test/multi_generator_test.dart: server-side tenant queries exclude other generators and constrain consumer uid
+00:30 +96: /workspace/Power-House/test/multi_generator_test.dart: broadcast stays within tenant and role aliases; consumer complaint alerts only its owner
+00:30 +97: /workspace/Power-House/test/multi_generator_test.dart: phone-based billing lookup is restricted to the owning tenant
+00:30 +98: /workspace/Power-House/test/multi_generator_test.dart: legacy owner subscription field does not override generator billing status
+00:30 +99: /workspace/Power-House/test/multi_generator_test.dart: pending/suspended owners cannot review or issue invoices
+00:30 +100: /workspace/Power-House/test/multi_generator_test.dart: activity and histories do not reuse previous tenant data while reloading
+00:30 +101: /workspace/Power-House/test/multi_generator_test.dart: legacy decoding and live default configuration fallback are explicit
+00:30 +102: /workspace/Power-House/test/splash_owner_switch_test.dart: native splash releases only after a resolved destination frame, once
+00:31 +103: /workspace/Power-House/test/email_auth_widget_test.dart: email login and generic failure dark
+00:31 +104: /workspace/Power-House/test/email_auth_widget_test.dart: email login and generic failure dark
+00:32 +105: /workspace/Power-House/test/email_auth_widget_test.dart: email login and generic failure dark
+00:32 +106: /workspace/Power-House/test/splash_owner_switch_test.dart: fast login routes directly by UserRole.admin without an intermediate Flutter splash
+00:32 +107: /workspace/Power-House/test/email_auth_widget_test.dart: registration password rules and both roles dark
+00:32 +108: /workspace/Power-House/test/splash_owner_switch_test.dart: fast login routes directly by UserRole.consumer without an intermediate Flutter splash
+00:32 +109: /workspace/Power-House/test/splash_owner_switch_test.dart: fast login routes directly by UserRole.consumer without an intermediate Flutter splash
+00:32 +110: /workspace/Power-House/test/splash_owner_switch_test.dart: fast login routes directly by UserRole.consumer without an intermediate Flutter splash
+00:33 +111: /workspace/Power-House/test/splash_owner_switch_test.dart: fast login routes directly by UserRole.consumer without an intermediate Flutter splash
+00:33 +112: /workspace/Power-House/test/email_auth_widget_test.dart: registration password rules and both roles light
+00:33 +113: /workspace/Power-House/test/splash_owner_switch_test.dart: fast login routes directly by UserRole.meterReader without an intermediate Flutter splash
+00:33 +114: /workspace/Power-House/test/email_auth_widget_test.dart: password reset by email does not disclose existence light
+00:33 +115: /workspace/Power-House/test/splash_owner_switch_test.dart: slow login uses fallback only after grace and does not preserve native again
+00:33 +116: /workspace/Power-House/test/splash_owner_switch_test.dart: slow login uses fallback only after grace and does not preserve native again
+00:33 +117: /workspace/Power-House/test/splash_owner_switch_test.dart: cold start holds native splash through profile and generator resolution
+00:33 +118: /workspace/Power-House/test/splash_owner_switch_test.dart: inactive or suspended generators keep approved owners out of home
+00:33 +119: /workspace/Power-House/test/splash_owner_switch_test.dart: cached profile lookup is UID bound and never reuses another account
+00:33 +120: /workspace/Power-House/test/splash_owner_switch_test.dart: subscription transaction updates live picker, preserves review status and private fields
+00:34 +121: /workspace/Power-House/test/splash_owner_switch_test.dart: owner cannot change subscription
+00:34 +122: /workspace/Power-House/test/auth_redirect_test.dart: startup resolution survives loading timeout and copyWith
+00:34 +123: /workspace/Power-House/test/auth_redirect_test.dart: unresolved auth goes to splash without a redirect loop
+00:34 +124: /workspace/Power-House/test/auth_redirect_test.dart: signed out goes to login and keeps registration reachable
+00:34 +125: /workspace/Power-House/test/auth_redirect_test.dart: signed-in Firebase user waits for profile before choosing a role
+00:34 +126: /workspace/Power-House/test/auth_redirect_test.dart: resolved UserRole.superAdmin goes directly home and stays there
+00:34 +127: /workspace/Power-House/test/auth_redirect_test.dart: cold start never builds login while restoring UserRole.superAdmin
+00:34 +128: /workspace/Power-House/test/auth_redirect_test.dart: cold start never builds login while restoring UserRole.superAdmin
+00:34 +129: /workspace/Power-House/test/auth_redirect_test.dart: cold start never builds login while restoring UserRole.superAdmin
+00:34 +130: /workspace/Power-House/test/auth_redirect_test.dart: cold start never builds login while restoring UserRole.superAdmin
+00:34 +131: /workspace/Power-House/test/auto_load_test.dart: picker waits for authentication and reloads automatically for a new UID without profile
+00:34 +132: /workspace/Power-House/test/auth_redirect_test.dart: resolved UserRole.admin goes directly home and stays there
+00:34 +133: /workspace/Power-House/test/auto_load_test.dart: tenant lists wait for profile and role then switch scope on membership change
+00:34 +134: /workspace/Power-House/test/auth_redirect_test.dart: cold start never builds login while restoring UserRole.admin
+00:34 +135: /workspace/Power-House/test/auth_redirect_test.dart: resolved UserRole.consumer goes directly home and stays there
+00:34 +136: /workspace/Power-House/test/auth_redirect_test.dart: cold start never builds login while restoring UserRole.consumer
+00:34 +137: /workspace/Power-House/test/auth_redirect_test.dart: resolved UserRole.meterReader goes directly home and stays there
+00:34 +138: /workspace/Power-House/test/auth_redirect_test.dart: cold start never builds login while restoring UserRole.meterReader
+00:34 +139: /workspace/Power-House/test/auth_redirect_test.dart: existing role restrictions are preserved
+00:35 +140: /workspace/Power-House/test/payment_widget_test.dart: payment form to owner review dark
+00:36 +141: /workspace/Power-House/test/keyboard_forms_test.dart: profile edit keyboard dark Size(430.0, 800.0)
+00:36 +142: /workspace/Power-House/test/keyboard_forms_test.dart: profile edit keyboard dark Size(430.0, 800.0)
+00:36 +143: /workspace/Power-House/test/keyboard_forms_test.dart: complaint keyboard dark Size(430.0, 800.0)
+00:37 +144: /workspace/Power-House/test/keyboard_forms_test.dart: profile edit keyboard dark Size(800.0, 500.0)
+00:37 +145: /workspace/Power-House/test/keyboard_forms_test.dart: complaint keyboard dark Size(800.0, 500.0)
+00:37 +146: /workspace/Power-House/test/keyboard_forms_test.dart: complaint keyboard dark Size(800.0, 500.0)
+00:37 +147: /workspace/Power-House/test/keyboard_forms_test.dart: complaint keyboard dark Size(800.0, 500.0)
+00:37 +148: /workspace/Power-House/test/keyboard_forms_test.dart: complaint keyboard dark Size(800.0, 500.0)
+00:37 +149: /workspace/Power-House/test/keyboard_forms_test.dart: complaint keyboard dark Size(800.0, 500.0)
+00:37 +150: /workspace/Power-House/test/email_auth_test.dart: profile contact fields never change auth phone or identity
+00:37 +151: /workspace/Power-House/test/keyboard_forms_test.dart: admin form journey keyboard dark
+00:37 +152: /workspace/Power-House/test/keyboard_forms_test.dart: admin form journey keyboard dark
+00:38 +153: /workspace/Power-House/test/keyboard_forms_test.dart: profile edit keyboard light Size(430.0, 800.0)
+00:39 +154: /workspace/Power-House/test/keyboard_forms_test.dart: complaint keyboard light Size(430.0, 800.0)
+00:39 +155: /workspace/Power-House/test/keyboard_forms_test.dart: profile edit keyboard light Size(800.0, 500.0)
+00:39 +156: /workspace/Power-House/test/keyboard_forms_test.dart: complaint keyboard light Size(800.0, 500.0)
+00:39 +157: /workspace/Power-House/test/keyboard_forms_test.dart: admin form journey keyboard light
+00:40 +158: /workspace/Power-House/test/keyboard_forms_test.dart: long form reveals final field/title/actions on keyboard resize
+00:40 +159: /workspace/Power-House/test/keyboard_forms_test.dart: three-field security dialog scrolls above keyboard
+00:40 +160: /workspace/Power-House/test/keyboard_forms_test.dart: payment reference stays visible above keyboard
+00:40 +161: All tests passed!

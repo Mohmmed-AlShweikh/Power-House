@@ -1,3 +1,4 @@
+import '../services/contact_fields.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -15,8 +16,7 @@ class AuthState {
   // Remains false until the first auth event and profile check finish.
   final bool startupResolved;
   final bool needsRegistration;
-  final bool needsCredentialCompletion;
-  final bool isDemo;
+  final bool needsEmailVerification;
   final String? error;
 
   const AuthState({
@@ -25,8 +25,7 @@ class AuthState {
     this.loading = true,
     this.startupResolved = false,
     this.needsRegistration = false,
-    this.needsCredentialCompletion = false,
-    this.isDemo = false,
+    this.needsEmailVerification = false,
     this.error,
   });
 
@@ -36,8 +35,7 @@ class AuthState {
     bool? loading,
     bool? startupResolved,
     bool? needsRegistration,
-    bool? needsCredentialCompletion,
-    bool? isDemo,
+    bool? needsEmailVerification,
     Object? error = const _Sentinel(),
   }) =>
       AuthState(
@@ -46,9 +44,8 @@ class AuthState {
         loading: loading ?? this.loading,
         startupResolved: startupResolved ?? this.startupResolved,
         needsRegistration: needsRegistration ?? this.needsRegistration,
-        needsCredentialCompletion:
-            needsCredentialCompletion ?? this.needsCredentialCompletion,
-        isDemo: isDemo ?? this.isDemo,
+        needsEmailVerification:
+            needsEmailVerification ?? this.needsEmailVerification,
         error: error is _Sentinel ? this.error : error as String?,
       );
 }
@@ -56,46 +53,6 @@ class AuthState {
 class _Sentinel {
   const _Sentinel();
 }
-
-// ── Demo profiles ──────────────────────────────────────────────────────────────
-
-final _now = DateTime.now();
-
-final _demoConsumer = UserProfile(
-  uid: 'demo-consumer',
-  idNumber: '0000000000',
-  name: 'محمد أحمد',
-  address: 'رام الله، حي البيرة',
-  role: UserRole.consumer,
-  approvalStatus: ApprovalStatus.approved,
-  subscriptionStatus: SubscriptionStatus.active,
-  ampereLimit: 10,
-  createdAt: _now,
-);
-
-final _demoAdmin = UserProfile(
-  uid: 'demo-admin',
-  idNumber: '9999999999',
-  name: 'أبو أحمد',
-  address: 'رام الله',
-  role: UserRole.admin,
-  approvalStatus: ApprovalStatus.approved,
-  subscriptionStatus: SubscriptionStatus.active,
-  ampereLimit: 0,
-  createdAt: _now,
-);
-
-final _demoSuperAdmin = UserProfile(
-  uid: 'demo-super-admin',
-  idNumber: '1111111111',
-  name: 'المشرف العام',
-  address: '',
-  role: UserRole.superAdmin,
-  approvalStatus: ApprovalStatus.approved,
-  subscriptionStatus: SubscriptionStatus.active,
-  ampereLimit: 0,
-  createdAt: _now,
-);
 
 // ── Notifier ───────────────────────────────────────────────────────────────────
 
@@ -132,7 +89,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
             loading: false,
             startupResolved: true,
             needsRegistration: false,
-            needsCredentialCompletion: false,
+            needsEmailVerification: false,
             error: const _Sentinel());
         return;
       }
@@ -153,12 +110,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> _loadAndCheckProfile(String uid) async {
     await _profileSub?.cancel();
+    if (!credentials.verified) {
+      if (mounted) {
+        state = state.copyWith(
+            user: _auth.currentUser,
+            profile: null,
+            needsEmailVerification: true,
+            needsRegistration: false,
+            loading: false,
+            startupResolved: true);
+      }
+      return;
+    }
     void apply(DocumentSnapshot<Map<String, dynamic>> doc) {
       if (!mounted || _auth.currentUser?.uid != uid) return;
       if (!doc.exists) {
         state = state.copyWith(
             user: _auth.currentUser,
             profile: null,
+            needsEmailVerification: !credentials.verified,
             needsRegistration: true,
             loading: false);
         return;
@@ -166,13 +136,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(
           user: _auth.currentUser,
           profile: UserProfile.fromMap(uid, doc.data()!),
-          needsCredentialCompletion: doc.data()!['role'] != 'super_admin' &&
-              (doc.data()!['credentialVersion'] != 1 ||
-                  !credentials.hasPassword ||
-                  !credentials.hasPhone ||
-                  doc.data()!['phone'] != credentials.phone ||
-                  credentials.email !=
-                      idEmail((doc.data()!['idNumber'] as String?) ?? '')),
+          needsEmailVerification: !credentials.verified,
           needsRegistration: false,
           loading: false,
           error: null);
@@ -213,10 +177,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
   // ── Public Methods ──────────────────────────────────────────────────────────
 
   /// Returns null on success, Arabic error message on failure.
-  Future<String?> login(String idNumber, String password) async {
+  Future<String?> login(String email, String password) async {
     state = state.copyWith(loading: true, error: null);
     try {
-      await credentials.loginId(idNumber, password);
+      await credentials.loginEmail(email, password);
       // _loadAndCheckProfile is triggered by the auth listener
       return null;
     } on FirebaseAuthException catch (e) {
@@ -230,89 +194,49 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // Passwords are only changed by the authenticated owner through Firebase Auth.
-  Future<String?> adminResetPassword(String uid, String newPassword) async =>
-      'يستعيد صاحب الحساب كلمة المرور عبر رمز الهاتف من شاشة الدخول';
-
-  /// Returns null on success, Arabic error message on failure.
-  Future<String?> register(
-          {required String idNumber,
-          required String name,
-          required String address,
-          required String password,
-          required UserRole role}) async =>
-      'يلزم التحقق من رقم الهاتف لإنشاء حساب جديد';
-
-  Future<void> enrollOwner(String name, String sector) async {
+  Future<void> enrollOwner(String name, String sector,
+      {String phone = '', String idNumber = ''}) async {
     final user = _auth.currentUser;
-    if (user == null || user.phoneNumber == null) {
-      throw StateError('تحقق من الهاتف أولاً');
+    if (user == null || !credentials.verified) {
+      throw const CredentialFailure('تحقق من البريد أولاً');
     }
     await TenantStore(_db, () => user.uid).enrollOwner(
         uid: user.uid,
-        phone: user.phoneNumber!,
+        phone: phone,
         name: name,
         sector: sector,
-        idNumber: _enrollmentId());
+        idNumber: idNumber.isEmpty ? null : idNumber,
+        email: user.email!);
     await _loadAndCheckProfile(user.uid);
   }
 
-  Future<void> enrollConsumer(String name, String gid) async {
+  Future<void> enrollConsumer(String name, String gid,
+      {String phone = '', String idNumber = ''}) async {
     final user = _auth.currentUser;
-    if (user == null || user.phoneNumber == null) {
-      throw StateError('تحقق من الهاتف أولاً');
+    if (user == null || !credentials.verified) {
+      throw const CredentialFailure('تحقق من البريد أولاً');
     }
     await TenantStore(_db, () => user.uid).enrollConsumer(
         uid: user.uid,
-        phone: user.phoneNumber!,
+        phone: phone,
         name: name,
         generatorId: gid,
-        idNumber: _enrollmentId());
+        idNumber: idNumber.isEmpty ? null : idNumber,
+        email: user.email!);
     await _loadAndCheckProfile(user.uid);
   }
 
-  String _enrollmentId() {
-    final email = _auth.currentUser?.email ?? '';
-    final id = email.split('@').first;
-    if (!credentials.hasPassword ||
-        !validNationalId(id) ||
-        email != idEmail(id)) {
-      throw const CredentialFailure('أكمل ربط الهوية وكلمة المرور أولاً');
-    }
-    return id;
-  }
-
-  Future<void> demoLogin(UserRole role) async {
-    final profile = switch (role) {
-      UserRole.superAdmin => _demoSuperAdmin,
-      UserRole.admin => _demoAdmin,
-      _ => _demoConsumer,
-    };
-    state = state.copyWith(
-      isDemo: true,
-      startupResolved: true,
-      profile: profile,
-      loading: false,
-      error: null,
-    );
-  }
-
   Future<void> updateProfile(
-      {String? name, String? address, String? phone}) async {
-    if (state.isDemo) {
-      final updated =
-          state.profile!.copyWith(name: name, address: address, phone: phone);
-      state = state.copyWith(profile: updated);
-      return;
-    }
+      {String? name, String? address, String? phone, String? idNumber}) async {
     final uid = state.user?.uid;
     if (uid == null) return;
     final data = <String, dynamic>{};
     if (name != null) data['name'] = name;
     if (address != null) data['address'] = address;
-    if (phone != null && phone != state.profile?.phone) {
-      throw const CredentialFailure('غيّر الهاتف من إعدادات الدخول بعد التحقق');
-    }
+    final issue=contactError(phone??state.profile?.phone??'',idNumber??state.profile?.idNumber??'');
+    if(issue!=null)throw CredentialFailure(issue);
+    if (phone != null) data['phone'] = normalizeMobile(phone);
+    if(idNumber!=null)data['idNumber']=normalizeDigits(idNumber).trim();
     if (data.isNotEmpty) {
       await _db.collection('users').doc(uid).update(data);
     }
@@ -320,7 +244,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> signOut() async {
     _profileSub?.cancel();
-    if (!state.isDemo) await _auth.signOut();
+    await _auth.signOut();
     state = const AuthState(loading: false, startupResolved: true);
   }
 
@@ -342,6 +266,3 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
 final authProvider =
     StateNotifierProvider<AuthNotifier, AuthState>((ref) => AuthNotifier());
-
-final demoModeProvider =
-    Provider<bool>((ref) => ref.watch(authProvider).isDemo);

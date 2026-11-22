@@ -61,6 +61,7 @@ void main() {
       UserRole.superAdmin => '/super_admin',
       UserRole.admin => '/admin',
       UserRole.consumer => '/consumer',
+      UserRole.meterReader => '/reader',
     };
     test('resolved $role goes directly home and stays there', () {
       for (final entry in ['/splash', '/login', '/register']) {

@@ -1,3 +1,4 @@
+import 'package:generator_portal/views/widgets/portal_numeric_field.dart';
 import 'package:flutter/material.dart';
 import '../../theme/portal_tokens.dart';
 import 'portal_number.dart';
@@ -62,7 +63,7 @@ class PortalInput extends StatelessWidget {
       this.keyboardType,
       this.obscureText = false});
   @override
-  Widget build(BuildContext context) => TextField(
+  Widget build(BuildContext context) => PortalNumericField(
         controller: controller,
         onChanged: onChanged,
         keyboardType: keyboardType,
@@ -262,7 +263,7 @@ class PortalGeneratorPanel extends StatelessWidget {
                 child: ColoredBox(
                     color: fill,
                     child: PortalLabelValue(
-                        label: 'سعر kWh', value: tariff!, ink: ink))),
+                        label: 'سعر الوحدة', value: tariff!, ink: ink))),
           if (scheduledOnValue != null)
             PortalLabelValue(
                 label: 'تشغيل مجدول', value: scheduledOnValue!, ink: ink),

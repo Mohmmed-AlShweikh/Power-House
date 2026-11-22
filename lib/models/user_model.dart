@@ -1,10 +1,10 @@
 import 'generator_model.dart';
 
-enum UserRole { superAdmin, admin, consumer }
+enum UserRole { superAdmin, admin, consumer, meterReader }
 
 enum SubscriptionStatus { active, inactive, pending }
 
-enum ApprovalStatus { pending, approved, rejected }
+enum ApprovalStatus { pending, approved, rejected, suspended }
 
 class UserProfile {
   final String uid;
@@ -42,7 +42,7 @@ class UserProfile {
           ? null
           : normalizedGeneratorId(map['generatorId']),
       rejectionReason: map['rejectionReason'] as String? ?? '',
-      idNumber: map['idNumber'] ?? map['phone'] ?? '',
+      idNumber: map['idNumber'] ?? '',
       phone: map['phone'] ?? '',
       name: map['name'] ?? '',
       address: map['address'] ?? '',
@@ -74,6 +74,7 @@ class UserProfile {
     String? name,
     String? address,
     String? phone,
+    String? idNumber,
     ApprovalStatus? approvalStatus,
     SubscriptionStatus? subscriptionStatus,
     int? ampereLimit,
@@ -82,7 +83,7 @@ class UserProfile {
         uid: uid,
         generatorId: generatorId,
         rejectionReason: rejectionReason,
-        idNumber: idNumber,
+        idNumber: idNumber ?? this.idNumber,
         phone: phone ?? this.phone,
         name: name ?? this.name,
         address: address ?? this.address,
@@ -95,10 +96,9 @@ class UserProfile {
 
   static UserRole _parseRole(dynamic v) {
     final role = (v as String?)?.trim().toLowerCase() ?? '';
-    if (role.contains('super')) return UserRole.superAdmin;
-    if (role.contains('generator') ||
-        role.contains('owner') ||
-        role == 'admin') {
+    if (role == 'meter_reader') return UserRole.meterReader;
+    if (role == 'super_admin') return UserRole.superAdmin;
+    if (role == 'generator_owner' || role == 'admin') {
       return UserRole.admin;
     }
     return UserRole.consumer;
@@ -112,6 +112,8 @@ class UserProfile {
         return 'generator_owner';
       case UserRole.consumer:
         return 'user';
+      case UserRole.meterReader:
+        return 'meter_reader';
     }
   }
 
@@ -121,6 +123,8 @@ class UserProfile {
         return ApprovalStatus.approved;
       case 'rejected':
         return ApprovalStatus.rejected;
+      case 'suspended':
+        return ApprovalStatus.suspended;
       default:
         return ApprovalStatus.pending;
     }

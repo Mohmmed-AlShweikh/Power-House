@@ -217,7 +217,13 @@ class _GeneratorRequestCardState extends ConsumerState<_GeneratorRequestCard> {
                 label: const Text('رفض مع السبب')),
           if (g.status == GeneratorApproval.approved)
             OutlinedButton.icon(
-                onPressed: () => act(GeneratorApproval.suspended),
+                onPressed: () async {
+                  final reason = await requestRejectionReason(context,
+                      title: 'سبب إيقاف المولد', actionLabel: 'تأكيد الإيقاف');
+                  if (reason != null && mounted) {
+                    await act(GeneratorApproval.suspended, reason: reason);
+                  }
+                },
                 icon: const Icon(Icons.pause),
                 label: const Text('تعليق المولد')),
         ]),

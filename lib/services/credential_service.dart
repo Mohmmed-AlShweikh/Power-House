@@ -1,13 +1,14 @@
+import 'contact_fields.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/tenant_provider.dart';
-import 'firestore_reads.dart';
 
-// Preserve the existing Auth namespace: a second domain could duplicate an ID
-// across two Firebase accounts. The address is never used as an inbox.
-String idEmail(String id) => '${id.trim()}@powershare.app';
-bool validNationalId(String id) => RegExp(r'^\d{9,10}$').hasMatch(id);
+bool realEmail(String value) =>
+    RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value.trim()) &&
+    !value.trim().toLowerCase().endsWith('@powershare.app') &&
+    !value.trim().toLowerCase().endsWith('@id.generatorportal.app');
+bool validNationalId(String value) => RegExp(r'^\d{9,10}$').hasMatch(normalizeDigits(value).trim());
 String? passwordError(
     String password, String confirm, String id, String phone) {
   if (password.length < 8 ||
@@ -18,27 +19,24 @@ String? passwordError(
   if (password == id ||
       password == phone ||
       password == phone.replaceAll(RegExp(r'\D'), '')) {
-    return 'لا تستخدم رقم الهوية أو الهاتف كلمة مرور';
+    return 'لا تستخدم الهوية أو الهاتف كلمة مرور';
   }
   return password == confirm ? null : 'كلمتا المرور غير متطابقتين';
 }
 
 const passwordRules =
     '8 أحرف على الأقل • حرف ورقم • تختلف عن الهوية والهاتف • التأكيد مطابق';
-const genericAuthError = 'تعذّر التحقق من البيانات. تحقق منها وحاول مجدداً.';
+const genericAuthError =
+    'تعذّر إكمال الطلب. تحقق من البيانات أو الاتصال وحاول مجدداً.';
 String credentialError(Object error) {
   if (error is CredentialFailure) return error.message;
   if (error is FirebaseAuthException) {
     return switch (error.code) {
-      'invalid-verification-code' => 'رمز التحقق غير صحيح',
-      'session-expired' ||
-      'invalid-verification-id' =>
-        'انتهت صلاحية الرمز. اطلب رمزاً جديداً.',
       'too-many-requests' => 'محاولات كثيرة. انتظر قليلاً ثم حاول مجدداً.',
       'network-request-failed' =>
         'تعذّر الاتصال. تحقق من الإنترنت وحاول مجدداً.',
-      'requires-recent-login' => 'أعد التحقق من هويتك ثم كرر التغيير.',
-      'operation-not-allowed' => 'تعذّر إكمال العملية. تواصل مع مسؤول التطبيق.',
+      'requires-recent-login' =>
+        'أعد التحقق بكلمة المرور الحالية ثم كرر التغيير.',
       _ => genericAuthError,
     };
   }
@@ -53,7 +51,8 @@ class CredentialFailure implements Exception {
 class AttemptThrottle {
   final DateTime Function() now;
   int failures = 0;
-  DateTime? blockedUntil, lastOtp;
+  DateTime? blockedUntil, lastEmail;
+  String? emailFailure;
   AttemptThrottle({DateTime Function()? clock}) : now = clock ?? DateTime.now;
   void check() {
     if (blockedUntil != null && now().isBefore(blockedUntil!)) {
@@ -62,13 +61,13 @@ class AttemptThrottle {
     }
   }
 
-  void otp() {
+  void message() {
     check();
-    if (lastOtp != null &&
-        now().difference(lastOtp!) < const Duration(seconds: 60)) {
-      throw const CredentialFailure('انتظر دقيقة قبل طلب رمز جديد.');
+    if (lastEmail != null &&
+        now().difference(lastEmail!) < const Duration(seconds: 60)) {
+      throw const CredentialFailure('انتظر دقيقة قبل طلب رسالة جديدة.');
     }
-    lastOtp = now();
+    lastEmail = now();
   }
 
   void failed() {
@@ -86,70 +85,51 @@ class AttemptThrottle {
 
 final sharedCredentialThrottle = AttemptThrottle();
 
-enum PhoneOperation { signIn, link, reauthenticate, change }
-
 abstract class CredentialService {
-  bool get hasPassword;
-  bool get hasPhone;
   String get email;
-  String get phone;
-  Future<void> loginId(String id, String password);
-  Future<void> createId(String id, String password, String confirm);
-  Future<void> sendPhone(String phone, PhoneOperation operation,
-      {required void Function(String) sent,
-      required void Function(String) failed,
-      void Function()? verified});
-  void cancelPhone();
-  Future<void> verifyPhone(
-      String verificationId, String code, PhoneOperation operation);
-  Future<void> linkId(String id, String password, String confirm);
-  Future<void> finishIdentity(String id);
-  Future<bool> matchRecoveryId(String id);
-  Future<void> resetPassword(String id, String password, String confirm);
+  String? get verificationSendError=>null;
+  int get emailCooldownSeconds=>0;
+  bool get verified => false;
+  Future<void> loginEmail(String email, String password);
+  Future<void> registerEmail(String email, String password, String confirm);
+  Future<void> sendVerification();
+  Future<void> refresh();
+  Future<void> sendReset(String email);
   Future<void> reauthenticatePassword(String password);
-  Future<void> changeIdentity(String id);
-  Future<void> changePassword(String password, String confirm, String id);
+  Future<void> finishAccount({String id = '', String phone = ''});
+  Future<void> changePassword(String password, String confirm, String id,
+      {String phone = ''});
 }
 
-class FirebaseCredentialService implements CredentialService {
+class FirebaseCredentialService extends CredentialService {
   final FirebaseAuth auth;
   final FirebaseFirestore db;
   final AttemptThrottle throttle;
-  int _phoneGeneration = 0;
-  String? _requestedUid;
-  @override
-  void cancelPhone() {
-    _phoneGeneration++;
-  }
-
   FirebaseCredentialService(this.auth, this.db, {AttemptThrottle? throttle})
       : throttle = throttle ?? sharedCredentialThrottle;
+  @override int get emailCooldownSeconds {final sent=throttle.lastEmail;if(sent==null)return 0;return ((60000-throttle.now().difference(sent).inMilliseconds)/1000).ceil().clamp(0,60);}
+  @override String? get verificationSendError=>throttle.emailFailure;
   User get user =>
       auth.currentUser ?? (throw const CredentialFailure(genericAuthError));
   @override
-  bool get hasPassword =>
-      auth.currentUser?.providerData.any((p) => p.providerId == 'password') ??
-      false;
-  @override
-  bool get hasPhone => auth.currentUser?.phoneNumber != null;
-  @override
   String get email => auth.currentUser?.email ?? '';
   @override
-  String get phone => auth.currentUser?.phoneNumber ?? '';
-  void validate(String id, String password, String confirm) {
-    if (!validNationalId(id)) {
-      throw const CredentialFailure('أدخل رقم هوية من 9 أو 10 أرقام');
+  bool get verified =>
+      auth.currentUser?.emailVerified == true && realEmail(email);
+  void checkEmail(String value) {
+    if (!realEmail(value)) {
+      throw const CredentialFailure(
+          'أدخل بريداً إلكترونياً حقيقياً يمكنك فتحه');
     }
-    final error = passwordError(password, confirm, id, phone);
-    if (error != null) throw CredentialFailure(error);
   }
 
   @override
-  Future<void> loginId(String id, String password) async {
+  Future<void> loginEmail(String value, String password) async {
+    checkEmail(value);
     throttle.check();
     try {
       await auth.signInWithEmailAndPassword(
-          email: idEmail(id), password: password);
+          email: value.trim(), password: password);
       throttle.succeeded();
     } catch (_) {
       throttle.failed();
@@ -158,196 +138,57 @@ class FirebaseCredentialService implements CredentialService {
   }
 
   @override
-  Future<void> createId(String id, String password, String confirm) async {
-    validate(id, password, confirm);
+  Future<void> registerEmail(
+      String value, String password, String confirm) async {
+    checkEmail(value);
+    final issue = passwordError(password, confirm, '', '');
+    if (issue != null) throw CredentialFailure(issue);
     throttle.check();
     try {
       await auth.createUserWithEmailAndPassword(
-          email: idEmail(id), password: password);
+          email: value.trim(), password: password);
       throttle.succeeded();
+      await sendVerification();
     } catch (_) {
       throttle.failed();
       rethrow;
     }
   }
 
-  Future<void> applyPhone(
-      PhoneAuthCredential credential, PhoneOperation operation) async {
-    switch (operation) {
-      case PhoneOperation.signIn:
-        await auth.signInWithCredential(credential);
-      case PhoneOperation.link:
-        if (hasPhone) {
-          await user.reauthenticateWithCredential(credential);
-        } else {
-          await user.linkWithCredential(credential);
-        }
-      case PhoneOperation.reauthenticate:
-        await user.reauthenticateWithCredential(credential);
-      case PhoneOperation.change:
-        await requireRecent();
-        await user.updatePhoneNumber(credential);
-    }
+  @override
+  Future<void> sendVerification() async {
+    throttle.message();
+    try{await user.sendEmailVerification();throttle.emailFailure=null;}catch(e){throttle.emailFailure=credentialError(e);rethrow;}
+  }
+
+  @override
+  Future<void> refresh() async {
     await user.reload();
     await user.getIdToken(true);
   }
 
   @override
-  Future<void> sendPhone(String value, PhoneOperation operation,
-      {required void Function(String) sent,
-      required void Function(String) failed,
-      void Function()? verified}) async {
-    if (!RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(value)) {
-      throw const CredentialFailure('أدخل الهاتف مع رمز الدولة');
-    }
-    throttle.otp();
-    final generation = ++_phoneGeneration;
-    final expectedUid = auth.currentUser?.uid;
-    _requestedUid = expectedUid;
-    await auth.verifyPhoneNumber(
-        phoneNumber: value,
-        verificationCompleted: (credential) async {
-          if (generation != _phoneGeneration) return;
-          if (operation != PhoneOperation.signIn &&
-              auth.currentUser?.uid != expectedUid) {
-            failed(genericAuthError);
-            return;
-          }
-          try {
-            await applyPhone(credential, operation);
-            if (generation == _phoneGeneration) {
-              throttle.succeeded();
-              verified?.call();
-            }
-          } catch (error) {
-            if (generation == _phoneGeneration) {
-              throttle.failed();
-              failed(credentialError(error));
-            }
-          }
-        },
-        verificationFailed: (error) {
-          if (generation != _phoneGeneration) return;
-          throttle.failed();
-          failed(credentialError(error));
-        },
-        codeSent: (id, _) {
-          if (generation == _phoneGeneration) sent(id);
-        },
-        codeAutoRetrievalTimeout: (_) {});
-  }
-
-  @override
-  Future<void> verifyPhone(
-      String verificationId, String code, PhoneOperation operation) async {
-    throttle.check();
-    _phoneGeneration++;
-    if (operation != PhoneOperation.signIn &&
-        auth.currentUser?.uid != _requestedUid) {
-      throw const CredentialFailure(genericAuthError);
-    }
+  Future<void> sendReset(String value) async {
+    checkEmail(value);
+    throttle.message();
     try {
-      await applyPhone(
-          PhoneAuthProvider.credential(
-              verificationId: verificationId, smsCode: code),
-          operation);
-      throttle.succeeded();
-    } catch (_) {
-      throttle.failed();
-      rethrow;
+      await auth.sendPasswordResetEmail(email: value.trim());
+    } on FirebaseAuthException catch (error) {
+      // Do not reveal whether an email account exists.
+      if (!['user-not-found', 'invalid-email'].contains(error.code)) rethrow;
     }
   }
 
   Future<void> requireRecent() async {
+    final uid = user.uid;
     final token = await user.getIdTokenResult(true);
-    if (token.authTime == null ||
+    if (auth.currentUser?.uid != uid ||
+        token.authTime == null ||
         DateTime.now().difference(token.authTime!) >
             const Duration(minutes: 5)) {
-      throw const CredentialFailure('أعد التحقق من هويتك ثم كرر التغيير.');
+      throw const CredentialFailure(
+          'أعد التحقق بكلمة المرور الحالية ثم كرر التغيير.');
     }
-  }
-
-  @override
-  Future<void> linkId(String id, String password, String confirm) async {
-    validate(id, password, confirm);
-    await requireRecent();
-    if (!hasPassword) {
-      await user.linkWithCredential(
-          EmailAuthProvider.credential(email: idEmail(id), password: password));
-      await user.reload();
-      await user.getIdToken(true);
-    } else if (email != idEmail(id)) {
-      throw const CredentialFailure(genericAuthError);
-    }
-  }
-
-  @override
-  Future<void> finishIdentity(String id) async {
-    if (!validNationalId(id) ||
-        !hasPassword ||
-        !hasPhone ||
-        (email != idEmail(id))) {
-      throw const CredentialFailure(genericAuthError);
-    }
-    await requireRecent();
-    final uid = user.uid;
-    await db.runTransaction((tx) async {
-      final profileRef = db.collection('users').doc(uid);
-      final profile = await tx.get(profileRef);
-      if (!profile.exists) {
-        throw const CredentialFailure('أكمل بيانات التسجيل أولاً');
-      }
-      final index = db.collection('idIndex').doc(id);
-      final claim = await tx.get(index);
-      if (claim.exists && claim.data()?['uid'] != uid) {
-        throw const CredentialFailure(
-            'تعذّر اعتماد رقم الهوية. تحقق من البيانات.');
-      }
-      final old = profile.data()?['idNumber'] as String? ?? '';
-      DocumentSnapshot<Map<String, dynamic>>? oldClaim;
-      if (validNationalId(old) && old != id) {
-        oldClaim = await tx.get(db.collection('idIndex').doc(old));
-      }
-      tx.set(index, {'uid': uid});
-      tx.update(
-          profileRef, {'idNumber': id, 'phone': phone, 'credentialVersion': 1});
-      if (oldClaim?.data()?['uid'] == uid) tx.delete(oldClaim!.reference);
-    });
-  }
-
-  @override
-  Future<bool> matchRecoveryId(String id) async {
-    final uid = user.uid;
-    final registeredPhone = phone;
-    final doc = await retryFirestore(() => Stream.fromFuture(db
-        .collection('users')
-        .doc(uid)
-        .get(const GetOptions(source: Source.server)))).first;
-    final matches = doc.exists &&
-        auth.currentUser?.uid == uid &&
-        doc.data()?['idNumber'] == id &&
-        doc.data()?['phone'] == registeredPhone;
-    if (!matches) {
-      throttle.failed();
-      if (auth.currentUser?.uid == uid) await auth.signOut();
-    }
-    return matches;
-  }
-
-  @override
-  Future<void> resetPassword(String id, String password, String confirm) async {
-    validate(id, password, confirm);
-    // Recheck at submission; UI state alone never authorizes the reset.
-    if (!await matchRecoveryId(id)) {
-      throw const CredentialFailure(genericAuthError);
-    }
-    if (!hasPassword) {
-      await linkId(id, password, confirm);
-    }
-    await finishIdentity(id);
-    await requireRecent();
-    await user.updatePassword(password);
-    await auth.signOut();
   }
 
   @override
@@ -365,43 +206,17 @@ class FirebaseCredentialService implements CredentialService {
   }
 
   @override
-  Future<void> changeIdentity(String id) async {
-    if (!validNationalId(id)) {
-      throw const CredentialFailure('أدخل رقم هوية من 9 أو 10 أرقام');
-    }
-    await requireRecent();
-    final oldEmail = email;
-    if (oldEmail != idEmail(id)) {
-      // Synthetic addresses have no inbox. The SDK's direct update is required;
-      // projects forbidding it need a trusted admin backend, never a client bypass.
-      // ignore: deprecated_member_use
-      await user.updateEmail(idEmail(id));
-      await user.reload();
-      await user.getIdToken(true);
-    }
-    try {
-      await finishIdentity(id);
-    } catch (_) {
-      // Keep the old alias if the atomic profile/index commit is rejected.
-      if (email != oldEmail) {
-        try {
-          // ignore: deprecated_member_use
-          await user.updateEmail(oldEmail);
-          await user.reload();
-          await user.getIdToken(true);
-        } catch (_) {
-          throw const CredentialFailure(
-              'تعذّر حفظ الهوية. أعد التحقق واستكمل الربط من الحساب نفسه.');
-        }
-      }
-      rethrow;
-    }
+  Future<void> finishAccount({String id = '', String phone = ''}) async {
+    final issue=contactError(phone,id);
+    if(!verified||issue!=null)throw CredentialFailure(issue??'تحقق من البريد أولاً');
+    await db.collection('users').doc(user.uid).update({'phone':normalizeMobile(phone),'idNumber':normalizeDigits(id).trim()});
   }
 
   @override
-  Future<void> changePassword(
-      String password, String confirm, String id) async {
-    validate(id, password, confirm);
+  Future<void> changePassword(String password, String confirm, String id,
+      {String phone = ''}) async {
+    final issue = passwordError(password, confirm, id, phone);
+    if (issue != null) throw CredentialFailure(issue);
     await requireRecent();
     await user.updatePassword(password);
   }

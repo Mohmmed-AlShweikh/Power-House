@@ -1,3 +1,6 @@
+import '../../widgets/portal_keyboard.dart';
+import '../../widgets/payment_details.dart';
+import '../../widgets/portal_reason_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/portal_tokens.dart';
@@ -6,9 +9,7 @@ import '../../widgets/portal_number.dart';
 import '../../../models/bill_model.dart';
 import '../../../models/user_model.dart';
 import '../../../providers/data_provider.dart';
-import '../../widgets/base64_image_viewer.dart';
 import '../../../services/firebase_service.dart';
-import '../../../services/notification_service.dart';
 
 class SubscriberDetailsScreen extends ConsumerWidget {
   final UserProfile sub;
@@ -284,7 +285,7 @@ class _PaymentRequestCard extends StatelessWidget {
   Widget build(BuildContext context) => PortalInvoiceRow(
       title: '${bill.month} ${bill.year}',
       amount: '₪${bill.amount}',
-      status: 'إيصال بانتظار المراجعة',
+      status: 'دفعة بانتظار المراجعة',
       tone: PortalTone.warning,
       icon: Icons.pending_actions_outlined,
       footer: ElevatedButton(onPressed: onView, child: const Text('مراجعة')));
@@ -301,7 +302,7 @@ class _BillInfoCard extends StatelessWidget {
     return PortalInvoiceRow(
         title: '${bill.month} ${bill.year}',
         amount: '₪${bill.amount}',
-        note: '${bill.kwh.toStringAsFixed(1)} كيلوواط',
+        note: '${bill.kwh.toStringAsFixed(1)} ${bill.unitName}',
         status: isPaid ? 'مدفوع' : 'غير مدفوع',
         tone: isPaid ? PortalTone.success : PortalTone.danger,
         accent: color,
@@ -353,31 +354,26 @@ class ReceiptReviewDialog extends ConsumerStatefulWidget {
 
 class _ReceiptReviewDialogState extends ConsumerState<ReceiptReviewDialog> {
   bool _loading = false;
+  String? _error;
 
   Future<void> _act(BillStatus status) async {
+    final reason = status == BillStatus.rejected
+        ? await requestRejectionReason(context, title: 'سبب رفض الدفع')
+        : '';
+    if (reason == null || !mounted) return;
     setState(() => _loading = true);
     try {
-      await FirebaseService().updateBillStatus(widget.bill.id, status);
-      if (status == BillStatus.paid) {
-        await NotificationService().addAlert(
-          userId: widget.bill.userId,
-          title: 'تم قبول الإيصال ✓',
-          body:
-              'تم قبول إيصال الدفع لفاتورة ${widget.bill.month} ${widget.bill.year} بنجاح.',
-          type: 'receiptApproved',
-        );
-      } else {
-        await NotificationService().addAlert(
-          userId: widget.bill.userId,
-          title: 'تم رفض الإيصال',
-          body:
-              'تم رفض إيصال الدفع لفاتورة ${widget.bill.month} ${widget.bill.year}. يرجى التواصل مع المشرف.',
-          type: 'receiptRejected',
-        );
-      }
-      if (mounted) Navigator.pop(context, true);
+      await ref.read(firebaseServiceProvider).updateBillStatus(
+          widget.bill.id, status,
+          reason: reason, expectedVersion: widget.bill.payment?.version);
+      if (mounted) completePortalSave(context,result:true,message:'تم حفظ العملية');
     } catch (_) {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = 'تعذّر حفظ القرار. قد تكون الفاتورة قد عولجت بالفعل.';
+        });
+      }
     }
   }
 
@@ -435,42 +431,11 @@ class _ReceiptReviewDialogState extends ConsumerState<ReceiptReviewDialog> {
                   value: '₪${widget.bill.amount}',
                   prominent: true),
               const SizedBox(height: 16),
-              if (widget.bill.receiptBase64 != null) ...[
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(PortalTokens.radius),
-                  child: Base64ImageViewer(
-                      base64String: widget.bill.receiptBase64!, height: 220),
-                ),
-                const SizedBox(height: 16),
-              ] else
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 28),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
-                        .withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(PortalTokens.radius),
-                  ),
-                  child: Column(
-                    children: [
-                      Icon(Icons.image_not_supported,
-                          size: 36,
-                          color:
-                              Theme.of(context).colorScheme.onSurfaceVariant),
-                      const SizedBox(height: 8),
-                      Text('لا توجد صورة إيصال',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant)),
-                    ],
-                  ),
-                ),
+              if (widget.bill.payment != null)
+                PaymentDetails(payment: widget.bill.payment!)
+              else
+                const PortalErrorState('لا يوجد سجل دفع قابل للمراجعة'),
+              if (_error != null) PortalErrorState(_error!),
               const SizedBox(height: 4),
               if (_loading)
                 const Center(
@@ -483,7 +448,9 @@ class _ReceiptReviewDialogState extends ConsumerState<ReceiptReviewDialog> {
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () => _act(BillStatus.rejected),
+                        onPressed: widget.bill.payment == null
+                            ? null
+                            : () => _act(BillStatus.rejected),
                         icon: const Icon(Icons.close, size: 16),
                         label: Text('رفض',
                             style: Theme.of(context).textTheme.bodySmall),
@@ -501,7 +468,9 @@ class _ReceiptReviewDialogState extends ConsumerState<ReceiptReviewDialog> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () => _act(BillStatus.paid),
+                        onPressed: widget.bill.payment == null
+                            ? null
+                            : () => _act(BillStatus.paid),
                         icon: const Icon(Icons.check, size: 16),
                         label: const Text('قبول'),
                         style: ElevatedButton.styleFrom(

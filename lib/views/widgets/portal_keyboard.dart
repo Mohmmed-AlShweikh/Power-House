@@ -8,27 +8,20 @@ Future<T?> showPortalFormSheet<T>({
   required WidgetBuilder builder,
   bool isScrollControlled = true,
   ShapeBorder? shape,
+  Color? backgroundColor,
+  bool scrollable = true,
 }) =>
     showModalBottomSheet<T>(
       context: context,
       isScrollControlled: isScrollControlled,
       useSafeArea: true,
-      shape: shape,
-      builder: (context) => PortalFocusReveal(
-        child: LayoutBuilder(builder: (context, constraints) {
-          final keyboard = MediaQuery.viewInsetsOf(context).bottom;
-          final height = math.max(0.0, constraints.maxHeight - keyboard);
-          return Padding(
-            padding: EdgeInsets.only(bottom: keyboard),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: height * 0.95),
-              child: SingleChildScrollView(
-                child: Builder(builder: builder),
-              ),
-            ),
-          );
-        }),
-      ),
+      shape: shape ??
+          const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(PortalTokens.radiusPanel))),
+      backgroundColor: backgroundColor,
+      builder: (context) =>
+          PortalSheet(scrollable: scrollable, child: Builder(builder: builder)),
     );
 
 /// AlertDialog already applies viewInsets and constrains/scrolls its content.
@@ -100,4 +93,50 @@ class _PortalFocusRevealState extends State<PortalFocusReveal>
 
   @override
   Widget build(BuildContext context) => widget.child;
+}
+
+/// Never pop a replacement page when a save finishes after dismissal/redirect.
+bool completePortalSave<T>(BuildContext context, {T? result, String? message}) {
+  if (!context.mounted) return false;
+  final route = ModalRoute.of(context);
+  if (route is! PopupRoute || !route.isCurrent) return false;
+  final messenger = ScaffoldMessenger.maybeOf(context);
+  Navigator.of(context).pop(result);
+  if (message != null) {
+    messenger?.showSnackBar(SnackBar(content: Text(message)));
+  }
+  return true;
+}
+
+bool returnAfterPortalSave(BuildContext context, String message) {
+  if (!context.mounted ||
+      ModalRoute.of(context)?.isCurrent != true ||
+      !Navigator.of(context).canPop()) {
+    return false;
+  }
+  final messenger = ScaffoldMessenger.maybeOf(context);
+  Navigator.of(context).pop();
+  messenger?.showSnackBar(SnackBar(content: Text(message)));
+  return true;
+}
+
+class PortalSheet extends StatelessWidget {
+  final Widget child;
+  final bool scrollable;
+  const PortalSheet({super.key, required this.child, this.scrollable = true});
+  @override
+  Widget build(BuildContext context) =>
+      PortalFocusReveal(child: LayoutBuilder(builder: (context, c) {
+        final bottom = math.max(MediaQuery.viewInsetsOf(context).bottom,
+                MediaQuery.paddingOf(context).bottom) +
+            PortalTokens.lg;
+        return Padding(
+            padding: EdgeInsets.only(bottom: bottom),
+            child: ConstrainedBox(
+                constraints: BoxConstraints(
+                    maxHeight: math.max(
+                        0, math.min(c.maxHeight * .9, c.maxHeight - bottom))),
+                child:
+                    scrollable ? SingleChildScrollView(child: child) : child));
+      }));
 }

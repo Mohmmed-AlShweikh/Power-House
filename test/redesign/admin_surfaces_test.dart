@@ -1,3 +1,5 @@
+import 'package:generator_portal/features/billing_settings/models.dart';
+import 'package:generator_portal/features/billing_settings/providers.dart';
 import 'dart:async';
 import '../support/credential_fakes.dart';
 import 'package:generator_portal/services/credential_service.dart';
@@ -24,6 +26,8 @@ import 'package:generator_portal/views/screens/admin/admin_screen.dart';
 import 'package:generator_portal/views/screens/admin/subscriber_details_screen.dart';
 import 'package:generator_portal/views/screens/login_screen.dart';
 import 'package:generator_portal/views/screens/consumer/bills_tab.dart';
+import 'package:generator_portal/views/widgets/payment_form.dart';
+import 'package:generator_portal/models/payment_model.dart';
 import 'package:generator_portal/views/screens/register_screen.dart';
 import 'package:generator_portal/views/screens/setup_screen.dart';
 import 'package:generator_portal/views/screens/super_admin/super_admin_screen.dart';
@@ -36,14 +40,6 @@ class AuthReview extends FixtureAuth {
   Completer<String?>? pending;
   @override
   Future<String?> login(String idNumber, String password) =>
-      (pending = Completer<String?>()).future;
-  @override
-  Future<String?> register(
-          {required String idNumber,
-          required String name,
-          required String address,
-          required String password,
-          required UserRole role}) =>
       (pending = Completer<String?>()).future;
 }
 
@@ -131,7 +127,11 @@ void main() {
             amount: 310,
             kwh: 155,
             status: BillStatus.pendingReview,
-            receiptBase64: receipt,
+            payment: PaymentRecord(
+                amountMinor: 31000,
+                date: DateTime(2026, 10, 20).millisecondsSinceEpoch,
+                reference: 'test-reference',
+                method: 'bank'),
             createdAt: DateTime(now.year, 10, 28)),
         Bill(
             id: 'paid',
@@ -170,6 +170,7 @@ void main() {
             createdAt: now.subtract(const Duration(days: 1))),
       ];
       await tester.pumpWidget(ProviderScope(overrides: [
+          billingSettingsProvider.overrideWith((ref) => Stream.value(const BillingSettings())),
         authProvider.overrideWith((ref) => FixtureAuth(UserRole.admin)),
         generatorProvider.overrideWith((ref) => Stream.value(GeneratorState(
             isOn: true,
@@ -182,6 +183,8 @@ void main() {
         subscribersProvider.overrideWith((ref) => Stream.value([sub])),
         subscribersMapProvider
             .overrideWith((ref) => Stream.value({sub.uid: sub.name})),
+        consumerRequestsProvider.overrideWith(
+            (ref) => ref.watch(pendingUsersProvider.future).asStream()),
         pendingUsersProvider.overrideWith((ref) => Stream.value([pending])),
         complaintsProvider.overrideWith((ref) => Stream.value(complaints)),
         alertsProvider('').overrideWith((ref) => Stream.value(<AppAlert>[])),
@@ -190,7 +193,7 @@ void main() {
         recentActivitiesProvider.overrideWith((ref) => [
               ActivityItem(
                   name: sub.name,
-                  action: 'رفع إيصال أكتوبر',
+                  action: 'تسجيل دفعة أكتوبر',
                   createdAt: now,
                   color: PortalTokens.primary)
             ]),
@@ -310,13 +313,12 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       final semantics = tester.ensureSemantics();
 
-      late AuthReview auth;
       Future<void> boot(Widget child) async {
         await tester.pumpWidget(const SizedBox.shrink());
         await tester.pumpWidget(ProviderScope(overrides: [
+          billingSettingsProvider.overrideWith((ref) => Stream.value(const BillingSettings())),
           credentialServiceProvider.overrideWithValue(FakeCredentials()),
-          authProvider
-              .overrideWith((ref) => auth = AuthReview(UserRole.consumer))
+          authProvider.overrideWith((ref) => AuthReview(UserRole.consumer))
         ], child: _Frame(brightness: brightness, child: child)));
         await _precache(tester);
         await tester.pumpAndSettle();
@@ -341,50 +343,15 @@ void main() {
 
       await boot(const LoginScreen());
       await capture('login');
-      // Recovery is a real screen now, not the old contact-owner dialogs.
       await boot(const CredentialScreen(mode: CredentialMode.recover));
-      await capture('forgot_empty_id');
-      await tester.enterText(
-          find.byKey(const ValueKey('credential-id')), '123456789');
-      await capture('forgot_guidance');
-      await boot(const LoginScreen());
-      await tester.enterText(
-          find.widgetWithText(TextField, 'xxxxxxxxxx'), '123456789');
-      await tester.enterText(
-          find.widgetWithText(TextField, '••••••••'), 'test-password');
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(ElevatedButton, 'تسجيل الدخول'));
-      await tester.pump(const Duration(milliseconds: 400));
-      await capture('login_loading');
-      auth.pending!.complete('رقم الهوية أو كلمة المرور غير صحيحة');
-      await tester.pumpAndSettle();
-      await capture('login_error');
+      await capture('email_recovery');
+      await boot(const CredentialScreen(mode: CredentialMode.verify));
+      await capture('email_verify');
       await boot(const RegisterScreen());
-      await capture('register_consumer');
-      await tester.tap(find.text('تقديم الطلب'));
-      await tester.pumpAndSettle();
-      await capture('register_validation');
+      await capture('email_register');
       await tester.tap(find.text('صاحب مولد'));
       await tester.pumpAndSettle();
-      await capture('register_owner');
-      for (final value in [
-        ('xxxxxxxxxx', '123456789'),
-        ('اسم المولد', 'مولد حي النور'),
-        ('المدينة / الحي', 'غزة، حي النور'),
-        ('8 أحرف على الأقل', 'test-password'),
-        ('أعد كتابة كلمة المرور', 'test-password')
-      ]) {
-        final field = find.widgetWithText(TextField, value.$1);
-        await tester.ensureVisible(field);
-        await tester.enterText(field, value.$2);
-      }
-      await tester.ensureVisible(find.text('تقديم الطلب'));
-      await tester.tap(find.text('تقديم الطلب'));
-      await tester.pump(const Duration(milliseconds: 400));
-      await capture('register_loading');
-      auth.pending!.complete(null);
-      await tester.pumpAndSettle();
-      await capture('register_success');
+      await capture('email_register_owner');
       await boot(const SetupScreen());
       await capture('setup_source_only');
       semantics.dispose();
@@ -401,6 +368,7 @@ void main() {
       final semantics = tester.ensureSemantics();
       await tester.pumpWidget(ProviderScope(
           overrides: [
+          billingSettingsProvider.overrideWith((ref) => Stream.value(const BillingSettings())),
             authProvider
                 .overrideWith((ref) => FixtureAuth(UserRole.superAdmin)),
             generatorRequestsProvider.overrideWith((ref) => Stream.value([
@@ -487,6 +455,7 @@ void main() {
           status: BillStatus.pending,
           createdAt: DateTime(2026, 10, 28));
       await tester.pumpWidget(ProviderScope(overrides: [
+          billingSettingsProvider.overrideWith((ref) => Stream.value(const BillingSettings())),
         authProvider.overrideWith((ref) => FixtureAuth(UserRole.consumer)),
         billsProvider('').overrideWith((ref) => Stream.value([bill])),
         alertsProvider('').overrideWith((ref) => Stream.value(<AppAlert>[])),
@@ -498,13 +467,7 @@ void main() {
         unawaited(showModalBottomSheet(
             context: context,
             isScrollControlled: true,
-            builder: (dialogContext) => ReceiptUploadView(
-                bill: bill,
-                bytes: base64Decode(receipt),
-                uploading: busy,
-                onPick: () {},
-                onUpload: () {},
-                onClose: () => Navigator.pop(dialogContext))));
+            builder: (dialogContext) => PaymentForm(bill: bill)));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 400));
         await tester.runAsync(() async {
@@ -519,7 +482,7 @@ void main() {
         await expectLater(
             find.byKey(const ValueKey('frame')),
             matchesGoldenFile(
-                '../../screenshots/redesign/consumer/upload_${busy ? 'loading' : 'selected'}_${brightness.name}.png'));
+                '../../screenshots/redesign/consumer/payment_form_${busy ? 'second' : 'initial'}_${brightness.name}.png'));
         await tester.tap(find.byIcon(Icons.close).last);
         await tester.pumpAndSettle();
       }
@@ -537,6 +500,7 @@ void main() {
         Future<void> boot(Widget child, UserRole role) async {
           await tester.pumpWidget(const SizedBox.shrink());
           await tester.pumpWidget(ProviderScope(overrides: [
+          billingSettingsProvider.overrideWith((ref) => Stream.value(const BillingSettings())),
             authProvider.overrideWith((ref) => FixtureAuth(role)),
             generatorRequestsProvider
                 .overrideWith((ref) => fixture(state, <GeneratorAccount>[])),
@@ -547,6 +511,8 @@ void main() {
                 .overrideWith((ref) => fixture(state, <UserProfile>[])),
             subscribersMapProvider
                 .overrideWith((ref) => fixture(state, <String, String>{})),
+            consumerRequestsProvider.overrideWith(
+                (ref) => ref.watch(pendingUsersProvider.future).asStream()),
             pendingUsersProvider
                 .overrideWith((ref) => fixture(state, <UserProfile>[])),
             complaintsProvider

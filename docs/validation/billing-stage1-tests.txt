@@ -1,0 +1,142 @@
+00:00 +0: loading /workspace/Power-House/test/redesign/navigation_review_test.dart
+00:00 +0: /workspace/Power-House/test/redesign/navigation_review_test.dart: (setUpAll)
+00:00 +0: /workspace/Power-House/test/redesign/navigation_review_test.dart: amount isolation preserves the source and Latin currency/unit order
+00:00 +1: /workspace/Power-House/test/redesign/navigation_review_test.dart: three navigation structures side by side, both roles and themes
+00:00 +2: /workspace/Power-House/test/redesign/navigation_review_test.dart: three navigation structures side by side, both roles and themes
+00:00 +3: /workspace/Power-House/test/redesign/navigation_review_test.dart: three navigation structures side by side, both roles and themes
+00:00 +4: /workspace/Power-House/test/redesign/navigation_review_test.dart: three navigation structures side by side, both roles and themes
+00:00 +5: /workspace/Power-House/test/redesign/navigation_review_test.dart: three navigation structures side by side, both roles and themes
+00:00 +6: /workspace/Power-House/test/redesign/navigation_review_test.dart: three navigation structures side by side, both roles and themes
+00:00 +7: /workspace/Power-House/test/redesign/navigation_review_test.dart: three navigation structures side by side, both roles and themes
+00:00 +8: /workspace/Power-House/test/redesign/navigation_review_test.dart: three navigation structures side by side, both roles and themes
+00:01 +9: /workspace/Power-House/test/redesign/navigation_review_test.dart: three navigation structures side by side, both roles and themes
+00:01 +10: /workspace/Power-House/test/redesign/navigation_review_test.dart: navigation PortalNavAlternative.raisedTiles: 320dp, RTL and 48dp targets
+00:01 +11: /workspace/Power-House/test/redesign/navigation_review_test.dart: navigation PortalNavAlternative.separateIslands: 320dp, RTL and 48dp targets
+00:01 +12: /workspace/Power-House/test/redesign/navigation_review_test.dart: navigation PortalNavAlternative.focusWindow: 320dp, RTL and 48dp targets
+00:01 +13: /workspace/Power-House/test/redesign/navigation_review_test.dart: (tearDownAll)
+00:01 +13: /workspace/Power-House/test/redesign/consumer_states_test.dart: (setUpAll)
+00:02 +13: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual empty surfaces dark
+00:04 +14: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:05 +15: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_light
+00:05 +16: /workspace/Power-House/test/redesign/consumer_states_test.dart: consumer actual loading surfaces dark
+00:05 +17: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_dark
+00:06 +18: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_dark
+00:06 +19: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_dark
+00:07 +20: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden consumer_dark
+00:07 +21: /workspace/Power-House/test/redesign/home_goldens_test.dart: home golden admin_light
+00:08 +22: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey dark
+00:09 +23: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey dark
+00:11 +24: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey dark
+00:11 +25: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: auth and source-only setup dark
+00:12 +26: /workspace/Power-House/test/multi_enrollment_widget_test.dart: owner form uses verified email and submits generator/sector dark
+00:12 +27: /workspace/Power-House/test/multi_enrollment_widget_test.dart: owner form uses verified email and submits generator/sector dark
+00:12 +28: /workspace/Power-House/test/multi_enrollment_widget_test.dart: owner form uses verified email and submits generator/sector dark
+00:13 +29: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin empty dark
+00:13 +30: /workspace/Power-House/test/multi_enrollment_widget_test.dart: picker shows no owner data and searches/filters/selects dark
+00:13 +31: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin loading dark
+00:13 +32: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin loading dark
+00:13 +33: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin loading dark
+00:13 +34: /workspace/Power-House/test/multi_enrollment_widget_test.dart: picker shows no owner data and searches/filters/selects light
+00:14 +35: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin error dark
+00:14 +36: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin error dark
+00:14 +37: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin error dark
+00:14 +38: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin error dark
+00:14 +39: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin and superadmin error dark
+00:14 +40: /workspace/Power-House/test/multi_enrollment_widget_test.dart: picker and generator requests empty states
+00:14 +41: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey light
+00:14 +42: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey light
+00:14 +43: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey light
+00:15 +44: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey light
+00:15 +45: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey light
+00:16 +46: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: admin complete destination and dialog journey light
+00:16 +47: /workspace/Power-House/test/multi_enrollment_widget_test.dart: all owner review states remain listed and support search and status filter
+00:16 +48: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: auth and source-only setup light
+00:16 +49: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: auth and source-only setup light
+00:16 +50: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: superadmin populated, diagnostic dialog and global error light
+00:17 +51: /workspace/Power-House/test/redesign/admin_surfaces_test.dart: receipt preview and busy presentation light
+00:17 +52: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL dark
+00:18 +53: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL dark
+00:18 +54: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL dark
+00:19 +55: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL dark
+00:21 +56: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL dark
+00:21 +57: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL dark
+00:21 +58: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL dark
+00:21 +59: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL dark
+00:21 +60: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL dark
+00:21 +61: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL dark
+00:21 +62: /workspace/Power-House/test/tab_navigation_test.dart: consumer already ignores main-tab swipes dark
+00:22 +63: /workspace/Power-House/test/multi_generator_test.dart: public generator IDs do not reveal the owner Auth UID
+00:22 +64: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL light
+00:22 +65: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL light
+00:22 +66: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL light
+00:22 +67: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL light
+00:22 +68: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL light
+00:22 +69: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL light
+00:22 +70: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL light
+00:22 +71: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL light
+00:22 +72: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL light
+00:22 +73: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL light
+00:22 +74: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL light
+00:22 +75: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL light
+00:22 +76: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL light
+00:22 +77: /workspace/Power-House/test/tab_navigation_test.dart: admin page/title/nav stay synced in RTL light
+00:23 +78: /workspace/Power-House/test/splash_owner_switch_test.dart: native splash releases only after a resolved destination frame, once
+00:24 +79: /workspace/Power-House/test/splash_owner_switch_test.dart: native splash releases only after a resolved destination frame, once
+00:24 +80: /workspace/Power-House/test/tab_navigation_test.dart: admin lazily retains subscriber search and bill filter state
+00:24 +81: /workspace/Power-House/test/tab_navigation_test.dart: admin lazily retains subscriber search and bill filter state
+00:24 +82: /workspace/Power-House/test/splash_owner_switch_test.dart: fast login routes directly by UserRole.superAdmin without an intermediate Flutter splash
+00:24 +83: /workspace/Power-House/test/splash_owner_switch_test.dart: fast login routes directly by UserRole.superAdmin without an intermediate Flutter splash
+00:25 +84: /workspace/Power-House/test/email_auth_widget_test.dart: email login and generic failure dark
+00:26 +85: /workspace/Power-House/test/email_auth_widget_test.dart: email login and generic failure dark
+00:26 +86: /workspace/Power-House/test/email_auth_widget_test.dart: email login and generic failure dark
+00:26 +87: /workspace/Power-House/test/email_auth_widget_test.dart: email login and generic failure dark
+00:27 +88: /workspace/Power-House/test/splash_owner_switch_test.dart: cold start holds native splash through profile and generator resolution
+00:27 +89: /workspace/Power-House/test/email_auth_widget_test.dart: registration password rules and both roles dark
+00:27 +90: /workspace/Power-House/test/email_auth_widget_test.dart: registration password rules and both roles dark
+00:27 +91: /workspace/Power-House/test/email_auth_widget_test.dart: registration password rules and both roles dark
+00:27 +92: /workspace/Power-House/test/email_auth_widget_test.dart: registration password rules and both roles dark
+00:27 +93: /workspace/Power-House/test/email_auth_widget_test.dart: registration password rules and both roles dark
+00:27 +94: /workspace/Power-House/test/email_auth_widget_test.dart: password reset by email does not disclose existence dark
+00:27 +95: /workspace/Power-House/test/email_auth_widget_test.dart: unverified email offers reload and resend dark
+00:27 +96: /workspace/Power-House/test/email_auth_widget_test.dart: email login and generic failure light
+00:28 +97: /workspace/Power-House/test/email_auth_widget_test.dart: registration password rules and both roles light
+00:28 +98: /workspace/Power-House/test/email_auth_widget_test.dart: password reset by email does not disclose existence light
+00:28 +99: /workspace/Power-House/test/email_auth_widget_test.dart: password reset by email does not disclose existence light
+00:28 +100: /workspace/Power-House/test/email_auth_widget_test.dart: password reset by email does not disclose existence light
+00:28 +101: /workspace/Power-House/test/email_auth_widget_test.dart: password reset by email does not disclose existence light
+00:28 +102: /workspace/Power-House/test/email_auth_widget_test.dart: password reset by email does not disclose existence light
+00:28 +103: /workspace/Power-House/test/email_auth_widget_test.dart: password reset by email does not disclose existence light
+00:28 +104: /workspace/Power-House/test/auth_redirect_test.dart: cold start never builds login while restoring UserRole.superAdmin
+00:28 +105: /workspace/Power-House/test/auth_redirect_test.dart: cold start never builds login while restoring UserRole.superAdmin
+00:29 +106: /workspace/Power-House/test/auth_redirect_test.dart: resolved UserRole.admin goes directly home and stays there
+00:29 +107: /workspace/Power-House/test/auth_redirect_test.dart: cold start never builds login while restoring UserRole.admin
+00:29 +108: /workspace/Power-House/test/auto_load_test.dart: permission-denied and unavailable retry twice then load automatically
+00:29 +109: /workspace/Power-House/test/auto_load_test.dart: permission-denied and unavailable retry twice then load automatically
+00:29 +110: /workspace/Power-House/test/auth_redirect_test.dart: cold start never builds login while restoring UserRole.consumer
+00:29 +111: /workspace/Power-House/test/auth_redirect_test.dart: cold start never builds login while restoring UserRole.consumer
+00:29 +112: /workspace/Power-House/test/auto_load_test.dart: cancel during backoff never opens another listener
+00:29 +113: /workspace/Power-House/test/auto_load_test.dart: cancel during backoff never opens another listener
+00:29 +114: /workspace/Power-House/test/auto_load_test.dart: picker waits for authentication and reloads automatically for a new UID without profile
+00:29 +115: /workspace/Power-House/test/auto_load_test.dart: tenant lists wait for profile and role then switch scope on membership change
+00:30 +116: /workspace/Power-House/test/payment_widget_test.dart: payment form to owner review dark
+00:31 +117: /workspace/Power-House/test/keyboard_forms_test.dart: profile edit keyboard dark Size(430.0, 800.0)
+00:31 +118: /workspace/Power-House/test/keyboard_forms_test.dart: profile edit keyboard dark Size(430.0, 800.0)
+00:31 +119: /workspace/Power-House/test/keyboard_forms_test.dart: complaint keyboard dark Size(430.0, 800.0)
+00:32 +120: /workspace/Power-House/test/keyboard_forms_test.dart: profile edit keyboard dark Size(800.0, 500.0)
+00:32 +121: /workspace/Power-House/test/keyboard_forms_test.dart: complaint keyboard dark Size(800.0, 500.0)
+00:32 +122: /workspace/Power-House/test/keyboard_forms_test.dart: complaint keyboard dark Size(800.0, 500.0)
+00:32 +123: /workspace/Power-House/test/keyboard_forms_test.dart: complaint keyboard dark Size(800.0, 500.0)
+00:32 +124: /workspace/Power-House/test/keyboard_forms_test.dart: complaint keyboard dark Size(800.0, 500.0)
+00:32 +125: /workspace/Power-House/test/email_auth_test.dart: reset sends email; validation and throttle are bounded
+00:32 +126: /workspace/Power-House/test/keyboard_forms_test.dart: admin form journey keyboard dark
+00:32 +127: /workspace/Power-House/test/keyboard_forms_test.dart: admin form journey keyboard dark
+00:32 +128: /workspace/Power-House/test/keyboard_forms_test.dart: admin form journey keyboard dark
+00:33 +129: /workspace/Power-House/test/keyboard_forms_test.dart: profile edit keyboard light Size(430.0, 800.0)
+00:33 +130: /workspace/Power-House/test/keyboard_forms_test.dart: complaint keyboard light Size(430.0, 800.0)
+00:33 +131: /workspace/Power-House/test/keyboard_forms_test.dart: profile edit keyboard light Size(800.0, 500.0)
+00:34 +132: /workspace/Power-House/test/keyboard_forms_test.dart: complaint keyboard light Size(800.0, 500.0)
+00:34 +133: /workspace/Power-House/test/keyboard_forms_test.dart: admin form journey keyboard light
+00:35 +134: /workspace/Power-House/test/keyboard_forms_test.dart: long form reveals final field/title/actions on keyboard resize
+00:35 +135: /workspace/Power-House/test/keyboard_forms_test.dart: three-field security dialog scrolls above keyboard
+00:35 +136: /workspace/Power-House/test/keyboard_forms_test.dart: payment reference stays visible above keyboard
+00:35 +137: All tests passed!

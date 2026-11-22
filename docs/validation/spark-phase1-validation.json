@@ -1,0 +1,26 @@
+{
+  "branch": "feature/spark-email-phase1",
+  "base": "307ce49ed708f51dfa1d7c806ad7ecc414b1b710",
+  "flutter_tests": {
+    "passed": 137,
+    "command": "PORTAL_TEST_TARGET=test ./tool/test_visual.sh"
+  },
+  "emulator_tests": {
+    "passed": 17,
+    "failed": 0,
+    "project": "demo-generator-portal",
+    "production_access": false
+  },
+  "analyzer": {
+    "errors": 0,
+    "warnings": 14,
+    "infos": 18,
+    "new_diagnostics": [],
+    "baseline": "307ce49:docs/validation/splash-owner-analyzer.txt"
+  },
+  "android_debug_build": "passed",
+  "device_tested": false,
+  "real_email_delivery_tested": false,
+  "phase2_started": false,
+  "firebase_deployed": false
+}

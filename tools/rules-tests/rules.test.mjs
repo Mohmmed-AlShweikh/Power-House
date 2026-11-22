@@ -1,198 +1,175 @@
-import {before, beforeEach, after, test} from 'node:test';
+import {before,beforeEach,after,test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {initializeTestEnvironment, assertFails, assertSucceeds} from '@firebase/rules-unit-testing';
-import {doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, query, where, writeBatch} from 'firebase/firestore';
-
-if (!process.env.FIRESTORE_EMULATOR_HOST?.startsWith('127.0.0.1:')) throw new Error('Local Firestore emulator required; production is forbidden');
+import {initializeTestEnvironment,assertFails,assertSucceeds} from '@firebase/rules-unit-testing';
+import {doc,getDoc,setDoc,updateDoc,collection,getDocs,query,where,writeBatch,runTransaction,serverTimestamp} from 'firebase/firestore';
+if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8089')throw new Error('Local demo Firestore required');
 let env;
-const profile=(role,generatorId,status='approved')=>({name:role,phone:'+970591234567',role,generatorId,status,subscriptionStatus:'active',ampereLimit:0,createdAt:1});
-const generator=(ownerUid,status='approved')=>({name:'مولد '+ownerUid,sector:'غزة',ownerUid,status,subscriptionStatus:'active',rejectionReason:'',createdAt:1,isOn:false,pricePerKwh:2});
+const profile=(role,generatorId,status='approved',uid='test')=>({name:role,email:uid+'@example.test',credentialVersion:2,phone:'0591234567',idNumber:'',role,generatorId,status,subscriptionStatus:'active',ampereLimit:0,createdAt:1});
+const generator=(ownerUid,status='approved')=>({name:'مولد',sector:'غزة',ownerUid,status,subscriptionStatus:'active',rejectionReason:'',createdAt:1,isOn:false,pricePerKwh:2});
 const directory=g=>({name:g.name,sector:g.sector,status:g.status,subscriptionStatus:g.subscriptionStatus});
-const db=uid=>env.authenticatedContext(uid,{phone_number:'+970591234567'}).firestore();
-const identityDb=(uid,id,extra={})=>env.authenticatedContext(uid,{phone_number:'+970591234567',email:id+'@powershare.app',auth_time:Math.floor(Date.now()/1000),...extra}).firestore();
+const db=(uid,verified=true)=>env.authenticatedContext(uid,{email:uid+'@example.test',email_verified:verified,auth_time:Math.floor(Date.now()/1000)}).firestore();
+const pay=()=>({amountMinor:10000,date:Date.now(),reference:'test-reference',method:'cash',submittedAt:Date.now(),version:1});
+const submission=(version=1)=>({payment:{...pay(),version},status:'pendingReview'});
+const decision=(uid,status,reason='')=>({status,reviewedBy:uid,reviewedAt:Date.now(),reviewReason:reason,reviewedVersion:1});
 before(async()=>{env=await initializeTestEnvironment({projectId:'demo-generator-portal',firestore:{host:'127.0.0.1',port:8089,rules:readFileSync(new URL('../../firestore.rules',import.meta.url),'utf8')}});});
 after(async()=>{await env?.cleanup();});
-beforeEach(async()=>{
- await env.clearFirestore();
- await env.withSecurityRulesDisabled(async(context)=>{
-  const f=context.firestore();
-  for(const [id,data] of Object.entries({sa:{role:'super_admin'},oa:profile('generator_owner','a'),ob:profile('generator_owner','b'),ca:profile('user','a'),cb:profile('user','b'),pending:profile('user','a','pending'),legacy:profile('generator_owner','default')})) await setDoc(doc(f,'users',id),data);
-  for(const id of ['a','b']){const g=generator('o'+id);await setDoc(doc(f,'generators',id),g);await setDoc(doc(f,'generatorDirectory',id),directory(g));}
-  for(const [id,userId,generatorId] of [['ba','ca','a'],['bb','cb','b'],['forged','ca','b']]) await setDoc(doc(f,'bills',id),{userId,generatorId,status:'pending',amount:100,kwh:50});
-  await setDoc(doc(f,'consumption','ca'),{generatorId:'a',userId:'ca',monthlyUsage:50,dailyUsage:2});
-  await setDoc(doc(f,'alerts','aa'),{generatorId:'a',userId:'ca',read:false});
-  await setDoc(doc(f,'complaints','qa'),{generatorId:'a',userId:'ca',userName:'user',status:'open',text:'شكوى',createdAt:1});
-  await setDoc(doc(f,'system','generator'),{isOn:true,pricePerKwh:2});
- });
-});
-
-test('anonymous has no access; signed-in directory does not require a profile',async()=>{
+beforeEach(async()=>{await env.clearFirestore();await env.withSecurityRulesDisabled(async context=>{
+ const f=context.firestore();
+ for(const [id,role,gid,status] of [['sa','super_admin',null,'approved'],['oa','generator_owner','a','approved'],['ob','generator_owner','b','approved'],['ca','user','a','approved'],['cb','user','b','approved'],['pending','user','a','pending']])await setDoc(doc(f,'users',id),profile(role,gid,status,id));
+ for(const id of ['a','b']){const g=generator('o'+id);await setDoc(doc(f,'generators',id),g);await setDoc(doc(f,'generatorDirectory',id),directory(g));}
+ for(const [id,userId,generatorId] of [['ba','ca','a'],['bb','cb','b'],['forged','ca','b']])await setDoc(doc(f,'bills',id),{userId,generatorId,status:'pending',amount:100,kwh:50});
+ await setDoc(doc(f,'complaints','qa'),{userId:'ca',generatorId:'a',text:'اختبار',status:'open'});
+});});
+test('anonymous and unverified users cannot read data, even with a privileged profile',async()=>{
  await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(),'users','ca')));
- await assertSucceeds(getDocs(query(collection(db('fresh'),'generatorDirectory'),where('status','==','approved'),where('subscriptionStatus','==','active'))));
- await assertFails(getDocs(collection(db('fresh'),'users')));
+ for(const uid of ['ca','oa','sa']){await assertFails(getDoc(doc(db(uid,false),'users',uid)));await assertFails(getDocs(collection(db(uid,false),'generatorDirectory')));}
 });
-test('public projection never accepts private data, even from super-admin',async()=>{
- await assertFails(updateDoc(doc(db('sa'),'generatorDirectory','a'),{phone:'secret'}));
- await assertFails(updateDoc(doc(db('oa'),'generatorDirectory','a'),{status:'approved'}));
- const data=(await getDoc(doc(db('ca'),'generatorDirectory','a'))).data();
- assert.deepEqual(Object.keys(data).sort(),['name','sector','status','subscriptionStatus']);
+test('verified fresh account can pick approved active directory without a profile; no owner personal data',async()=>{
+ const f=db('fresh');await assertSucceeds(getDocs(query(collection(f,'generatorDirectory'),where('status','==','approved'),where('subscriptionStatus','==','active'))));
+ await assertFails(getDoc(doc(f,'users','oa')));await assertFails(getDocs(collection(f,'users')));
+ assert.deepEqual(Object.keys((await getDoc(doc(db('ca'),'generatorDirectory','a'))).data()).sort(),['name','sector','status','subscriptionStatus']);
+ await assertFails(updateDoc(doc(db('sa'),'generatorDirectory','a'),{phone:'contact'}));
 });
-test('self edits cannot promote, approve, reassign tenant or subscription',async()=>{
- for(const payload of [{role:'super_admin'},{status:'approved',role:'generator_owner'},{generatorId:'b'},{subscriptionStatus:'inactive'}]) await assertFails(updateDoc(doc(db('ca'),'users','ca'),payload));
- await assertSucceeds(updateDoc(doc(db('ca'),'users','ca'),{name:'اسم جديد',address:'غزة'}));
- await assertFails(deleteDoc(doc(db('ca'),'users','ca')));
- await assertFails(setDoc(doc(db('new'),'users','new'),{...profile('super_admin','a'),phone:'+970591234567'}));
+test('owner registration is atomic pending pair, contact phone is required and never verified login identity',async()=>{
+ const f=db('new'),u=profile('generator_owner','new-gen','pending','new'),g=generator('new','pending');
+ await assertFails(setDoc(doc(f,'users','new'),u));const b=writeBatch(f);b.set(doc(f,'users','new'),u);b.set(doc(f,'generators','new-gen'),g);await assertSucceeds(b.commit());
+ await assertFails(updateDoc(doc(f,'users','new'),{status:'approved'}));await assertFails(updateDoc(doc(f,'generators','new-gen'),{status:'approved'}));
 });
-test('owner enrollment must be a verified-phone atomic pair with pending state',async()=>{
- const id='123456789', f=identityDb('new-owner',id),g=generator('new-owner','pending'),u={...profile('generator_owner','random-generator','pending'),idNumber:id,credentialVersion:1};
- await assertFails(setDoc(doc(f,'users','new-owner'),u));
- const b=writeBatch(f);b.set(doc(f,'users','new-owner'),u);b.set(doc(f,'generators','random-generator'),g);b.set(doc(f,'idIndex',id),{uid:'new-owner'});await assertSucceeds(b.commit());
- await assertFails(updateDoc(doc(f,'generators','random-generator'),{status:'approved'}));
- await assertFails(updateDoc(doc(f,'users','new-owner'),{status:'approved'}));
+test('consumer registration always pending, cannot join suspended or inactive generator',async()=>{
+ const f=db('new');await assertSucceeds(setDoc(doc(f,'users','new'),{...profile('user','a','pending','new'),subscriptionStatus:'inactive'}));
+ await assertFails(setDoc(doc(db('elevated'),'users','elevated'),profile('super_admin','a','approved','elevated')));
+ await updateDoc(doc(db('sa'),'generators','b'),{status:'suspended',rejectionReason:'سبب الإيقاف'});
+ await assertFails(setDoc(doc(db('blocked'),'users','blocked'),{...profile('user','b','pending','blocked'),subscriptionStatus:'inactive'}));
 });
-test('unverified phone and owner impersonation are denied',async()=>{
- const f=env.authenticatedContext('unverified').firestore();
- const b=writeBatch(f);b.set(doc(f,'users','unverified'),profile('generator_owner','unverified','pending'));b.set(doc(f,'generators','unverified'),generator('unverified','pending'));await assertFails(b.commit());
- const f2=db('new'),c=writeBatch(f2);c.set(doc(f2,'users','new'),profile('generator_owner','other','pending'));c.set(doc(f2,'generators','other'),generator('someone-else','pending'));await assertFails(c.commit());
+test('registration rejects unverified or mismatched email and synthetic identities',async()=>{
+ await assertFails(setDoc(doc(db('new',false),'users','new'),{...profile('user','a','pending','new'),subscriptionStatus:'inactive'}));
+ await assertFails(setDoc(doc(db('new'),'users','new'),{...profile('user','a','pending','other'),subscriptionStatus:'inactive'}));
+ const fake=env.authenticatedContext('fake',{email:'123456789@powershare.app',email_verified:true}).firestore();await assertFails(getDocs(collection(fake,'generatorDirectory')));
 });
-test('consumer enrollment only into approved AND active directory, always pending',async()=>{
- const id='123456789', f=identityDb('new-consumer',id);
- const batch=writeBatch(f);batch.set(doc(f,'users','new-consumer'),{...profile('user','a','pending'),subscriptionStatus:'inactive',idNumber:id,credentialVersion:1});batch.set(doc(f,'idIndex',id),{uid:'new-consumer'});await assertSucceeds(batch.commit());
- await assertFails(setDoc(doc(db('bad'),'users','bad'),{...profile('user','a'),subscriptionStatus:'active'}));
- await updateDoc(doc(db('sa'),'generators','b'),{subscriptionStatus:'inactive'});
- await assertFails(setDoc(doc(db('stale'),'users','stale'),{...profile('user','b','pending'),subscriptionStatus:'inactive'}));
- await updateDoc(doc(db('sa'),'generatorDirectory','b'),{subscriptionStatus:'inactive'});
- await assertFails(setDoc(doc(db('blocked'),'users','blocked'),{...profile('user','b','pending'),subscriptionStatus:'inactive'}));
+test('self edits cannot approve, escalate, change generator or paid subscription',async()=>{
+ const f=db('ca');for(const data of [{role:'super_admin'},{status:'suspended'},{generatorId:'b'},{subscriptionStatus:'inactive'}])await assertFails(updateDoc(doc(f,'users','ca'),data));
+ await assertSucceeds(updateDoc(doc(f,'users','ca'),{name:'اسم',phone:'0591234567',idNumber:'123456789'}));
+ await assertFails(getDocs(collection(f,'idIndex')));await assertFails(getDoc(doc(f,'idIndex','123456789')));
+ for(const uid of ['ca','oa','sa'])await assertFails(updateDoc(doc(db(uid),'users','ca'),{password:'never-store'}));
 });
-test('consumer reads own profile/data only and cannot cross generator even with same userId',async()=>{
- await assertSucceeds(getDoc(doc(db('ca'),'users','ca')));
- await assertFails(getDoc(doc(db('ca'),'users','cb')));
- await assertSucceeds(getDocs(query(collection(db('ca'),'bills'),where('generatorId','==','a'),where('userId','==','ca'))));
- await assertFails(getDoc(doc(db('ca'),'bills','bb')));
- await assertFails(getDoc(doc(db('ca'),'bills','forged')));
- await assertFails(getDocs(collection(db('ca'),'bills')));
- await assertFails(getDoc(doc(db('cb'),'consumption','ca')));
+test('owners read/approve only consumers from their generator, suspension/rejection require reason',async()=>{
+ const f=db('oa');await assertSucceeds(getDocs(query(collection(f,'users'),where('generatorId','==','a'),where('role','in',['user','consumer']))));
+ await assertFails(getDoc(doc(f,'users','cb')));await assertFails(updateDoc(doc(f,'users','cb'),{status:'approved'}));
+ await assertFails(updateDoc(doc(f,'users','ca'),{status:'suspended',subscriptionStatus:'inactive'}));
+ await assertSucceeds(updateDoc(doc(f,'users','ca'),{status:'suspended',subscriptionStatus:'inactive',rejectionReason:'سبب الإيقاف'}));
+ await assertFails(getDoc(doc(db('ca'),'bills','ba')));await assertSucceeds(getDoc(doc(db('ca'),'users','ca')));
+ await assertSucceeds(updateDoc(doc(f,'users','ca'),{status:'approved',subscriptionStatus:'active',rejectionReason:''}));
 });
-test('owner queries require tenant and consumer-role constraints; cross-tenant writes fail',async()=>{
- await assertSucceeds(getDocs(query(collection(db('oa'),'users'),where('generatorId','==','a'),where('role','in',['user','consumer']))));
- await assertFails(getDocs(collection(db('oa'),'users')));
- await assertSucceeds(getDocs(query(collection(db('oa'),'bills'),where('generatorId','==','a'))));
- await assertFails(getDocs(collection(db('oa'),'bills')));
- await assertFails(updateDoc(doc(db('ob'),'users','pending'),{status:'approved'}));
- await assertSucceeds(updateDoc(doc(db('oa'),'users','pending'),{status:'approved',subscriptionStatus:'active'}));
- await assertFails(updateDoc(doc(db('oa'),'users','pending'),{generatorId:'b'}));
- await assertFails(updateDoc(doc(db('oa'),'bills','bb'),{status:'paid'}));
+test('cross-generator bill and complaint reads are denied, own queries succeed',async()=>{
+ const f=db('ca');await assertSucceeds(getDocs(query(collection(f,'bills'),where('generatorId','==','a'),where('userId','==','ca'))));
+ for(const id of ['bb','forged'])await assertFails(getDoc(doc(f,'bills',id)));await assertFails(getDoc(doc(db('ob'),'complaints','qa')));
 });
-test('receipts cannot change amounts, approve payment, change user or tenant',async()=>{
- const f=db('ca');
- for(const change of [{amount:0},{status:'paid'},{userId:'cb'},{generatorId:'b'}]) await assertFails(updateDoc(doc(f,'bills','ba'),change));
- await assertSucceeds(updateDoc(doc(f,'bills','ba'),{status:'pendingReview',receiptBase64:'YWJj'}));
- await assertFails(updateDoc(doc(f,'bills','ba'),{receiptBase64:'cmVwbGFjZQ=='}));
- await assertFails(setDoc(doc(f,'bills','made-up'),{generatorId:'a',userId:'ca',status:'pending',amount:1,kwh:1,month:'نوفمبر',year:2026,createdAt:1}));
+test('consumer records full payment but cannot approve it or submit for another user',async()=>{
+ const f=db('ca');await assertSucceeds(updateDoc(doc(f,'bills','ba'),submission()));
+ await assertFails(updateDoc(doc(f,'bills','ba'),decision('ca','paid')));await assertFails(updateDoc(doc(f,'bills','bb'),submission()));
+ await assertFails(updateDoc(doc(f,'bills','ba'),submission()));
 });
-test('billing cannot target a different tenant member, even with matching payload gid',async()=>{
- await assertFails(setDoc(doc(db('oa'),'bills','new'),{generatorId:'a',userId:'cb',status:'pending',amount:1,kwh:1}));
- await assertSucceeds(setDoc(doc(db('oa'),'bills','new'),{generatorId:'a',userId:'ca',status:'pending',amount:1,kwh:1,month:'نوفمبر',year:2026,createdAt:1}));
+test('payment validation blocks images, wrong amounts, invalid method, future dates and oversized reference',async()=>{
+ const f=db('ca');for(const change of [{amountMinor:10},{method:'gateway'},{date:Date.now()+172800000},{reference:'x'.repeat(81)}])await assertFails(updateDoc(doc(f,'bills','ba'),{status:'pendingReview',payment:{...pay(),...change}}));
+ await assertFails(updateDoc(doc(f,'bills','ba'),{status:'pendingReview',receiptBase64:'image'}));await assertFails(updateDoc(doc(f,'bills','ba'),{...submission(),amount:1}));
 });
-test('complaints and replies remain own-tenant and preserve immutable bindings',async()=>{
- await assertSucceeds(setDoc(doc(db('ca'),'complaints','new'),{generatorId:'a',userId:'ca',userName:'user',status:'open',text:'نص',createdAt:1}));
- await assertFails(setDoc(doc(db('ca'),'complaints','foreign'),{generatorId:'b',userId:'ca',userName:'user',status:'open',text:'نص',createdAt:1}));
- await assertSucceeds(updateDoc(doc(db('oa'),'complaints','qa'),{status:'resolved',reply:'تم',replyAt:2}));
- await assertFails(updateDoc(doc(db('ob'),'complaints','qa'),{reply:'رد'}));
+test('owner approval is immutable and cannot be repeated or reversed after payment',async()=>{
+ await updateDoc(doc(db('ca'),'bills','ba'),submission());const f=db('oa');await assertSucceeds(updateDoc(doc(f,'bills','ba'),decision('oa','paid')));
+ await assertFails(updateDoc(doc(f,'bills','ba'),decision('oa','paid')));await assertFails(updateDoc(doc(f,'bills','ba'),decision('oa','rejected','late')));await assertFails(updateDoc(doc(db('ca'),'bills','ba'),submission()));
 });
-test('suspension blocks operational access immediately; own status remains readable',async()=>{
- await updateDoc(doc(db('sa'),'generators','a'),{status:'suspended'});
- await assertFails(getDoc(doc(db('oa'),'bills','ba')));
- await assertFails(getDoc(doc(db('ca'),'bills','ba')));
- await assertSucceeds(getDoc(doc(db('ca'),'users','ca')));
- await assertSucceeds(getDoc(doc(db('ca'),'generators','a')));
+test('rejection requires reason; consumer can correct and resubmit; cross-tenant reviewer denied',async()=>{
+ await updateDoc(doc(db('ca'),'bills','ba'),submission());await assertFails(updateDoc(doc(db('ob'),'bills','ba'),decision('ob','paid')));
+ await assertFails(updateDoc(doc(db('oa'),'bills','ba'),decision('oa','rejected')));await assertSucceeds(updateDoc(doc(db('oa'),'bills','ba'),decision('oa','rejected','رقم غير صحيح')));
+ await assertSucceeds(updateDoc(doc(db('ca'),'bills','ba'),submission(2)));await assertFails(updateDoc(doc(db('oa'),'bills','ba'),decision('oa','paid')));await assertSucceeds(updateDoc(doc(db('oa'),'bills','ba'),{...decision('oa','paid'),reviewedVersion:2}));
 });
-test('pending accounts cannot access operational records',async()=>{
- await assertSucceeds(getDoc(doc(db('pending'),'users','pending')));
- await assertFails(getDocs(query(collection(db('pending'),'bills'),where('generatorId','==','a'),where('userId','==','pending'))));
- await assertFails(updateDoc(doc(db('pending'),'generators','a'),{isOn:true}));
+test('direct paid status without a submitted payment and forged reviewer are denied',async()=>{
+ await assertFails(updateDoc(doc(db('oa'),'bills','ba'),decision('oa','paid')));await updateDoc(doc(db('ca'),'bills','ba'),submission());await assertFails(updateDoc(doc(db('oa'),'bills','ba'),decision('ob','paid')));
 });
-test('alerts are tenant+recipient scoped, including read flags',async()=>{
- await assertSucceeds(updateDoc(doc(db('ca'),'alerts','aa'),{read:true}));
- await assertFails(updateDoc(doc(db('cb'),'alerts','aa'),{read:true}));
- await assertFails(updateDoc(doc(db('ca'),'alerts','aa'),{generatorId:'b'}));
- await assertSucceeds(setDoc(doc(db('ca'),'alerts','complaint'),{generatorId:'a',userId:'oa',title:'شكوى',body:'نص',type:'complaint',read:false,createdAt:1}));
- await assertFails(setDoc(doc(db('ca'),'alerts','fake'),{generatorId:'b',userId:'ob',title:'x',body:'x',type:'complaint',read:false,createdAt:1}));
-});
-test('legacy generator configuration is reserved for default membership',async()=>{
- await updateDoc(doc(db('sa'),'users','legacy'),{subscriptionStatus:'inactive'});
- await assertSucceeds(getDoc(doc(db('legacy'),'system','generator')));
- await assertFails(getDoc(doc(db('oa'),'system','generator')));
- await assertFails(updateDoc(doc(db('ob'),'system','generator'),{isOn:true}));
-});
-test('super-admin can review tenant records and atomically publish projection',async()=>{
- const f=db('sa'),b=writeBatch(f);b.update(doc(f,'generators','a'),{status:'rejected',rejectionReason:'سبب'});b.update(doc(f,'users','oa'),{status:'rejected'});b.set(doc(f,'generatorDirectory','a'),{...directory(generator('oa')),status:'rejected'});await assertSucceeds(b.commit());
- await assertSucceeds(getDocs(collection(f,'users')));await assertSucceeds(getDocs(collection(f,'generators')));
+test('super-admin suspension blocks operational reads and directory projection follows private document',async()=>{
+ const f=db('sa');const b=writeBatch(f);b.update(doc(f,'generators','a'),{status:'suspended',rejectionReason:'سبب'});b.update(doc(f,'generatorDirectory','a'),{status:'suspended'});await assertSucceeds(b.commit());
+ await assertFails(getDoc(doc(db('oa'),'bills','ba')));await assertFails(getDoc(doc(db('ca'),'bills','ba')));await assertSucceeds(getDoc(doc(db('ca'),'generators','a')));
 });
 
-test('malformed member-controlled payloads cannot poison owner feeds',async()=>{
- await assertFails(updateDoc(doc(db('ca'),'users','ca'),{phone:{bad:true}}));
- await assertFails(setDoc(doc(db('ca'),'alerts','malformed'),{generatorId:'a',userId:'oa',title:{bad:true},body:'نص',type:'complaint',read:false,createdAt:1}));
- await assertFails(setDoc(doc(db('ca'),'complaints','malformed'),{generatorId:'a',userId:'ca',userName:'user',status:'open',text:'نص',createdAt:'bad'}));
- await assertFails(updateDoc(doc(db('oa'),'generators','a'),{isOn:{bad:true}}));
- await assertFails(setDoc(doc(db('ca'),'complaints','bad-date'),{generatorId:'a',userId:'ca',userName:'user',status:'open',text:'نص',createdAt:1e18}));
+test('concurrent owner reviews commit one decision and one feedback record',async()=>{
+ await updateDoc(doc(db('ca'),'bills','ba'),submission());
+ async function approve(){const f=db('oa');return runTransaction(f,async tx=>{
+  const ref=doc(f,'bills','ba'),snapshot=await tx.get(ref);
+  if(snapshot.data().status==='paid')return false;
+  tx.update(ref,decision('oa','paid'));
+  tx.set(doc(f,'alerts','race-ba-v1'),{generatorId:'a',userId:'ca',title:'تم اعتماد الدفع',body:'اختبار',type:'paymentApproved',read:false,createdAt:Date.now()});
+  return true;
+ });}
+ const results=await Promise.allSettled([approve(),approve()]);
+ assert.equal(results.filter(r=>r.status==='fulfilled'&&r.value===true).length,1);
+ for(const result of results){if(result.status==='rejected')assert.equal(result.reason.code,'permission-denied');}
+ // A late commit can be denied by the immutable paid-state rule instead of
+ // being retried as ABORTED; either outcome must leave exactly one approval.
+ assert.equal((await getDoc(doc(db('ca'),'bills','ba'))).data().status,'paid');
+ const feedback=await getDocs(query(collection(db('ca'),'alerts'),where('generatorId','==','a'),where('userId','==','ca')));assert.equal(feedback.size,1);
 });
-
-test('new owners cannot reserve or hijack the legacy default namespace',async()=>{
- const f=db('hijacker'),batch=writeBatch(f);
- batch.set(doc(f,'users','hijacker'),profile('generator_owner','default','pending'));
- batch.set(doc(f,'generators','default'),generator('hijacker','pending'));
- await assertFails(batch.commit());
+test('billing settings owner only, validated integer money, cross-tenant denied',async()=>{
+ const settings={generatorId:'a',priceAgorot:2800,minimumUnitsMilli:1500,cycleDays:10,roundingThresholdAgorot:50,unitName:'وحدة',updatedBy:'oa',updatedAt:serverTimestamp()};
+ await assertSucceeds(setDoc(doc(db('oa'),'billingSettings','a'),settings));
+ await assertSucceeds(getDoc(doc(db('oa'),'billingSettings','a')));
+ await assertSucceeds(getDoc(doc(db('ca'),'billingSettings','a')));
+ for(const uid of ['ca','ob','pending','sa']){if(uid!=='ca')await assertFails(getDoc(doc(db(uid),'billingSettings','a')));await assertFails(setDoc(doc(db(uid),'billingSettings','a'),settings));}
+ await assertFails(updateDoc(doc(db('oa'),'billingSettings','a'),{priceAgorot:1.5,updatedAt:serverTimestamp()}));
+ await assertFails(updateDoc(doc(db('oa'),'billingSettings','a'),{roundingThresholdAgorot:0,updatedAt:serverTimestamp()}));
+ await assertFails(updateDoc(doc(db('oa'),'billingSettings','a'),{unitName:'',updatedAt:serverTimestamp()}));
 });
-
-test('super-admin has no implicit default tenant or owner-readable mailbox',async()=>{
- await setDoc(doc(db('sa'),'alerts','private-admin'),{userId:'sa',generatorId:'default',title:'خاص',body:'خاص',type:'newOwnerRequest',read:false,createdAt:1});
- await assertSucceeds(getDoc(doc(db('sa'),'alerts','private-admin')));
- await assertFails(getDoc(doc(db('legacy'),'alerts','private-admin')));
- await assertFails(setDoc(doc(db('legacy'),'alerts','to-admin'),{userId:'sa',generatorId:'default',title:'x',body:'x',type:'complaint',read:false,createdAt:1}));
+test('new invoice snapshot is retained and cannot be edited by payment actors',async()=>{
+ const f=db('oa'),snapshot={amountAgorot:28000,denominator:1000,rawNumerator:28000000,minimumNumerator:4200000,settings:{priceAgorot:2800,minimumUnitsMilli:1500,roundingThresholdAgorot:50,unitName:'وحدة'}};
+ const bill={userId:'ca',generatorId:'a',status:'pending',amount:280,kwh:10,month:'نوفمبر',year:2026,createdAt:Date.now(),amountAgorot:28000,billingSnapshot:snapshot};
+ await assertSucceeds(setDoc(doc(f,'bills','frozen'),bill));
+ await assertFails(setDoc(doc(f,'bills','mismatch'),{...bill,amountAgorot:1}));
+ await assertFails(updateDoc(doc(f,'bills','frozen'),{'billingSnapshot.settings.priceAgorot':1}));
+ await assertFails(updateDoc(doc(db('ca'),'bills','frozen'),{billingSnapshot:{...snapshot,amountAgorot:1}}));
+ await assertFails(getDoc(doc(db('cb'),'bills','frozen')));
 });
-
-
-test('ID claim and profile must be atomic, private and unique', async()=>{
- const id='123456789', f=identityDb('ca',id);
- await assertFails(setDoc(doc(f,'idIndex',id),{uid:'ca'}));
- await assertFails(updateDoc(doc(f,'users','ca'),{idNumber:id,credentialVersion:1}));
- const b=writeBatch(f);b.set(doc(f,'idIndex',id),{uid:'ca'});b.update(doc(f,'users','ca'),{idNumber:id,credentialVersion:1});await assertSucceeds(b.commit());
- await assertSucceeds(getDoc(doc(f,'idIndex',id)));
- await assertFails(getDoc(doc(db('cb'),'idIndex',id)));
- await assertFails(getDocs(collection(f,'idIndex')));
- const other=identityDb('cb',id),duplicate=writeBatch(other);duplicate.set(doc(other,'idIndex',id),{uid:'cb'});duplicate.update(doc(other,'users','cb'),{idNumber:id,credentialVersion:1});await assertFails(duplicate.commit());
- await assertFails(deleteDoc(doc(f,'idIndex',id)));
+async function seedReader(){await env.withSecurityRulesDisabled(async c=>{const f=c.firestore();await setDoc(doc(f,'users','ra'),profile('meter_reader','a','approved','ra'));await setDoc(doc(f,'meterStaff','ra'),{name:'عامل',generatorId:'a',active:true,inviteCode:'code'});await setDoc(doc(f,'readerRounds','a'),{generatorId:'a',roundId:'round',status:'open',date:1,cycleDays:10});await setDoc(doc(f,'meterAssignments','round_ca'),{generatorId:'a',readerUid:'ra',roundId:'round',name:'مشترك',address:'حي',number:'1',previousMilli:20000,averageMilli:1000});});}
+test('meter invite consumed atomically once, forged self-approval and expired invite denied',async()=>{
+ const code='a'.repeat(32),f=db('oa');await assertSucceeds(setDoc(doc(f,'meterInvites',code),{generatorId:'a',createdBy:'oa',createdAt:serverTimestamp(),expiresAt:0,revoked:false,usedBy:''}));
+ const r=db('newreader'),user={...profile('meter_reader','a','approved','newreader'),inviteCode:code};await assertFails(setDoc(doc(r,'users','newreader'),user));
+ const b=writeBatch(r);b.set(doc(r,'users','newreader'),user);b.set(doc(r,'meterStaff','newreader'),{name:'meter_reader',generatorId:'a',active:true,inviteCode:code});b.update(doc(r,'meterInvites',code),{usedBy:'newreader'});await assertSucceeds(b.commit());
+ await assertFails(updateDoc(doc(db('other'),'meterInvites',code),{usedBy:'other'}));await assertFails(getDocs(collection(r,'meterInvites')));
+ await assertFails(setDoc(doc(db('ob'),'meterInvites','b'.repeat(32)),{generatorId:'a',createdBy:'ob',createdAt:serverTimestamp(),expiresAt:0,revoked:false,usedBy:''}));
 });
-test('ID swap releases old claim atomically and requires recent auth', async()=>{
- const old='123456789', next='987654321';
- await env.withSecurityRulesDisabled(async(c)=>{await setDoc(doc(c.firestore(),'idIndex',old),{uid:'ca'});await updateDoc(doc(c.firestore(),'users','ca'),{idNumber:old,credentialVersion:1});});
- const stale=identityDb('ca',next,{auth_time:Math.floor(Date.now()/1000)-600}),fail=writeBatch(stale);
- fail.set(doc(stale,'idIndex',next),{uid:'ca'});fail.update(doc(stale,'users','ca'),{idNumber:next});fail.delete(doc(stale,'idIndex',old));await assertFails(fail.commit());
- const f=identityDb('ca',next),missingDelete=writeBatch(f);missingDelete.set(doc(f,'idIndex',next),{uid:'ca'});missingDelete.update(doc(f,'users','ca'),{idNumber:next});await assertFails(missingDelete.commit());
- const b=writeBatch(f);b.set(doc(f,'idIndex',next),{uid:'ca'});b.update(doc(f,'users','ca'),{idNumber:next});b.delete(doc(f,'idIndex',old));await assertSucceeds(b.commit());
+test('reader cannot see prices, money, past rounds or other generator; current row writes only',async()=>{
+ await seedReader();const r=db('ra');await assertSucceeds(getDoc(doc(r,'meterAssignments','round_ca')));for(const [col,id] of [['bills','ba'],['billingSettings','a'],['generators','a'],['complaints','qa'],['users','ca']])await assertFails(getDoc(doc(r,col,id)));
+ const value={generatorId:'a',roundId:'round',subscriberId:'ca',readerUid:'ra',currentMilli:21000,previousMilli:20000,confirmedJump:false,updatedBy:'ra',updatedAt:serverTimestamp()};
+ await assertSucceeds(setDoc(doc(r,'meterReadings','round_ca'),value));await assertFails(updateDoc(doc(r,'meterReadings','round_ca'),{currentMilli:19000,updatedAt:serverTimestamp()}));await assertFails(updateDoc(doc(r,'meterReadings','round_ca'),{priceAgorot:1,updatedAt:serverTimestamp()}));
+ await assertFails(updateDoc(doc(r,'meterReadings','round_ca'),{currentMilli:24000,updatedAt:serverTimestamp()}));await assertSucceeds(updateDoc(doc(r,'meterReadings','round_ca'),{currentMilli:24000,confirmedJump:true,updatedAt:serverTimestamp()}));
+ await assertFails(getDoc(doc(db('cb'),'meterReadings','round_ca')));await assertFails(getDoc(doc(db('ob'),'meterReadings','round_ca')));
+ await updateDoc(doc(db('oa'),'readerRounds','a'),{status:'closed'});await assertFails(getDoc(doc(r,'meterReadings','round_ca')));await assertFails(setDoc(doc(r,'meterReadings','round_ca'),value));
 });
-test('verified phone required, no plaintext password writes by any client',async()=>{
- const id='123456789', f=identityDb('ca',id),b=writeBatch(f);
- b.set(doc(f,'idIndex',id),{uid:'ca'});b.update(doc(f,'users','ca'),{idNumber:id,credentialVersion:1,phone:'+970599999999'});await assertFails(b.commit());
- for(const uid of ['ca','oa','sa']) await assertFails(updateDoc(doc(db(uid),'users','ca'),{password:'not-a-real-secret'}));
- const valid=writeBatch(f);valid.set(doc(f,'idIndex',id),{uid:'ca'});valid.update(doc(f,'users','ca'),{idNumber:id,credentialVersion:1});await assertSucceeds(valid.commit());
- const changed=identityDb('ca',id,{phone_number:'+970599999999'});
- await assertSucceeds(updateDoc(doc(changed,'users','ca'),{phone:'+970599999999'}));
- await assertFails(updateDoc(doc(f,'users','ca'),{phone:'+970588888888'}));
+test('owner revocation immediately blocks reader and cannot be self-reversed',async()=>{await seedReader();const f=db('oa'),b=writeBatch(f);b.update(doc(f,'meterStaff','ra'),{active:false});b.update(doc(f,'users','ra'),{status:'suspended',rejectionReason:'إلغاء الصلاحية'});await assertSucceeds(b.commit());await assertFails(getDoc(doc(db('ra'),'readerRounds','a')));await assertFails(updateDoc(doc(db('ra'),'meterStaff','ra'),{active:true}));});
+const cycleData=()=>({generatorId:'a',roundId:'round',subscriberId:'ca',userId:'ca',name:'مشترك',date:Date.now(),snapshot:{amountAgorot:10000},amountAgorot:10000,paidAgorot:0,paymentSequence:0,pendingPaymentId:'',published:false,status:'unpaid',revision:0});
+async function seedCycle(){await seedReader();await env.withSecurityRulesDisabled(async c=>{const f=c.firestore();await setDoc(doc(f,'cycleBills','round_ca'),cycleData());await setDoc(doc(f,'accountBalances','ca'),{generatorId:'a',subscriberId:'ca',userId:'ca',billedAgorot:10000,collectedAgorot:0});await setDoc(doc(f,'billingSubscribers','ca'),{generatorId:'a',userId:'ca',name:'مشترك',phone:'',address:'حي',number:'1',previousMilli:20000,averageMilli:1000,recentDifferences:[1000],readerUid:'ra',active:true,lastRoundId:''});});}
+test('new round collections owner only and isolated; no reader money or past/private subscriber data',async()=>{await seedCycle();const f=db('oa');const round={generatorId:'a',status:'open',date:Date.now(),cycleDays:10,settings:{priceAgorot:100},subscriberIds:['ca'],createdBy:'oa'};await assertSucceeds(setDoc(doc(f,'billingRounds','round'),round));await assertSucceeds(setDoc(doc(f,'billingLinks','ca'),{generatorId:'a',subscriberId:'ca'}));await assertSucceeds(setDoc(doc(f,'readingCorrections','x'),{generatorId:'a',billId:'round_ca',before:{},after:{},reason:'تصحيح',by:'oa',at:serverTimestamp()}));for(const [col,id]of [['billingRounds','round'],['billingSubscribers','ca'],['readingCorrections','x'],['accountBalances','ca'],['cycleBills','round_ca']]){await assertSucceeds(getDoc(doc(f,col,id)));for(const uid of ['ra','ob','cb']){await assertFails(getDoc(doc(db(uid),col,id)));await assertFails(setDoc(doc(db(uid),col,id),{...round}));}}await assertSucceeds(getDoc(doc(db('ca'),'accountBalances','ca')));await assertFails(getDoc(doc(db('ca'),'cycleBills','round_ca')));await assertFails(updateDoc(doc(db('ca'),'accountBalances','ca'),{collectedAgorot:10000}));await assertFails(updateDoc(doc(f,'readingCorrections','x'),{reason:'إخفاء'}));});
+test('partial payment atomic submission and immutable approval cannot duplicate or exceed balance',async()=>{
+ await seedCycle();const owner=db('oa'),c=db('ca');await updateDoc(doc(owner,'cycleBills','round_ca'),{published:true});await assertSucceeds(getDoc(doc(c,'cycleBills','round_ca')));
+ const payment={generatorId:'a',billId:'round_ca',subscriberId:'ca',userId:'ca',roundId:'round',amountAgorot:4000,date:Date.now(),reference:'R1',method:'cash',status:'pending',sequence:1,submittedAt:serverTimestamp()};
+ await assertFails(setDoc(doc(c,'cyclePayments','round_ca_1'),payment));let b=writeBatch(c);b.set(doc(c,'cyclePayments','round_ca_1'),payment);b.update(doc(c,'cycleBills','round_ca'),{pendingPaymentId:'round_ca_1',paymentSequence:1});await assertSucceeds(b.commit());await assertFails(updateDoc(doc(c,'cyclePayments','round_ca_1'),{status:'approved'}));
+ b=writeBatch(owner);b.update(doc(owner,'cyclePayments','round_ca_1'),{status:'approved',reason:'',reviewedBy:'oa',reviewedAt:serverTimestamp()});b.update(doc(owner,'cycleBills','round_ca'),{paidAgorot:4000,pendingPaymentId:'',status:'partial'});b.update(doc(owner,'accountBalances','ca'),{collectedAgorot:4000});await assertSucceeds(b.commit());
+ await assertFails(updateDoc(doc(owner,'cyclePayments','round_ca_1'),{status:'approved',reviewedAt:serverTimestamp()}));
+ b=writeBatch(c);b.set(doc(c,'cyclePayments','round_ca_2'),{...payment,sequence:2,amountAgorot:6001});b.update(doc(c,'cycleBills','round_ca'),{pendingPaymentId:'round_ca_2',paymentSequence:2});await assertFails(b.commit());
+ for(const uid of ['ra','cb','ob']){await assertFails(getDoc(doc(db(uid),'cyclePayments','round_ca_1')));await assertFails(setDoc(doc(db(uid),'cyclePayments','attack'),payment));}
 });
-test('claim cannot be written for another UID or mismatched Auth email',async()=>{
- const id='123456789',f=identityDb('ca','987654321'),b=writeBatch(f);
- b.set(doc(f,'idIndex',id),{uid:'ca'});b.update(doc(f,'users','ca'),{idNumber:id,credentialVersion:1});await assertFails(b.commit());
- const c=identityDb('ca',id),wrong=writeBatch(c);wrong.set(doc(c,'idIndex',id),{uid:'cb'});wrong.update(doc(c,'users','ca'),{idNumber:id,credentialVersion:1});await assertFails(wrong.commit());
+test('offline reader write queues one row and reconciles after reconnect',async()=>{await seedReader();const r=db('ra');await getDoc(doc(r,'meterAssignments','round_ca'));await getDoc(doc(r,'readerRounds','a'));await getDoc(doc(r,'users','ra'));const {disableNetwork,enableNetwork,getDocFromCache}=await import('firebase/firestore');await disableNetwork(r);const pending=setDoc(doc(r,'meterReadings','round_ca'),{generatorId:'a',roundId:'round',subscriberId:'ca',readerUid:'ra',currentMilli:21000,previousMilli:20000,confirmedJump:false,updatedBy:'ra',updatedAt:serverTimestamp()});await new Promise(resolve=>setTimeout(resolve,20));assert.equal((await getDocFromCache(doc(r,'meterReadings','round_ca'))).metadata.hasPendingWrites,true);await enableNetwork(r);await assertSucceeds(pending);assert.equal((await getDoc(doc(r,'meterReadings','round_ca'))).data().currentMilli,21000);});
+test('finance summaries, control and expense history owner-only; cross-tenant and reader denied',async()=>{
+ await seedCycle();const f=db('oa'),summary={generatorId:'a',generation:'x',kind:'total',key:'all',billedAgorot:10000,collectedAgorot:0,outstandingAgorot:10000,costAgorot:0,fuelAgorot:0,maintenanceAgorot:0,wagesAgorot:0,equipmentAgorot:0,otherAgorot:0};
+ await assertSucceeds(setDoc(doc(f,'financeControl','a'),{generatorId:'a',generation:'x',locked:false,token:'x',startedAt:1}));await assertSucceeds(setDoc(doc(f,'financeSummaries','a_x_total_all'),summary));const expense={generatorId:'a',amountAgorot:100,date:Date.now(),roundId:'round',category:'fuel',note:'وقود',deleted:false,createdBy:'oa',createdAt:serverTimestamp(),updatedBy:'oa',updatedAt:serverTimestamp()};await assertSucceeds(setDoc(doc(f,'expenses','e'),expense));await assertSucceeds(setDoc(doc(f,'expenseChanges','h'),{generatorId:'a',expenseId:'e',before:null,after:expense,by:'oa',at:serverTimestamp()}));
+ for(const uid of ['ca','cb','ob','ra'])for(const [col,id,data]of [['financeControl','a',{generatorId:'a',generation:'x',locked:false,token:'x',startedAt:1}],['financeSummaries','a_x_total_all',summary],['expenses','e',expense],['expenseChanges','h',{generatorId:'a',expenseId:'e',by:uid,at:serverTimestamp()}]]){await assertFails(getDoc(doc(db(uid),col,id)));await assertFails(setDoc(doc(db(uid),col,id),data));}
+ await assertFails(updateDoc(doc(f,'expenses','e'),{amountAgorot:1.5,updatedAt:serverTimestamp()}));await assertFails(updateDoc(doc(f,'expenseChanges','h'),{by:'other'}));
+ await updateDoc(doc(f,'financeControl','a'),{locked:true});await assertFails(updateDoc(doc(f,'expenses','e'),{amountAgorot:200,updatedAt:serverTimestamp()}));await assertFails(updateDoc(doc(f,'cycleBills','round_ca'),{amountAgorot:20000}));
 });
-
-test('index schema and ownership cannot be overwritten, including super-admin clients',async()=>{
- const id='123456789',f=identityDb('ca',id),b=writeBatch(f);
- b.set(doc(f,'idIndex',id),{uid:'ca'});b.update(doc(f,'users','ca'),{idNumber:id,credentialVersion:1});await assertSucceeds(b.commit());
- await assertFails(setDoc(doc(db('sa'),'idIndex',id),{uid:'cb'}));
- await assertFails(updateDoc(doc(db('sa'),'users','cb'),{idNumber:id}));
- await assertFails(updateDoc(doc(f,'idIndex',id),{phone:'+16505550000'}));
- await assertFails(deleteDoc(doc(db('sa'),'idIndex',id)));
-});
+test('approved cycle payment reversal requires reason and matching bill balance once',async()=>{await seedCycle();await env.withSecurityRulesDisabled(async c=>{await updateDoc(doc(c.firestore(),'cycleBills','round_ca'),{paidAgorot:4000,status:'partial'});await setDoc(doc(c.firestore(),'cyclePayments','p'),{generatorId:'a',billId:'round_ca',userId:'ca',subscriberId:'ca',roundId:'round',amountAgorot:4000,status:'approved'});});const f=db('oa'),b=writeBatch(f);b.update(doc(f,'cyclePayments','p'),{status:'reversed',reversalReason:'تصحيح',reversedBy:'oa',reversedAt:serverTimestamp()});b.update(doc(f,'cycleBills','round_ca'),{paidAgorot:0,status:'unpaid'});await assertSucceeds(b.commit());await assertFails(updateDoc(doc(f,'cyclePayments','p'),{status:'reversed',reversedAt:serverTimestamp()}));});
+test('publication and share markers are owner-only; linked bill and alert publish atomically',async()=>{await seedCycle();const f=db('oa');const b=writeBatch(f);b.update(doc(f,'cycleBills','round_ca'),{published:true,publicationRecipient:'ca'});b.set(doc(f,'alerts','cycle_round_ca'),{generatorId:'a',userId:'ca',title:'فاتورة جديدة',body:'راجع الكشف',type:'newBill',read:false,createdAt:Date.now()});await assertSucceeds(b.commit());await assertSucceeds(getDoc(doc(db('ca'),'cycleBills','round_ca')));await assertSucceeds(getDoc(doc(db('ca'),'alerts','cycle_round_ca')));const marker={generatorId:'a',billId:'round_ca',roundId:'round',status:'marked',by:'oa',at:serverTimestamp()};await assertSucceeds(setDoc(doc(f,'billShares','round_ca'),marker));for(const uid of ['ra','ca','cb','ob']){await assertFails(getDoc(doc(db(uid),'billShares','round_ca')));await assertFails(setDoc(doc(db(uid),'billShares','round_ca'),marker));await assertFails(updateDoc(doc(db(uid),'cycleBills','round_ca'),{published:false}));}});
+test('expired and revoked invitations never create a reader; unauthenticated codes are private',async()=>{for(const variant of ['expired','revoked']){const code=(variant=='expired'?'c':'d').repeat(32);await env.withSecurityRulesDisabled(async c=>setDoc(doc(c.firestore(),'meterInvites',code),{generatorId:'a',createdBy:'oa',createdAt:serverTimestamp(),expiresAt:variant=='expired'?1:0,revoked:variant=='revoked',usedBy:''}));const f=db('fresh'),b=writeBatch(f);b.set(doc(f,'users','fresh'),{...profile('meter_reader','a','approved','fresh'),inviteCode:code});b.set(doc(f,'meterStaff','fresh'),{name:'meter_reader',generatorId:'a',active:true,inviteCode:code});b.update(doc(f,'meterInvites',code),{usedBy:'fresh'});await assertFails(b.commit());await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(),'meterInvites',code)));}});
+test('summary updates remain exact under concurrent transactions',async()=>{const f=db('oa'),ref=doc(f,'financeSummaries','a_x_total_all');await setDoc(ref,{generatorId:'a',generation:'x',kind:'total',key:'all',billedAgorot:10000,collectedAgorot:0,outstandingAgorot:10000,costAgorot:0,fuelAgorot:0,maintenanceAgorot:0,wagesAgorot:0,equipmentAgorot:0,otherAgorot:0});async function increment(){await runTransaction(f,async tx=>{const d=(await tx.get(ref)).data();tx.update(ref,{collectedAgorot:d.collectedAgorot+100,outstandingAgorot:d.outstandingAgorot-100});});}await Promise.all([increment(),increment()]);assert.equal((await getDoc(ref)).data().collectedAgorot,200);assert.equal((await getDoc(ref)).data().outstandingAgorot,9800);});
+test('manual account linking can repair payment ownership without altering amounts',async()=>{await seedCycle();await env.withSecurityRulesDisabled(async c=>{await setDoc(doc(c.firestore(),'cyclePayments','manual'),{generatorId:'a',billId:'round_ca',userId:'',status:'approved',amountAgorot:1000});});const f=db('oa');await assertSucceeds(updateDoc(doc(f,'cyclePayments','manual'),{userId:'ca'}));await assertSucceeds(getDoc(doc(db('ca'),'cyclePayments','manual')));await assertFails(updateDoc(doc(f,'cyclePayments','manual'),{userId:'cb'}));await assertFails(updateDoc(doc(db('ca'),'cyclePayments','manual'),{amountAgorot:1}));});
+test('own plain contacts editable for consumers owners readers without credential escalation',async()=>{await seedReader();for(const uid of ['ca','oa','ra']){const f=db(uid);await assertSucceeds(updateDoc(doc(f,'users',uid),{phone:'0561234567',idNumber:'123456789',address:'عنوان جديد'}));for(const data of [{role:'super_admin'},{status:'approved',generatorId:'b'},{subscriptionStatus:'inactive'},{credentialVersion:3},{email:'other@example.test'},{phone:'123'},{idNumber:'abc'}])await assertFails(updateDoc(doc(f,'users',uid),data));}await assertFails(updateDoc(doc(db('cb'),'users','ca'),{phone:'0591234567'}));});
+test('owner and consumer enrollment require mobile; legacy missing contact remains editable',async()=>{const f=db('new');await assertFails(setDoc(doc(f,'users','new'),{...profile('user','a','pending','new'),phone:'',subscriptionStatus:'inactive'}));await assertFails(setDoc(doc(f,'users','new'),{...profile('user','a','pending','new'),phone:'123',subscriptionStatus:'inactive'}));await env.withSecurityRulesDisabled(c=>updateDoc(doc(c.firestore(),'users','ca'),{phone:''}));await assertSucceeds(updateDoc(doc(db('ca'),'users','ca'),{address:'بلا إغلاق الحساب'}));});
+test('legacy international mobile does not block an owner approving the subscriber',async()=>{await env.withSecurityRulesDisabled(c=>updateDoc(doc(c.firestore(),'users','pending'),{phone:'+970591234567'}));await assertSucceeds(updateDoc(doc(db('oa'),'users','pending'),{status:'approved',subscriptionStatus:'active'}));});
+test('preparation can read missing assignment then create it; cancel only preparing atomically',async()=>{const f=db('oa');await assertSucceeds(getDoc(doc(f,'meterAssignments','resume_ca')));const round={generatorId:'a',status:'preparing',date:1,cycleDays:10,settings:{},subscriberIds:['ca'],createdBy:'oa'};await setDoc(doc(f,'billingRounds','resume'),round);await setDoc(doc(f,'readerRounds','a'),{generatorId:'a',roundId:'resume',status:'preparing',date:1,cycleDays:10});await assertSucceeds(setDoc(doc(f,'meterAssignments','resume_ca'),{generatorId:'a',readerUid:'oa',roundId:'resume',name:'اسم',address:'حي',number:'1',previousMilli:0,averageMilli:0}));await assertFails(getDoc(doc(db('ob'),'meterAssignments','resume_ca')));await assertFails(updateDoc(doc(f,'readerRounds','a'),{status:'cancelled'}));const b=writeBatch(f);b.update(doc(f,'billingRounds','resume'),{status:'cancelled'});b.update(doc(f,'readerRounds','a'),{status:'cancelled'});await assertSucceeds(b.commit());await assertFails(updateDoc(doc(db('ca'),'billingRounds','resume'),{status:'open'}));});

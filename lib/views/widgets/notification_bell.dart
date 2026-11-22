@@ -1,3 +1,4 @@
+import 'portal_keyboard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -60,8 +61,9 @@ class NotificationBell extends ConsumerWidget {
     if (uid.isNotEmpty) {
       FirebaseService().markAllAlertsRead(uid);
     }
-    await showModalBottomSheet(
+    await showPortalFormSheet(
       context: context,
+      scrollable: false,
       isScrollControlled: true,
       backgroundColor: PortalTokens.transparent,
       builder: (_) => ProviderScope(

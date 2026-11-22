@@ -1,4 +1,9 @@
-import 'dart:convert';
+import 'contact_fields.dart';
+import '../features/finance/ledger.dart';
+import '../features/billing_settings/models.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/auth_provider.dart';
+import '../providers/tenant_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -7,6 +12,7 @@ import '../models/generator_model.dart';
 import 'tenant_store.dart';
 import '../config/app_config.dart';
 import '../models/bill_model.dart';
+import '../models/payment_model.dart';
 
 class FirebaseService {
   static final FirebaseService _instance = FirebaseService._internal();
@@ -30,7 +36,7 @@ class FirebaseService {
 
   static Future<void> initialize() async {
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      // Phone verification must use the native Android app ID/signing config.
+      // Authentication uses the native Android app ID/signing config.
       // google-services.json and AppConfig point to the same existing project.
       await Firebase.initializeApp();
       return;
@@ -40,7 +46,6 @@ class FirebaseService {
         apiKey: AppConfig.firebaseApiKey,
         authDomain: AppConfig.firebaseAuthDomain,
         projectId: AppConfig.firebaseProjectId,
-        storageBucket: AppConfig.firebaseStorageBucket,
         messagingSenderId: AppConfig.firebaseMessagingSenderId,
         appId: AppConfig.firebaseAppId,
       ),
@@ -59,11 +64,28 @@ class FirebaseService {
     await (await _generatorRef()).set(payload, SetOptions(merge: true));
   }
 
-  // Update current price per kWh for the system
+  // Compatibility UI entry point; the canonical price is integer agorot.
   Future<void> updatePricePerKwh(double pricePerKwh) async {
-    await (await _generatorRef()).set({
-      'pricePerKwh': pricePerKwh,
-    }, SetOptions(merge: true));
+    final actor = await _store.requireOwner();
+    if (actor.superAdmin) {
+      throw StateError('إعدادات صاحب المولد فقط');
+    }
+    final price = parseFixed(pricePerKwh.toString(), 2);
+    final ref = _db.collection('billingSettings').doc(actor.generatorId);
+    await _db.runTransaction((tx) async {
+      final old = await tx.get(ref);
+      final data = {
+        ...BillingSettings.fromMap(old.data() ?? {}).toMap(),
+        'priceAgorot': price
+      };
+      BillingSettings.fromMap(data).validate();
+      tx.set(ref, {
+        ...data,
+        'generatorId': actor.generatorId,
+        'updatedBy': actor.uid,
+        'updatedAt': FieldValue.serverTimestamp()
+      });
+    });
   }
 
   // Update the generator ON/OFF schedule times
@@ -77,94 +99,158 @@ class FirebaseService {
     }, SetOptions(merge: true));
   }
 
-  // Add subscriber
-  Future<void> addSubscriber(String uid, String name, String phone,
-      String address, int ampereLimit) async {
-    final who = await _store.requireOwner();
-    final ref = _db.collection('users').doc(uid);
-    await ref.set({
-      'phone': phone,
-      'name': name,
-      'address': address,
-      'role': 'user',
-      'status': 'approved',
-      'generatorId': who.generatorId,
-      'subscriptionStatus': 'active',
-      'ampereLimit': ampereLimit,
-      'createdAt': DateTime.now().millisecondsSinceEpoch,
-    });
-  }
-
-  // Add subscriber by phone (generates a document ID from phone number)
-  Future<void> addSubscriberByPhone(
-      String name, String phone, String address, int ampereLimit) async {
-    final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
-    final who = await _store.requireOwner();
-    final docId = 'sub_${who.generatorId}_$cleanPhone';
-    await _db.collection('users').doc(docId).set({
-      'phone': cleanPhone,
-      'name': name,
-      'address': address,
-      'role': 'user',
-      'status': 'approved',
-      'generatorId': who.generatorId,
-      'subscriptionStatus': 'active',
-      'ampereLimit': ampereLimit,
-      'createdAt': DateTime.now().millisecondsSinceEpoch,
-    });
-  }
-
   // Update subscriber
   Future<void> updateSubscriber(String uid,
-      {String? name, String? address, String? status, int? ampereLimit}) async {
+      {String? name,
+      String? address,
+      String? status,
+      int? ampereLimit,
+      String? reason}) async {
     await _store.requireOwner();
     final data = <String, dynamic>{};
     if (name != null) data['name'] = name;
     if (address != null) data['address'] = address;
-    if (status != null) data['subscriptionStatus'] = status;
+    if (status != null) {
+      if (status == 'inactive' && (reason == null || reason.trim().isEmpty)) {
+        throw ArgumentError('سبب الإيقاف مطلوب');
+      }
+      data['subscriptionStatus'] = status;
+      data['status'] = status == 'inactive' ? 'suspended' : 'approved';
+      data['rejectionReason'] = status == 'inactive' ? reason!.trim() : '';
+    }
     if (ampereLimit != null) data['ampereLimit'] = ampereLimit;
     if (data.isNotEmpty) {
       await (await _store.checkedDocument('users', uid)).reference.update(data);
     }
   }
 
-  // Approve/reject receipt
-  Future<void> updateBillStatus(String billId, BillStatus status) async {
-    await _store.requireOwner();
-    await (await _store.checkedDocument('bills', billId)).reference.update({
-      'status': status.name,
-    });
-  }
-
-  // Upload receipt (Base64)
-  Future<void> uploadReceipt(String billId, Uint8List imageBytes) async {
-    final base64 = base64Encode(imageBytes);
-    await (await _store.checkedDocument('bills', billId)).reference.update({
-      'receiptBase64': base64,
-      'status': 'pendingReview',
-    });
-  }
-
-  // Upload receipt by userId (finds the latest pending bill)
-  Future<void> uploadReceiptForUser(String userId, Uint8List imageBytes) async {
-    final base64 = base64Encode(imageBytes);
-    final query = await (await _store.query('bills', userId: userId))
-        .where('status', isEqualTo: 'pending')
-        .orderBy('createdAt', descending: true)
-        .limit(1)
-        .get();
-    if (query.docs.isNotEmpty) {
-      await query.docs.first.reference.update({
-        'receiptBase64': base64,
-        'status': 'pendingReview',
-      });
-    } else {
-      throw StateError('لا توجد فاتورة معلقة لرفع الإيصال');
+  // Single compact declaration per bill. Transactions fail offline instead of
+  // queuing an unreviewed duplicate. No files, Storage or image bytes are written.
+  Future<void> submitPayment(String billId, PaymentRecord payment) async {
+    final who = await _store.actor();
+    if (who.profile.role.name != 'consumer') throw StateError('للمشترك فقط');
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (payment.amountMinor <= 0 ||
+        payment.date <= 0 ||
+        payment.date > now + 86400000 ||
+        payment.reference.trim().isEmpty ||
+        payment.reference.trim().length > 80 ||
+        !paymentMethods.containsKey(payment.method)) {
+      throw ArgumentError('بيانات الدفع غير صحيحة');
     }
+    final ref = _db.collection('bills').doc(billId);
+    await _db.runTransaction((tx) async {
+      final doc = await tx.get(ref);
+      final data = doc.data();
+      if (data == null ||
+          data['userId'] != who.uid ||
+          normalizedGeneratorId(data['generatorId']) != who.generatorId) {
+        throw StateError('فاتورة غير متاحة');
+      }
+      if (payment.amountMinor != (data['amount'] as num).toInt() * 100) {
+        throw ArgumentError('سجل المبلغ الكامل للفاتورة');
+      }
+      if (data['status'] == 'pendingReview') {
+        final old = data['payment'] as Map?;
+        if (old?['amountMinor'] == payment.amountMinor &&
+            old?['date'] == payment.date &&
+            old?['reference'] == payment.reference.trim() &&
+            old?['method'] == payment.method) {
+          return;
+        }
+        throw StateError('الدفع قيد المراجعة بالفعل');
+      }
+      if (!['pending', 'rejected'].contains(data['status'])) {
+        throw StateError('لا يمكن إعادة دفع فاتورة معتمدة');
+      }
+      tx.update(ref, {
+        'status': 'pendingReview',
+        'payment': {
+          ...payment.toMap(),
+          'reference': payment.reference.trim(),
+          'submittedAt': now,
+          'version':
+              ((data['payment'] as Map?)?['version'] as num? ?? 0).toInt() + 1
+        }
+      });
+    });
   }
 
-  // Decode Base64 to bytes
-  static Uint8List decodeBase64(String base64) => base64Decode(base64);
+  Future<void> updateBillStatus(String billId, BillStatus status,
+      {String reason = '', int? expectedVersion}) async {
+    final who = await _store.requireOwner();
+    if (![BillStatus.paid, BillStatus.rejected].contains(status)) {
+      throw ArgumentError('قرار غير صحيح');
+    }
+    if (status == BillStatus.rejected &&
+        (reason.trim().isEmpty || reason.length > 500)) {
+      throw ArgumentError('سبب الرفض مطلوب');
+    }
+    final ref = _db.collection('bills').doc(billId);
+    await _db.runTransaction((tx) async {
+      final doc = await tx.get(ref);
+      final data = doc.data();
+      if (data == null ||
+          (!who.superAdmin &&
+              normalizedGeneratorId(data['generatorId']) != who.generatorId)) {
+        throw StateError('فاتورة غير متاحة');
+      }
+      final version =
+          ((data['payment'] as Map?)?['version'] as num?)?.toInt() ?? 0;
+      if (expectedVersion != null && expectedVersion != version) {
+        throw StateError('تغير سجل الدفع؛ أعد فتحه للمراجعة');
+      }
+      if (data['status'] == status.name) {
+        return; // Idempotent repeated approval/rejection.
+      }
+      if (data['status'] != 'pendingReview' || data['payment'] is! Map) {
+        throw StateError('لا توجد إفادة دفع بانتظار المراجعة');
+      }
+      if (status == BillStatus.paid) {
+        final ledger = await readLedger(
+            tx, _db, normalizedGeneratorId(data['generatorId']));
+        await applyLedger(tx, _db, ledger, [
+          {
+            'date': data['payment']['date'],
+            'roundId': 'manual',
+            'collectedAgorot': (data['amount'] as int) * 100
+          },
+          {
+            'date': data['createdAt'] ?? 0,
+            'roundId': 'manual',
+            'outstandingAgorot': -(data['amount'] as int) * 100
+          }
+        ]);
+      }
+      tx.update(ref, {
+        'status': status.name,
+        'reviewReason': reason.trim(),
+        'reviewedBy': who.uid,
+        'reviewedVersion': version,
+        'reviewedAt': DateTime.now().millisecondsSinceEpoch
+      });
+      final submitted = version;
+      tx.set(
+          _db
+              .collection('alerts')
+              .doc('review_${billId}_${submitted}_${status.name}'),
+          {
+            'generatorId': normalizedGeneratorId(data['generatorId']),
+            'userId': data['userId'],
+            'title': status == BillStatus.paid
+                ? 'تم اعتماد الدفع'
+                : 'تم رفض سجل الدفع',
+            'body': status == BillStatus.paid
+                ? 'تمت مراجعة الدفعة واعتمادها.'
+                : reason.trim(),
+            'type': status == BillStatus.paid
+                ? 'paymentApproved'
+                : 'paymentRejected',
+            'read': false,
+            'createdAt': DateTime.now().millisecondsSinceEpoch,
+          });
+    });
+  }
 
   // Mark all alerts as read for a user
   Future<void> markAllAlertsRead(String userId) async {
@@ -222,32 +308,66 @@ class FirebaseService {
     });
   }
 
+  Future<BillingCalculation> _calculateUsage(
+      String userId, double usage) async {
+    final gid = await _store.targetGenerator(userId);
+    final doc = await _db.collection('billingSettings').doc(gid).get();
+    final settings = BillingSettings.fromMap(doc.data() ?? {});
+    // Compatibility API carries usage, never money; reject precision loss.
+    final milli = parseFixed(usage.toString(), 3);
+    return calculateBill(
+        previousMilli: 0, currentMilli: milli, settings: settings);
+  }
+
   // Create bill (legacy — single document)
   Future<void> createBill(
       String userId, String month, int year, int amount, double kwh) async {
     await _store.requireOwner();
-    await _db.collection('bills').add({
-      'generatorId': await _store.targetGenerator(userId),
-      'userId': userId,
-      'month': month,
-      'year': year,
-      'amount': amount,
-      'kwh': kwh,
-      'status': 'pending',
-      'createdAt': DateTime.now().millisecondsSinceEpoch,
+    final calculation = await _calculateUsage(userId, kwh);
+    if (amount != calculation.amountAgorot ~/ 100) {
+      throw StateError('تغيرت إعدادات الفوترة؛ أعد حساب المبلغ قبل الإصدار');
+    }
+    final gid = await _store.targetGenerator(userId);
+    await _db.runTransaction((tx) async {
+      final ledger = await readLedger(tx, _db, gid);
+      await applyLedger(tx, _db, ledger, [
+        {
+          'date': DateTime.now().millisecondsSinceEpoch,
+          'roundId': 'manual',
+          'billedAgorot': amount * 100,
+          'outstandingAgorot': amount * 100
+        }
+      ]);
+      tx.set(_db.collection('bills').doc(), {
+        'generatorId': gid,
+        'userId': userId,
+        'month': month,
+        'year': year,
+        'amount': amount,
+        'amountAgorot': calculation.amountAgorot,
+        'billingSnapshot': calculation.toMap(),
+        'kwh': kwh,
+        'status': 'pending',
+        'createdAt': DateTime.now().millisecondsSinceEpoch,
+      });
     });
   }
 
   // Find a subscriber by their ID number (رقم الهوية)
   // Returns the UserProfile UID if found, null otherwise.
   Future<String?> findUserByIdNumber(String idNumber) async {
-    final trimmed = idNumber.trim();
+    final trimmed = normalizeDigits(idNumber).trim();
     if (trimmed.isEmpty) return null;
     final query = (await _store.query('users'))
         .where('role', whereIn: ['user', 'consumer']);
     for (final entry in [
       ('idNumber', trimmed),
+      ('phone', normalizeMobile(trimmed)),
       ('phone', trimmed),
+      if (palestinianMobile(trimmed))
+        ('phone', '+970${normalizeMobile(trimmed).substring(1)}'),
+      if (palestinianMobile(trimmed))
+        ('phone', '+972${normalizeMobile(trimmed).substring(1)}'),
       ('email', '$trimmed@powershare.app'),
     ]) {
       final snapshot =
@@ -274,63 +394,79 @@ class FirebaseService {
     int? weekNumber,
   }) async {
     await _store.requireOwner();
-    final batch = _db.batch();
-    final now = DateTime.now().millisecondsSinceEpoch;
+    final calculation = await _calculateUsage(userId, kwh);
+    if (amount != calculation.amountAgorot ~/ 100) {
+      throw StateError('تغيرت إعدادات الفوترة؛ أعد حساب المبلغ قبل الإصدار');
+    }
+    final gid = await _store.targetGenerator(userId);
+    await _db.runTransaction((batch) async {
+      final ledger = await readLedger(batch, _db, gid);
+      final now = DateTime.now().millisecondsSinceEpoch;
 
-    // 1. New bill document
-    final billRef = _db.collection('bills').doc();
-    batch.set(billRef, {
-      'generatorId': await _store.targetGenerator(userId),
-      'userId': userId,
-      'month': month,
-      'year': year,
-      if (weekNumber != null) 'weekNumber': weekNumber,
-      'amount': amount,
-      'kwh': kwh,
-      'status': 'pending',
-      'createdAt': now,
-      'billingPeriod': weekNumber != null ? 'weekly' : 'monthly',
-    });
-
-    // 2. Upsert consumption document (doc ID = userId)
-    final consumptionRef = _db.collection('consumption').doc(userId);
-    final dailyUsage = double.parse((kwh / 30).toStringAsFixed(2));
-    final payload = {
-      'generatorId': await _store.targetGenerator(userId),
-      'userId': userId,
-      'monthlyUsage': kwh,
-      'dailyUsage': dailyUsage,
-      'month': month,
-      'updatedAt': now,
-    };
-
-    if (weekNumber != null) {
-      payload['weeklyUsage'] = FieldValue.arrayUnion([
+      await applyLedger(batch, _db, ledger, [
         {
-          'generatorId': await _store.targetGenerator(userId),
-          'month': month,
-          'year': year,
-          'weekNumber': weekNumber,
-          'kwh': kwh,
-          'amount': amount,
-          'createdAt': now,
+          'date': now,
+          'roundId': 'manual',
+          'billedAgorot': amount * 100,
+          'outstandingAgorot': amount * 100
         }
       ]);
-    }
+      // 1. New bill document
+      final billRef = _db.collection('bills').doc();
+      batch.set(billRef, {
+        'generatorId': gid,
+        'userId': userId,
+        'month': month,
+        'year': year,
+        if (weekNumber != null) 'weekNumber': weekNumber,
+        'amount': amount,
+        'amountAgorot': calculation.amountAgorot,
+        'billingSnapshot': calculation.toMap(),
+        'kwh': kwh,
+        'status': 'pending',
+        'createdAt': now,
+        'billingPeriod': weekNumber != null ? 'weekly' : 'monthly',
+      });
 
-    batch.set(consumptionRef, payload, SetOptions(merge: true));
+      // 2. Upsert consumption document (doc ID = userId)
+      final consumptionRef = _db.collection('consumption').doc(userId);
+      final dailyUsage = double.parse((kwh / 30).toStringAsFixed(2));
+      final payload = {
+        'generatorId': gid,
+        'userId': userId,
+        'monthlyUsage': kwh,
+        'dailyUsage': dailyUsage,
+        'month': month,
+        'updatedAt': now,
+      };
 
-    // 3. In-app alert belongs to the same tenant and atomic invoice batch.
-    batch.set(_db.collection('alerts').doc(), {
-      'generatorId': await _store.targetGenerator(userId),
-      'userId': userId,
-      'title': 'فاتورة مستحقة جديدة 🧾',
-      'body': 'تم إصدار فاتورة جديدة لشهر $month، يرجى المراجعة والسداد.',
-      'type': 'newBill',
-      'read': false,
-      'createdAt': now,
+      if (weekNumber != null) {
+        payload['weeklyUsage'] = FieldValue.arrayUnion([
+          {
+            'generatorId': gid,
+            'month': month,
+            'year': year,
+            'weekNumber': weekNumber,
+            'kwh': kwh,
+            'amount': amount,
+            'createdAt': now,
+          }
+        ]);
+      }
+
+      batch.set(consumptionRef, payload, SetOptions(merge: true));
+
+      // 3. In-app alert belongs to the same tenant and atomic invoice batch.
+      batch.set(_db.collection('alerts').doc(), {
+        'generatorId': gid,
+        'userId': userId,
+        'title': 'فاتورة مستحقة جديدة 🧾',
+        'body': 'تم إصدار فاتورة جديدة لشهر $month، يرجى المراجعة والسداد.',
+        'type': 'newBill',
+        'read': false,
+        'createdAt': now,
+      });
     });
-    await batch.commit();
   }
 
   // Update user profile
@@ -353,3 +489,7 @@ class FirebaseService {
     await _store.reviewConsumer(uid, false, reason: reason);
   }
 }
+
+final firebaseServiceProvider = Provider<FirebaseService>((ref) =>
+    FirebaseService.forTesting(
+        ref.watch(firestoreProvider), () => ref.read(authProvider).user?.uid));
