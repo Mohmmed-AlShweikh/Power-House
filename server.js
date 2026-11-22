@@ -5,6 +5,7 @@ const path = require('path');
 const PORT = 5000;
 const WEB_DIR = path.join(__dirname, 'build', 'web');
 const STATIC_DIR = path.join(__dirname, 'web');
+const PORTFOLIO_DIR = path.join(__dirname, 'docs', 'portfolio');
 
 const MIME = {
   '.html': 'text/html',
@@ -19,10 +20,36 @@ const MIME = {
   '.otf':  'font/otf',
   '.svg':  'image/svg+xml',
   '.webmanifest': 'application/manifest+json',
+  '.pdf': 'application/pdf',
+  '.zip': 'application/zip',
+  '.md': 'text/plain; charset=utf-8',
 };
 
 http.createServer((req, res) => {
   let urlPath = req.url.split('?')[0];
+
+  // Self-contained case-study assets; never serve outside the public portfolio.
+  if (urlPath.startsWith('/portfolio-assets/')) {
+    let assetPath;
+    try {
+      assetPath = path.resolve(PORTFOLIO_DIR,
+        decodeURIComponent(urlPath.slice('/portfolio-assets/'.length)));
+    } catch (_) {
+      res.writeHead(400); res.end('Invalid path'); return;
+    }
+    if (!assetPath.startsWith(PORTFOLIO_DIR + path.sep)) {
+      res.writeHead(403); res.end('Forbidden'); return;
+    }
+    fs.readFile(assetPath, (err, data) => {
+      if (err) { res.writeHead(404); res.end('Not found'); return; }
+      res.writeHead(200, {
+        'Content-Type': MIME[path.extname(assetPath)] || 'application/octet-stream',
+        'Cache-Control': 'no-cache',
+      });
+      res.end(data);
+    });
+    return;
+  }
 
   // Portfolio page
   if (urlPath === '/portfolio' || urlPath === '/portfolio.html') {

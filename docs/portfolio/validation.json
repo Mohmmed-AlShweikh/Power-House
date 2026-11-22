@@ -1,0 +1,16 @@
+{
+  "externalRequests": [],
+  "brokenResources": [],
+  "checks": [
+    "6 slide PNGs + matching PDF rendered",
+    "responsive layout: 1440px no horizontal overflow",
+    "responsive layout: 768px no horizontal overflow",
+    "responsive layout: 390px no horizontal overflow",
+    "responsive layout: 320px no horizontal overflow",
+    "light/dark gallery switch + full-size preview open/close",
+    "Node /portfolio preview, in-page navigation, images, CSS and PDF/ZIP content types",
+    "Node portfolio path traversal blocked; missing files return 404",
+    "PDF verified as 6 pages; slides 1200x1500; covers 1600x1200",
+    "Flutter capture: 14 real widget renders, fake data only, no exceptions"
+  ]
+}
