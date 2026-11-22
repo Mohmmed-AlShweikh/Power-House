@@ -252,6 +252,7 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> with Widget
             enabled: !busy,
             keyboardType: TextInputType.emailAddress,
             textDirection: TextDirection.ltr,
+            textInputAction:TextInputAction.next,
             autofillHints: const [AutofillHints.email],
             decoration:
                 const InputDecoration(labelText: 'البريد الإلكتروني الحقيقي')),
@@ -289,6 +290,8 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> with Widget
       if (passwordFields) ...[
         TextField(
             key: const ValueKey('password'),
+            textInputAction:mode==CredentialMode.login?TextInputAction.go:TextInputAction.next,
+            onSubmitted:mode==CredentialMode.login?(_)=>submit():null,
             controller: password,
             obscureText: true,
             enabled: !busy,
@@ -307,6 +310,8 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> with Widget
                 'كلمة المرور تستوفي الشروط'),
           TextField(
               key: const ValueKey('password-confirm'),
+              textInputAction:TextInputAction.done,
+              onSubmitted:(_)=>submit(),
               controller: confirm,
               obscureText: true,
               enabled: !busy,
@@ -364,12 +369,12 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> with Widget
                     : '/consumer'),
             child: const Text('رجوع')),
     ];
-    return mode == CredentialMode.manage
+    return AutofillGroup(child:mode == CredentialMode.manage
         ? PortalPage(
             title: title,
             subtitle: 'بوابة المولدات',
             reserveNavigation: false,
             children: children)
-        : PortalAuthPage(title: title, children: children);
+        : PortalAuthPage(title: title, children: children));
   }
 }
