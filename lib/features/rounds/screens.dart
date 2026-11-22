@@ -1,3 +1,4 @@
+import '../metering/providers.dart';
 import 'overview.dart';
 import '../finance/providers.dart';
 import 'package:flutter/material.dart';
@@ -76,6 +77,8 @@ class RoundScreen extends ConsumerWidget {
                     for (final d in s.docs)
                       Builder(builder: (context) {
                         final row = MeterAssignment.fromMap(d.id, d.data());
+                        final staff=ref.watch(meterStaffProvider).valueOrNull?.docs.where((d)=>d.id==row.readerUid).toList();
+                        final readerName=row.readerUid==ref.read(authProvider).user?.uid?'صاحب المولد':staff?.isNotEmpty==true?staff!.single.data()['name']:'قارئ غير معروف';
                         final reading = values[d.id];
                         BillingCalculation? calc;
                         if (reading != null && data != null) {
@@ -95,6 +98,7 @@ class RoundScreen extends ConsumerWidget {
                                   style:
                                       Theme.of(context).textTheme.titleLarge),
                               Text('${row.address} • ${row.number}'),
+                            Text('القارئ: $readerName'),
                               PortalLabelValue(
                                   label: 'السابقة',
                                   value: formatFixed(row.previousMilli, 3)),
