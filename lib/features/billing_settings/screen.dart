@@ -86,6 +86,18 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
         const Text('مثال حسابي: قراءة سابقة 20، حالية 30'),
         PortalNumber('₪${formatFixed(result.amountAgorot, 2)}',
             style: Theme.of(context).textTheme.titleLarge),
+        PortalLabelValue(
+            label: 'تقريب 38.36 بحد ${values().roundingThresholdAgorot}',
+            value: formatFixed(
+                calculateBill(
+                        previousMilli: 0,
+                        currentMilli: 1000,
+                        settings: BillingSettings(
+                            priceAgorot: 3836,
+                            roundingThresholdAgorot:
+                                values().roundingThresholdAgorot))
+                    .amountAgorot,
+                2)),
         if (result.minimumApplied) const Text('تم تطبيق الحد الأدنى'),
       ]));
     } catch (_) {
@@ -102,7 +114,10 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
       final s = values();
       await ref.read(billingSettingsRepositoryProvider).save(s);
       if (mounted) {
-        if(!returnAfterPortalSave(context,'تم الحفظ؛ الفواتير السابقة لا تتغير')) { setState(() => message = 'تم الحفظ؛ الفواتير السابقة لا تتغير'); }
+        if (!returnAfterPortalSave(
+            context, 'تم الحفظ؛ الفواتير السابقة لا تتغير')) {
+          setState(() => message = 'تم الحفظ؛ الفواتير السابقة لا تتغير');
+        }
       }
     } catch (_) {
       if (mounted) {
@@ -132,12 +147,20 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                       : const TextInputType.numberWithOptions(decimal: true),
                   decoration: InputDecoration(
                       labelText: [
-                    'سعر الوحدة (₪)',
-                    'اسم الوحدة',
-                    'الحد الأدنى (وحدات)',
-                    'طول الدورة بالأيام',
-                    'عتبة التقريب بالأغورات (1–99)'
-                  ][i]))),
+                        'سعر الوحدة (₪)',
+                        'اسم الوحدة',
+                        'الحد الأدنى (وحدات)',
+                        'طول الدورة بالأيام',
+                        'حد التقريب (بالأغورات)'
+                      ][i],
+                      helperMaxLines: 4,
+                      helperText: [
+                        'سعر وحدة استهلاك واحدة بالشيكل.',
+                        'اسم وحدة القياس الظاهر على الفاتورة.',
+                        'حد أدنى للاستهلاك في كل دورة؛ 1.5 وحدة مثلاً.',
+                        'عدد الأيام المعتاد بين جولتي قراءة.',
+                        'إذا كان كسر المبلغ أقل من هذا الرقم يُحذف، وإن كان مساوياً أو أكبر يُقرّب لشيكل كامل. مثال عند 50: 38.36 ← 38، و38.50 ← 39. المجال 1–99.'
+                      ][i]))),
         const SizedBox(height: PortalTokens.lg),
         preview(),
         if (message != null)

@@ -10,4 +10,6 @@ final billingSettingsProvider = StreamProvider<BillingSettings>((ref) => ref
     .watch(billingSettingsRepositoryProvider)
     .document(ref.watch(tenantIdProvider))
     .autoSnapshots(ref)
-    .map((d) => BillingSettings.fromMap(d.data() ?? {})));
+    .map((d) => d.exists
+        ? BillingSettings.fromMap(d.data()!)
+        : const BillingSettings(minimumUnitsMilli: 1500)));
