@@ -1,3 +1,5 @@
 # Phone round 2
 
 1. Preparation blocker: prepare() reads meterAssignments/{round_subscriber} before creating it, but its read rule required resource.data membership even when the document did not exist. Firebase therefore rejected the existence check, leaving the already-written round preparing. Resume also rejected already-open rounds and finalized unconditionally, allowing a concurrent cancel/resume race. Fix owner-only missing-document reads, idempotent preparation/finalization, explicit required settings and safe soft cancellation; preserve reader isolation and invoices.
+
+2. Reader emptiness: assigning during preparation updated only the subscriber, while existing round assignments were skipped by prepare(), retaining the old reader. Reader queries intentionally show only open rounds but the empty copy conflated no round, preparing and no assignment. Reconcile reader assignment on resume and on assignment during preparation; explain exact empty state and keep the reader-only route guard.

@@ -143,8 +143,7 @@ class MeterReaderScreen extends ConsumerWidget {
             value: ref.watch(meterAssignmentsProvider),
             retry: () => ref.invalidate(meterAssignmentsProvider),
             builder: (rows) => rows.isEmpty
-                ? const PortalEmptyState(
-                    'لا توجد عدادات مسندة في جولة مفتوحة؛ تواصل مع صاحب المولد')
+                ? PortalEmptyState(ref.watch(readerOpenRoundProvider).valueOrNull?.data()?['status']=='preparing'?'الجولة قيد التحضير؛ ستظهر عداداتك عندما يفتحها صاحب المولد':ref.watch(readerOpenRoundProvider).valueOrNull?.data()?['status']=='open'?'جولة مفتوحة لكن لا توجد عدادات مسندة لك؛ تواصل مع صاحب المولد':'لا توجد جولة مفتوحة')
                 : Column(children: [
                     for (final row in rows)
                       MeterEntry(key: ValueKey(row.id), row: row)

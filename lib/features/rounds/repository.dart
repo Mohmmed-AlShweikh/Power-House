@@ -170,6 +170,7 @@ class RoundsRepository {
     if (subs.docs.isEmpty || subs.size > 1000) {
       throw StateError('يلزم 1–1000 مشترك في الجولة');
     }
+    if(subs.docs.any((s)=>(s.data()['readerUid'] as String? ?? '').isEmpty))throw StateError('هناك مشتركون دون قارئ؛ أسند قارئاً قبل فتح الجولة');
     final settingsDoc = await doc('billingSettings', a.generatorId).get();
     if (!settingsDoc.exists)
       throw StateError('احفظ إعدادات الفوترة قبل فتح جولة جديدة');
@@ -215,7 +216,7 @@ class RoundsRepository {
     for (final sid in List<String>.from(r.data()!['subscriberIds'])) {
       final s = (await doc('billingSubscribers', sid).get()).data()!;
       final ref = doc('meterAssignments', '${rid}_$sid');
-      if ((await ref.get()).exists) continue;
+      if ((await ref.get()).exists) {await ref.update({'readerUid':s['readerUid']});continue;}
       await ref.set(MeterAssignment(
               id: ref.id,
               generatorId: a.generatorId,
@@ -277,7 +278,7 @@ class RoundsRepository {
     }
     await s.reference.update({'readerUid': uid});
     final open = await doc('readerRounds', a.generatorId).get();
-    if (open.data()?['status'] == 'open') {
+    if (['open','preparing'].contains(open.data()?['status'])) {
       final ref = doc('meterAssignments', '${open.data()!['roundId']}_$sid');
       if ((await ref.get()).exists) await ref.update({'readerUid': uid});
     }
