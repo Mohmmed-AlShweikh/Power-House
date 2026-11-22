@@ -21,7 +21,7 @@ class CredentialScreen extends ConsumerStatefulWidget {
   ConsumerState<CredentialScreen> createState() => _CredentialScreenState();
 }
 
-class _CredentialScreenState extends ConsumerState<CredentialScreen> {
+class _CredentialScreenState extends ConsumerState<CredentialScreen> with WidgetsBindingObserver {
   final email = TextEditingController(),
       password = TextEditingController(),
       confirm = TextEditingController(),
@@ -35,6 +35,7 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final profile = ref.read(authProvider).profile;
     phone.text = profile?.phone ?? '';
     id.text = profile?.idNumber ?? '';
@@ -59,6 +60,7 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> {
     });
   }
 
+  @override void didChangeAppLifecycleState(AppLifecycleState state){if(state==AppLifecycleState.resumed&&widget.mode==CredentialMode.verify&&!busy){unawaited(run(()async{await service.refresh();if(service.verified)await ref.read(authProvider.notifier).reloadProfile();}));}}
   Future<void> openMail() async {
     final opened = await ref.read(mailAppProvider).open();
     if (!opened && mounted) {
@@ -74,6 +76,7 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     resendTimer?.cancel();
     for (final c in [email, password, confirm, current, phone, id]) {
       c.dispose();
@@ -211,6 +214,8 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> {
       ],
       if (mode == CredentialMode.verify) ...[
         const PortalSection('افتح رسالة التحقق في بريدك'),
+        const Text('تحقق من مجلد الرسائل غير المرغوبة (Spam)'),
+        if(service.verificationSendError!=null) PortalErrorState(service.verificationSendError!),
         Text(service.email, textDirection: TextDirection.ltr),
         const Text(
             'افتح رابط رسالة التحقق ثم عد إلى التطبيق واضغط «تحققت من البريد».'),

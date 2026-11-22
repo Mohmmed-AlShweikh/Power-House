@@ -52,6 +52,7 @@ class AttemptThrottle {
   final DateTime Function() now;
   int failures = 0;
   DateTime? blockedUntil, lastEmail;
+  String? emailFailure;
   AttemptThrottle({DateTime Function()? clock}) : now = clock ?? DateTime.now;
   void check() {
     if (blockedUntil != null && now().isBefore(blockedUntil!)) {
@@ -86,6 +87,7 @@ final sharedCredentialThrottle = AttemptThrottle();
 
 abstract class CredentialService {
   String get email;
+  String? get verificationSendError=>null;
   int get emailCooldownSeconds=>0;
   bool get verified => false;
   Future<void> loginEmail(String email, String password);
@@ -106,6 +108,7 @@ class FirebaseCredentialService extends CredentialService {
   FirebaseCredentialService(this.auth, this.db, {AttemptThrottle? throttle})
       : throttle = throttle ?? sharedCredentialThrottle;
   @override int get emailCooldownSeconds {final sent=throttle.lastEmail;if(sent==null)return 0;return ((60000-throttle.now().difference(sent).inMilliseconds)/1000).ceil().clamp(0,60);}
+  @override String? get verificationSendError=>throttle.emailFailure;
   User get user =>
       auth.currentUser ?? (throw const CredentialFailure(genericAuthError));
   @override
@@ -155,7 +158,7 @@ class FirebaseCredentialService extends CredentialService {
   @override
   Future<void> sendVerification() async {
     throttle.message();
-    await user.sendEmailVerification();
+    try{await user.sendEmailVerification();throttle.emailFailure=null;}catch(e){throttle.emailFailure=credentialError(e);rethrow;}
   }
 
   @override

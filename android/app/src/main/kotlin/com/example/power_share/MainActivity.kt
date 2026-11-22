@@ -12,7 +12,7 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 if (call.method == "openMail") {
                     try {
-                        startActivity(Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_EMAIL))
+                        startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_EMAIL))
                         result.success(true)
                     } catch (e: Exception) {
                         result.success(false)
