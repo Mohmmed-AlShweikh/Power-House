@@ -1,3 +1,4 @@
+import 'package:generator_portal/views/widgets/portal_numeric_field.dart';
 import '../../services/operation_errors.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
@@ -131,7 +132,7 @@ class _FieldsState extends State<_Fields> {
             for (final e in fields.entries)
               Padding(
                   padding: const EdgeInsets.only(top: PortalTokens.lg),
-                  child: TextField(
+                  child: PortalNumericField(
                       controller: e.value,
                       onChanged: (_) => setState(() {}),
                       keyboardType: widget.numeric.contains(e.key)

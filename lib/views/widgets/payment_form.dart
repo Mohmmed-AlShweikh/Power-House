@@ -1,3 +1,4 @@
+import 'package:generator_portal/views/widgets/portal_numeric_field.dart';
 import 'portal_keyboard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -78,7 +79,7 @@ class _PaymentFormState extends ConsumerState<PaymentForm> {
             const Text(
                 'أدخل بيانات الدفع للمراجعة. تسجيل الدفعة لا يعني اعتمادها أو تحصيلها إلكترونياً.'),
             const SizedBox(height: PortalTokens.lg),
-            TextField(
+            PortalNumericField(
                 key: const ValueKey('payment-amount'),
                 controller: amount,
                 enabled: !busy,

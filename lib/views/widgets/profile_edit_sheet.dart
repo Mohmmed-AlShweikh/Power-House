@@ -1,3 +1,4 @@
+import 'package:generator_portal/views/widgets/portal_numeric_field.dart';
 import '../../services/contact_fields.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -85,7 +86,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
             ])
               Padding(
                   padding: const EdgeInsets.only(top: PortalTokens.md),
-                  child: TextField(
+                  child: PortalNumericField(
                       controller: entry.$1,
                       keyboardType: entry.$1 == phone
                           ? TextInputType.phone

@@ -1,3 +1,4 @@
+import 'package:generator_portal/views/widgets/portal_numeric_field.dart';
 import '../../widgets/profile_edit_sheet.dart';
 import '../../../features/billing_settings/models.dart';
 import '../../../features/billing_settings/providers.dart';
@@ -438,7 +439,7 @@ class _DashboardTab extends ConsumerWidget {
                 Text('السعر الحالي للوحدة',
                     style: Theme.of(context).textTheme.bodySmall),
                 const SizedBox(height: 8),
-                TextField(
+                PortalNumericField(
                   controller: priceController,
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
@@ -858,7 +859,7 @@ class _SubscriberCard extends StatelessWidget {
                     color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 16),
-              TextField(
+              PortalNumericField(
                 controller: ctrl,
                 keyboardType: TextInputType.number,
                 autofocus: true,
@@ -943,7 +944,7 @@ class _SheetField extends StatelessWidget {
       this.keyboardType,
       this.readOnly = false});
   @override
-  Widget build(BuildContext context) => TextField(
+  Widget build(BuildContext context) => PortalNumericField(
         controller: controller,
         readOnly: readOnly,
         keyboardType: keyboardType,
@@ -1446,7 +1447,7 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: TextField(
+                  child: PortalNumericField(
                     controller: _idCtrl,
                     keyboardType: TextInputType.phone,
                     textDirection: TextDirection.ltr,
@@ -1605,7 +1606,7 @@ class _AddBillSheetState extends ConsumerState<_AddBillSheet> {
                     .bodySmall
                     ?.copyWith(fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
-            TextField(
+            PortalNumericField(
               controller: _kwhCtrl,
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),

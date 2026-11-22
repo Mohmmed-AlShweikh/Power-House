@@ -1,3 +1,4 @@
+import 'package:generator_portal/views/widgets/portal_numeric_field.dart';
 import '../widgets/portal_password_field.dart';
 import 'dart:async';
 import '../../services/mail_app.dart';
@@ -270,14 +271,14 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> with Widget
                       if (mounted) setState(() => reauthenticated = true);
                     }),
             child: const Text('التحقق من الحساب')),
-        TextField(
+        PortalNumericField(
             key: const ValueKey('contact-phone'),
             controller: phone,
             keyboardType: TextInputType.phone,
             maxLength: 32,
             decoration: const InputDecoration(
                 labelText: 'هاتف التواصل (غير متحقق منه)')),
-        TextField(
+        PortalNumericField(
             key: const ValueKey('contact-id'),
             controller: id,
             keyboardType: TextInputType.number,

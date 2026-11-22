@@ -1,3 +1,4 @@
+import 'package:generator_portal/views/widgets/portal_numeric_field.dart';
 import '../../views/widgets/profile_edit_sheet.dart';
 import '../../views/widgets/portal_keyboard.dart';
 import 'dart:async';
@@ -215,7 +216,7 @@ class _MeterEntryState extends ConsumerState<MeterEntry> {
               PortalLabelValue(
                   label: 'القراءة السابقة',
                   value: formatFixed(row.previousMilli, 3)),
-              TextField(
+              PortalNumericField(
                   controller: input,
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),

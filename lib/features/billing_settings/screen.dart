@@ -1,3 +1,4 @@
+import 'package:generator_portal/views/widgets/portal_numeric_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/portal_tokens.dart';
@@ -123,7 +124,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
         for (var i = 0; i < fields.length; i++)
           Padding(
               padding: const EdgeInsets.only(top: PortalTokens.lg),
-              child: TextField(
+              child: PortalNumericField(
                   controller: fields[i],
                   onChanged: (_) => setState(() {}),
                   keyboardType: i == 1
