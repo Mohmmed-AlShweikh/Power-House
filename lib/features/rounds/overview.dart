@@ -12,6 +12,7 @@ import '../metering/providers.dart';
 import 'providers.dart';
 import 'selectors.dart';
 
+
 class RoundsOverview extends ConsumerWidget {
   const RoundsOverview({super.key});
   Future<void> add(BuildContext context, WidgetRef ref) async {
@@ -104,6 +105,7 @@ class RoundsOverview extends ConsumerWidget {
                         DateTime.utc(date.year, date.month, date.day));
                   }
                 })),
+        TextButton(onPressed:()=>context.push('/billing-settings'),child:const Text('إعدادات الفوترة — احفظها قبل فتح جولة')),
         const SizedBox(height: PortalTokens.sm),
         OutlinedButton.icon(
             onPressed: () => add(context, ref),
@@ -162,7 +164,7 @@ class RoundOverviewCard extends ConsumerWidget {
               'preparing': 'قيد التحضير',
               'open': 'مفتوحة',
               'closing': 'قيد إصدار الفواتير',
-              'closed': 'مغلقة'
+              'closed': 'مغلقة', 'cancelled':'ملغاة'
             }[state] ??
             'قيد التحضير';
     final action = published

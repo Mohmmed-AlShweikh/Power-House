@@ -51,6 +51,7 @@ class RoundScreen extends ConsumerWidget {
                   label: 'استئناف تحضير الجولة',
                   onPressed: () => featureAction(context,
                       () => ref.read(roundsRepositoryProvider).prepare(rid))),
+            if(data['status']=='preparing') TextButton(onPressed:()async{if(await featureConfirm(context,'إلغاء الجولة دون حذف بيانات المشتركين؟')&&context.mounted)await featureAction(context,()=>ref.read(roundsRepositoryProvider).cancelPreparation(rid));},child:const Text('إلغاء الجولة')),
             if (['open', 'closing'].contains(data['status']))
               PortalActionButton(
                   label: data['status'] == 'closing'

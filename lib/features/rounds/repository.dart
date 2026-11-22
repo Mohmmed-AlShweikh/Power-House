@@ -170,13 +170,16 @@ class RoundsRepository {
     if (subs.docs.isEmpty || subs.size > 1000) {
       throw StateError('يلزم 1–1000 مشترك في الجولة');
     }
-    final settings = BillingSettings.fromMap(
-        (await doc('billingSettings', a.generatorId).get()).data() ?? {});
+    final settingsDoc = await doc('billingSettings', a.generatorId).get();
+    if (!settingsDoc.exists)
+      throw StateError('احفظ إعدادات الفوترة قبل فتح جولة جديدة');
+    final settings = BillingSettings.fromMap(settingsDoc.data()!);
     settings.validate();
     final rid = db.collection('billingRounds').doc().id;
     await db.runTransaction((tx) async {
       final active = await tx.get(doc('readerRounds', a.generatorId));
-      if (active.exists && active.data()?['status'] != 'closed') {
+      if (active.exists &&
+          !['closed', 'cancelled'].contains(active.data()?['status'])) {
         throw StateError('أكمل أو أغلق الجولة الحالية أولاً');
       }
       tx.set(doc('billingRounds', rid), {
@@ -203,6 +206,8 @@ class RoundsRepository {
   Future<void> prepare(String rid) async {
     final a = await owner();
     final r = await doc('billingRounds', rid).get();
+    if (r.data()?['generatorId'] == a.generatorId &&
+        r.data()?['status'] == 'open') return;
     if (r.data()?['generatorId'] != a.generatorId ||
         r.data()?['status'] != 'preparing') {
       throw StateError('جولة غير متاحة للتحضير');
@@ -223,10 +228,38 @@ class RoundsRepository {
               averageMilli: s['averageMilli'])
           .toMap());
     }
-    final b = db.batch();
-    b.update(r.reference, {'status': 'open'});
-    b.update(doc('readerRounds', a.generatorId), {'status': 'open'});
-    await b.commit();
+    await db.runTransaction((tx) async {
+      final fresh = await tx.get(r.reference),
+          active = await tx.get(doc('readerRounds', a.generatorId));
+      if (fresh.data()?['status'] == 'open') return;
+      if (fresh.data()?['status'] != 'preparing' ||
+          active.data()?['roundId'] != rid)
+        throw StateError('تغيرت حالة الجولة؛ أعد فتح الشاشة');
+      tx.update(r.reference, {'status': 'open'});
+      tx.update(active.reference, {'status': 'open'});
+    });
+  }
+
+  Future<void> cancelPreparation(String rid) async {
+    final a = await owner();
+    final bills = await db
+        .collection('cycleBills')
+        .where('generatorId', isEqualTo: a.generatorId)
+        .where('roundId', isEqualTo: rid)
+        .limit(1)
+        .get();
+    if (bills.docs.isNotEmpty)
+      throw StateError('لا يمكن إلغاء جولة صدرت لها فواتير');
+    await db.runTransaction((tx) async {
+      final r = await tx.get(doc('billingRounds', rid)),
+          active = await tx.get(doc('readerRounds', a.generatorId));
+      if (r.data()?['generatorId'] != a.generatorId ||
+          r.data()?['status'] != 'preparing' ||
+          active.data()?['roundId'] != rid)
+        throw StateError('الإلغاء متاح للجولة التي لا تزال قيد التحضير فقط');
+      tx.update(r.reference, {'status': 'cancelled'});
+      tx.update(active.reference, {'status': 'cancelled'});
+    });
   }
 
   Future<void> assignReader(String sid, String uid) async {
@@ -406,7 +439,7 @@ class RoundsRepository {
           balance = await tx.get(doc('accountBalances', b['subscriberId']));
       if (round.data()?['status'] != 'closed' ||
           active.data()?['roundId'] != b['roundId'] ||
-          active.data()?['status'] != 'closed') {
+          !['closed', 'cancelled'].contains(active.data()?['status'])) {
         throw StateError(
             'التصحيح قبل فتح الجولة التالية فقط؛ لا نغيّر سلسلة قراءات لاحقة تلقائياً');
       }

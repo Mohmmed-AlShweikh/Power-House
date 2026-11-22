@@ -99,7 +99,7 @@ service cloud.firestore {
     }
     match /billingRounds/{id} {
       allow read: if cycleOwner(resource.data);
-      allow create, update: if cycleOwner(request.resource.data) && (!exists(/databases/$(database)/documents/billingRounds/$(id)) || same(resource.data)) && request.resource.data.keys().hasOnly(['generatorId','status','date','cycleDays','settings','subscriberIds','createdBy']) && request.resource.data.status in ['preparing','open','closing','closed'] && validEpoch(request.resource.data.date) && request.resource.data.cycleDays is int && request.resource.data.settings is map && request.resource.data.subscriberIds is list && request.resource.data.subscriberIds.size() <= 1000 && request.resource.data.createdBy == request.auth.uid;
+      allow create, update: if cycleOwner(request.resource.data) && (!exists(/databases/$(database)/documents/billingRounds/$(id)) || same(resource.data)) && request.resource.data.keys().hasOnly(['generatorId','status','date','cycleDays','settings','subscriberIds','createdBy']) && request.resource.data.status in ['preparing','open','closing','closed','cancelled'] && validEpoch(request.resource.data.date) && request.resource.data.cycleDays is int && request.resource.data.settings is map && request.resource.data.subscriberIds is list && request.resource.data.subscriberIds.size() <= 1000 && request.resource.data.createdBy == request.auth.uid && (request.resource.data.status != 'cancelled' || (resource.data.status == 'preparing' && resource.data.subscriberIds.size()>0 && !exists(/databases/$(database)/documents/cycleBills/$(id + '_' + resource.data.subscriberIds[0])) && getAfter(/databases/$(database)/documents/readerRounds/$(gid(me()))).data.status == 'cancelled'));
     }
     match /readingCorrections/{id} {
       allow read: if cycleOwner(resource.data);
@@ -163,10 +163,11 @@ service cloud.firestore {
     }
     match /readerRounds/{id} {
       allow read: if (owner() || reader()) && gid(me()) == id;
-      allow create, update: if owner() && gid(me()) == id && request.resource.data.keys().hasOnly(['generatorId','roundId','status','date','cycleDays']) && request.resource.data.generatorId == id && request.resource.data.roundId is string && request.resource.data.status in ['preparing','open','closing','closed'] && validEpoch(request.resource.data.date) && request.resource.data.cycleDays is int;
+      allow create, update: if owner() && gid(me()) == id && request.resource.data.keys().hasOnly(['generatorId','roundId','status','date','cycleDays']) && request.resource.data.generatorId == id && request.resource.data.roundId is string && request.resource.data.status in ['preparing','open','closing','closed','cancelled'] && validEpoch(request.resource.data.date) && request.resource.data.cycleDays is int && (request.resource.data.status != 'cancelled' || (resource.data.status == 'preparing' && getAfter(/databases/$(database)/documents/billingRounds/$(request.resource.data.roundId)).data.status == 'cancelled'));
     }
     match /meterAssignments/{id} {
-      allow read: if (owner() && same(resource.data)) || (reader() && same(resource.data) && resource.data.readerUid == request.auth.uid && openRound(resource.data));
+      allow get: if (owner() && (!exists(/databases/$(database)/documents/meterAssignments/$(id)) || same(resource.data))) || (reader() && same(resource.data) && resource.data.readerUid == request.auth.uid && openRound(resource.data));
+      allow list: if (owner() && same(resource.data)) || (reader() && same(resource.data) && resource.data.readerUid == request.auth.uid && openRound(resource.data));
       allow create, update: if owner() && same(request.resource.data) && (!exists(/databases/$(database)/documents/meterAssignments/$(id)) || same(resource.data)) && request.resource.data.keys().hasOnly(['generatorId','readerUid','roundId','name','address','number','previousMilli','averageMilli']) && request.resource.data.name is string && request.resource.data.name.size() <= 120 && request.resource.data.address is string && request.resource.data.address.size() <= 240 && request.resource.data.number is string && request.resource.data.number.size() <= 80 && request.resource.data.previousMilli is int && request.resource.data.previousMilli >= 0 && request.resource.data.previousMilli <= 1000000000 && request.resource.data.averageMilli is int && request.resource.data.averageMilli >= 0;
     }
     function assigned(data, id) {

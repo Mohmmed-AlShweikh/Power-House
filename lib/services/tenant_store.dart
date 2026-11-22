@@ -47,7 +47,7 @@ class TenantStore {
         await db.collection('generators').doc(who.generatorId).get();
     if (generator.exists &&
         !GeneratorAccount.fromMap(generator.id, generator.data()!).available) {
-      throw StateError('المولد غير متاح');
+      throw StateError(generator.data()?['subscriptionStatus']!='active'?'اشتراك المولد غير نشط؛ راجع المشرف العام':'المولد غير معتمد أو موقوف؛ راجع المشرف العام');
     }
     if (!generator.exists && who.generatorId != defaultGeneratorId) {
       throw StateError('المولد غير موجود');

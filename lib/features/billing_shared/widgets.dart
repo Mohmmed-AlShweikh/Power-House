@@ -1,3 +1,6 @@
+import '../../services/operation_errors.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/portal_tokens.dart';
@@ -52,13 +55,10 @@ Future<void> featureAction(
           .showSnackBar(const SnackBar(content: Text('تم حفظ العملية')));
     }
   } catch (e) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(e is StateError
-              ? e.message.toString()
-              : e is FormatException
-                  ? e.message
-                  : 'تعذر الحفظ؛ تحقق من الاتصال والصلاحية ثم حاول مجدداً')));
+    if(context.mounted){
+      final code=e is FirebaseException?e.code:e is StateError?'state-conflict':'validation';
+      if(kDebugMode)debugPrint('portal operation code=$code');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(operationMessage(e)),action:SnackBarAction(label:'تفاصيل تقنية',onPressed:()=>showDialog<void>(context:context,builder:(c)=>AlertDialog(content:ExpansionTile(title:const Text('تفاصيل تقنية'),children:[SelectableText('code: $code\npath: billingRounds / meterAssignments')]),actions:[TextButton(onPressed:()=>Navigator.pop(c),child:const Text('إغلاق'))])))));
     }
   }
 }
