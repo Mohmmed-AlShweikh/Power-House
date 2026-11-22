@@ -32,6 +32,10 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> with Widget
   bool busy = false, reauthenticated = false, resetSent = false;
   int resendSeconds = 0;
   Timer? resendTimer;
+  Timer? autoLoginTimer;
+  String previousEmail = '', previousPassword = '';
+  bool bulkPasswordFill = false;
+  int? lastSubmittedCredentials;
   String? error, notice;
   CredentialService get service => ref.read(credentialServiceProvider);
   @override
@@ -41,7 +45,8 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> with Widget
     final profile = ref.read(authProvider).profile;
     phone.text = profile?.phone ?? '';
     id.text = profile?.idNumber ?? '';
-    password.addListener(refresh);
+    email.addListener(emailChanged);
+    password.addListener(passwordChanged);
     confirm.addListener(refresh);
     if(widget.mode==CredentialMode.verify)startCooldown(service.emailCooldownSeconds);
   }
@@ -76,10 +81,53 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> with Widget
     if (mounted) setState(() {});
   }
 
+  int get credentialsKey => Object.hash(email.text.trim(), password.text);
+
+  void emailChanged() {
+    if (email.text == previousEmail) return;
+    previousEmail = email.text;
+    queueAutoLogin();
+  }
+
+  void passwordChanged() {
+    if (password.text == previousPassword) return;
+    // Ignore selection/composing-only changes. Single-character typing never
+    // qualifies; an empty-to-full fill/paste does (including reversed fill order).
+    bulkPasswordFill = previousPassword.isEmpty && password.text.length >= 8;
+    previousPassword = password.text;
+    queueAutoLogin();
+    refresh();
+  }
+
+  void queueAutoLogin() {
+    autoLoginTimer?.cancel();
+    if (widget.mode != CredentialMode.login ||
+        busy ||
+        !bulkPasswordFill ||
+        !realEmail(email.text) ||
+        credentialsKey == lastSubmittedCredentials) {
+      return;
+    }
+    final candidate = credentialsKey;
+    autoLoginTimer = Timer(const Duration(milliseconds: 400), () {
+      if (mounted &&
+          widget.mode == CredentialMode.login &&
+          !busy &&
+          bulkPasswordFill &&
+          realEmail(email.text) &&
+          password.text.length >= 8 &&
+          credentialsKey == candidate &&
+          candidate != lastSubmittedCredentials) {
+        unawaited(submit());
+      }
+    });
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     resendTimer?.cancel();
+    autoLoginTimer?.cancel();
     for (final c in [email, password, confirm, current, phone, id]) {
       c.dispose();
     }
@@ -105,7 +153,15 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> with Widget
     }
   }
 
-  Future<void> submit() => run(() async {
+  Future<void> submit() {
+    if (busy) return Future<void>.value();
+    if (widget.mode == CredentialMode.login) {
+      autoLoginTimer?.cancel();
+      bulkPasswordFill = false;
+      lastSubmittedCredentials = credentialsKey;
+      FocusScope.of(context).unfocus();
+    }
+    return run(() async {
         switch (widget.mode) {
           case CredentialMode.login:
             final problem = await ref
@@ -173,6 +229,7 @@ class _CredentialScreenState extends ConsumerState<CredentialScreen> with Widget
             }
         }
       });
+  }
   @override
   Widget build(BuildContext context) {
     final mode = widget.mode;

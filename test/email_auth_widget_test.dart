@@ -14,7 +14,8 @@ import 'support/multi_auth_fixture.dart';
 class EmailFixture extends MultiAuthFixture {
   String? email, password;
   Completer<void>? loginGate;
-  int reloads = 0;
+  int reloads = 0, loginCalls = 0;
+  String? loginError;
   @override
   Future<void> reloadProfile() async {
     reloads++;
@@ -22,10 +23,11 @@ class EmailFixture extends MultiAuthFixture {
 
   @override
   Future<String?> login(String email, String password) async {
+    loginCalls++;
     this.email = email;
     this.password = password;
     await loginGate?.future;
-    return password == 'wrong' ? genericAuthError : null;
+    return loginError ?? (password == 'wrong' ? genericAuthError : null);
   }
 }
 
@@ -95,6 +97,130 @@ void main() {
     await t.pumpAndSettle();
   }
 
+  for (final passwordFirst in [false, true]) {
+    testWidgets(
+        'bulk autofill submits once after debounce (password first: $passwordFirst)',
+        (t) async {
+      final auth = await boot(
+          t, CredentialMode.login, FakeCredentials(), Brightness.light);
+      auth.loginGate = Completer<void>();
+      if (passwordFirst) {
+        await field(t, 'password', 'Strong123');
+        await field(t, 'email', 'test@example.com');
+      } else {
+        await field(t, 'email', 'test@example.com');
+        await field(t, 'password', 'Strong123');
+      }
+      await t.pump(const Duration(milliseconds: 399));
+      expect(auth.loginCalls, 0);
+      await t.pump(const Duration(milliseconds: 1));
+      expect(auth.loginCalls, 1);
+      expect(t.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
+          isNull);
+      expect(
+          find.descendant(
+              of: find.byType(ElevatedButton),
+              matching: find.byType(CircularProgressIndicator)),
+          findsOneWidget);
+      expect(
+          t
+              .widgetList<TextField>(find.byType(TextField))
+              .every((f) => f.enabled == false),
+          true);
+      expect(t.testTextInput.isVisible, false);
+      await t.pump(const Duration(seconds: 2));
+      expect(auth.loginCalls, 1);
+      auth.loginGate!.complete();
+      await t.pumpAndSettle();
+      await t.pump(const Duration(seconds: 1));
+      expect(auth.loginCalls, 1);
+    });
+  }
+
+  testWidgets(
+      'character typing never auto-submits; manual button starts immediately',
+      (t) async {
+    final auth =
+        await boot(t, CredentialMode.login, FakeCredentials(), Brightness.dark);
+    auth.loginGate = Completer<void>();
+    await field(t, 'email', 'test@example.com');
+    const password = 'Strong123';
+    for (var i = 1; i <= password.length; i++) {
+      await field(t, 'password', password.substring(0, i));
+      await t.pump(const Duration(milliseconds: 500));
+    }
+    expect(auth.loginCalls, 0);
+    final button = find.byType(ElevatedButton);
+    await t.ensureVisible(button);
+    await t.tap(button);
+    await t.pump();
+    expect(auth.loginCalls, 1);
+    expect(t.widget<ElevatedButton>(button).onPressed, isNull);
+    expect(
+        find.descendant(
+            of: button, matching: find.byType(CircularProgressIndicator)),
+        findsOneWidget);
+    expect(t.testTextInput.isVisible, false);
+    auth.loginGate!.complete();
+    await t.pumpAndSettle();
+  });
+
+  testWidgets(
+      'failed autofill restores fields and never retries unchanged credentials',
+      (t) async {
+    final auth = await boot(
+        t, CredentialMode.login, FakeCredentials(), Brightness.light);
+    auth.loginError = genericAuthError;
+    await field(t, 'email', 'test@example.com');
+    await field(t, 'password', 'Strong123');
+    await t.pump(const Duration(milliseconds: 400));
+    await t.pumpAndSettle();
+    expect(auth.loginCalls, 1);
+    expect(find.text(genericAuthError), findsOneWidget);
+    expect(
+        t
+            .widgetList<TextField>(find.byType(TextField))
+            .every((f) => f.enabled == true),
+        true);
+    expect(t.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
+        isNotNull);
+    final fields = t.widgetList<TextField>(find.byType(TextField)).toList();
+    expect(fields.first.controller!.text, 'test@example.com');
+    expect(fields.last.controller!.text, 'Strong123');
+    await t.pump(const Duration(seconds: 3));
+    // Some password managers may refill the same pair; that must not loop.
+    await field(t, 'password', '');
+    await field(t, 'password', 'Strong123');
+    await t.pump(const Duration(seconds: 1));
+    expect(auth.loginCalls, 1);
+    await tap(t, 'تسجيل الدخول');
+    expect(auth.loginCalls, 2);
+    // Changing the filled credentials permits a new automatic attempt.
+    await field(t, 'password', '');
+    await field(t, 'password', 'Changed123');
+    await t.pump(const Duration(milliseconds: 400));
+    await t.pumpAndSettle();
+    expect(auth.loginCalls, 3);
+  });
+
+  testWidgets(
+      'editing a bulk fill cancels pending auto-login; leaving cancels debounce',
+      (t) async {
+    final auth = await boot(
+        t, CredentialMode.login, FakeCredentials(), Brightness.light);
+    await field(t, 'email', 'test@example.com');
+    await field(t, 'password', 'Strong123');
+    await t.pump(const Duration(milliseconds: 200));
+    await field(t, 'password', 'Strong1234');
+    await t.pump(const Duration(seconds: 1));
+    expect(auth.loginCalls, 0);
+    await field(t, 'password', '');
+    await field(t, 'password', 'Strong123');
+    await t.pumpWidget(const SizedBox.shrink());
+    await t.pump(const Duration(seconds: 1));
+    expect(auth.loginCalls, 0);
+  });
+
   testWidgets(
       'resume reloads verification and resolves profile only when verified',
       (t) async {
@@ -127,6 +253,7 @@ void main() {
     await t.pump();
     expect(auth.email, 'test@example.com');
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(t.testTextInput.isVisible, false);
     expect(
         t
             .widgetList<TextField>(find.byType(TextField))
@@ -135,6 +262,8 @@ void main() {
     auth.loginGate!.complete();
     await t.pumpAndSettle();
     expect(find.byType(CircularProgressIndicator), findsNothing);
+    await t.pump(const Duration(seconds: 1));
+    expect(auth.loginCalls, 1);
   });
 
   for (final brightness in Brightness.values) {
