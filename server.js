@@ -2,10 +2,12 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const PORT = 5000;
+const PORT = Number(process.env.PORT || 5000);
 const WEB_DIR = path.join(__dirname, 'build', 'web');
 const STATIC_DIR = path.join(__dirname, 'web');
 const PORTFOLIO_DIR = path.join(__dirname, 'docs', 'portfolio');
+const LANDING_DIR = path.join(STATIC_DIR, 'landing');
+const landingOnly = process.argv.includes('--landing');
 
 const MIME = {
   '.html': 'text/html',
@@ -27,6 +29,34 @@ const MIME = {
 
 http.createServer((req, res) => {
   let urlPath = req.url.split('?')[0];
+
+  if (urlPath === '/landing') {
+    res.writeHead(302, { Location: '/landing/' }); res.end(); return;
+  }
+  // /landing/ is additive; --landing previews the same static site at /.
+  if (urlPath.startsWith('/landing/') ||
+      (landingOnly && !urlPath.startsWith('/portfolio'))) {
+    const relative = urlPath.startsWith('/landing/')
+      ? urlPath.slice('/landing/'.length) : urlPath.slice(1);
+    let file;
+    try {
+      file = path.resolve(LANDING_DIR, decodeURIComponent(relative || 'index.html'));
+    } catch (_) {
+      res.writeHead(400); res.end('Invalid path'); return;
+    }
+    if (!file.startsWith(LANDING_DIR + path.sep)) {
+      res.writeHead(403); res.end('Forbidden'); return;
+    }
+    fs.readFile(file, (err, data) => {
+      if (err) { res.writeHead(404); res.end('Not found'); return; }
+      res.writeHead(200, {
+        'Content-Type': MIME[path.extname(file)] || 'application/octet-stream',
+        'Cache-Control': 'no-cache',
+      });
+      res.end(data);
+    });
+    return;
+  }
 
   // Self-contained case-study assets; never serve outside the public portfolio.
   if (urlPath.startsWith('/portfolio-assets/')) {
@@ -98,5 +128,5 @@ http.createServer((req, res) => {
     res.end(data);
   });
 }).listen(PORT, '0.0.0.0', () => {
-  console.log(`Serving Flutter web build at http://0.0.0.0:${PORT}`);
+  console.log(`Serving ${landingOnly ? 'landing page' : 'Flutter web build'} at http://0.0.0.0:${PORT}`);
 });

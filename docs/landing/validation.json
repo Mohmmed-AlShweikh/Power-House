@@ -1,0 +1,24 @@
+{
+  "checks": [
+    "no horizontal overflow at 1440px",
+    "no horizontal overflow at 1024px",
+    "no horizontal overflow at 768px",
+    "no horizontal overflow at 390px",
+    "no horizontal overflow at 320px",
+    "role owner: correct selection, panel, light/dark images",
+    "role consumer: correct selection, panel, light/dark images",
+    "role reader: correct selection, panel, light/dark images",
+    "role superadmin: correct selection, panel, light/dark images",
+    "role tabs: RTL arrow, Home and End keyboard navigation",
+    "screenshot modal opens/closes with Escape/button and restores focus",
+    "all six FAQ answers open and close",
+    "mobile menu: open, anchor navigation, close and Escape",
+    "reduced-motion preference disables smooth scrolling",
+    "contact: absent by default, valid email/WhatsApp enabled, malformed config ignored",
+    "additive /landing route, PDF, missing files and traversal/malformed path handling",
+    "Self-contained HTML bytes: all 8 role/theme states without network; ZIP integrity valid. Managed browser blocks file:// navigation, so standalone DOM rendered via set_content."
+  ],
+  "errors": [],
+  "brokenResources": [],
+  "externalRequests": []
+}
